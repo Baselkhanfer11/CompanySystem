@@ -17,4 +17,9 @@ public class User
 
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Optional link to an employee. A login account may belong to an employee
+    // (created via "Grant access"), or be a standalone account (e.g. the seeded admin).
+    public int? EmployeeId { get; set; }
+    public Employee? Employee { get; set; }
 }

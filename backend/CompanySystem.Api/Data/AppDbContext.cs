@@ -27,5 +27,19 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
             .IsUnique();
+
+        // One-to-one (optional): an Employee has at most one login User.
+        // Deleting the employee also removes their login account.
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Employee)
+            .WithOne(e => e.User)
+            .HasForeignKey<User>(u => u.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Each employee can be linked to at most one user (nulls allowed for standalone accounts).
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.EmployeeId)
+            .IsUnique()
+            .HasFilter("[EmployeeId] IS NOT NULL");
     }
 }

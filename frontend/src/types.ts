@@ -1,4 +1,12 @@
-// Mirrors the C# Employee model from the backend.
+// The login access an employee has, if any.
+export interface EmployeeAccess {
+  userId: number;
+  username: string;
+  role: string;
+  isActive: boolean;
+}
+
+// Mirrors the C# EmployeeDto from the backend.
 export interface Employee {
   id: number;
   fullName: string;
@@ -6,14 +14,28 @@ export interface Employee {
   position?: string | null;
   hireDate: string; // ISO date string
   isActive: boolean;
+  access?: EmployeeAccess | null;
 }
 
-// The shape we send when creating/updating (no server-generated id).
+// The shape we send when creating/updating an employee's core fields.
 export interface EmployeeInput {
   fullName: string;
   email?: string | null;
   position?: string | null;
   isActive: boolean;
+}
+
+// Grant / update a login for an employee.
+export interface GrantAccessInput {
+  username: string;
+  password: string;
+  role: string;
+  isActive: boolean;
+}
+export interface UpdateAccessInput {
+  role: string;
+  isActive: boolean;
+  newPassword?: string | null;
 }
 
 // A login account (mirrors the backend UserDto — never includes the password).
@@ -24,6 +46,7 @@ export interface User {
   role: string;
   isActive: boolean;
   createdAt: string;
+  employeeId?: number | null;
 }
 
 // What /api/auth/login returns.
@@ -31,19 +54,4 @@ export interface AuthResponse {
   token: string;
   expiresAt: string;
   user: User;
-}
-
-// Admin create/update user payloads.
-export interface CreateUserInput {
-  username: string;
-  fullName: string;
-  password: string;
-  role: string;
-  isActive: boolean;
-}
-export interface UpdateUserInput {
-  fullName: string;
-  role: string;
-  isActive: boolean;
-  newPassword?: string | null;
 }

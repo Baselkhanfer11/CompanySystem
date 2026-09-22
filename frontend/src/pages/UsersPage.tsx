@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { usersApi } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
 import { isAdmin } from '../auth/roles';
 import { Avatar } from '../components/Avatar';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { EditIcon, PlusIcon, ShieldIcon, TrashIcon } from '../components/icons';
+import { ShieldIcon, TrashIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
-import { UserModal } from '../components/UserModal';
 import { useToast } from '../components/toast';
+import { formatDate } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { CreateUserInput, UpdateUserInput, User } from '../types';
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+import type { User } from '../types';
 
 export function UsersPage() {
   const { search } = useOutletContext<LayoutContext>();
@@ -23,10 +20,6 @@ export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<User | null>(null);
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<User | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
@@ -43,7 +36,6 @@ export function UsersPage() {
     return users.filter((u) => [u.fullName, u.username, u.role].some((v) => v.toLowerCase().includes(q)));
   }, [users, search]);
 
-  // Defensive: this page is admin-only (backend enforces it too).
   if (!isAdmin(me?.role)) {
     return (
       <div className="empty-state" style={{ paddingTop: 100 }}>
@@ -54,34 +46,12 @@ export function UsersPage() {
     );
   }
 
-  const handleCreate = async (data: CreateUserInput) => {
-    setSaving(true);
-    try {
-      await usersApi.create(data);
-      toast('success', 'User created');
-      setModalOpen(false);
-      load();
-    } catch (e) { toast('error', (e as Error).message); }
-    finally { setSaving(false); }
-  };
-
-  const handleUpdate = async (id: number, data: UpdateUserInput) => {
-    setSaving(true);
-    try {
-      await usersApi.update(id, data);
-      toast('success', 'User updated');
-      setModalOpen(false);
-      load();
-    } catch (e) { toast('error', (e as Error).message); }
-    finally { setSaving(false); }
-  };
-
   const handleDelete = async () => {
     if (!deleting) return;
     setDeleteBusy(true);
     try {
       await usersApi.remove(deleting.id);
-      toast('success', 'User removed');
+      toast('success', 'Login removed');
       setDeleting(null);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -90,20 +60,15 @@ export function UsersPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1>Users</h1>
-          <p>Manage login accounts and their roles.</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <PlusIcon /> Add user
-        </button>
+      <div className="page-header">
+        <h1>Users</h1>
+        <p>Everyone who can sign in. Grant access to staff from the <Link to="/employees" style={{ color: 'var(--accent-2)' }}>Employees</Link> page.</p>
       </div>
 
       <div className="panel rise">
         <div className="panel-head">
           <div>
-            <h3>All users</h3>
+            <h3>All logins</h3>
             <div className="sub">{loading ? 'Loading…' : `${filtered.length} account${filtered.length === 1 ? '' : 's'}`}</div>
           </div>
         </div>
@@ -139,6 +104,7 @@ export function UsersPage() {
                   <th>User</th>
                   <th>Role</th>
                   <th>Status</th>
+                  <th>Type</th>
                   <th>Created</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -164,16 +130,19 @@ export function UsersPage() {
                         <span className="dot" />{u.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+                      {u.employeeId ? 'Staff login' : 'System account'}
+                    </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</td>
                     <td>
                       <div className="row-actions">
-                        <button className="act-btn" onClick={() => { setEditing(u); setModalOpen(true); }} aria-label="Edit"><EditIcon /></button>
                         <button
                           className="act-btn danger"
                           onClick={() => setDeleting(u)}
                           disabled={u.id === me?.id}
                           style={u.id === me?.id ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
-                          aria-label="Delete"
+                          aria-label="Remove login"
+                          title={u.id === me?.id ? 'You can’t remove your own login' : 'Remove login'}
                         >
                           <TrashIcon />
                         </button>
@@ -187,19 +156,10 @@ export function UsersPage() {
         )}
       </div>
 
-      <UserModal
-        open={modalOpen}
-        initial={editing}
-        saving={saving}
-        onClose={() => setModalOpen(false)}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-      />
-
       <ConfirmDialog
         open={!!deleting}
-        title="Delete user?"
-        message={`This will permanently remove ${deleting?.fullName}'s account.`}
+        title="Remove login?"
+        message={`${deleting?.fullName} will no longer be able to sign in.`}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}

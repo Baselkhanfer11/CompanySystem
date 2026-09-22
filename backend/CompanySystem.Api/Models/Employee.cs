@@ -20,4 +20,7 @@ public class Employee
 
     // Simple flag so we can deactivate an employee instead of deleting them.
     public bool IsActive { get; set; } = true;
+
+    // The login account for this employee, if they've been granted access (else null).
+    public User? User { get; set; }
 }
