@@ -1,5 +1,6 @@
-import { BellIcon, MenuIcon, SearchIcon, SparkIcon } from './icons';
+import { MenuIcon, SearchIcon } from './icons';
 import { LangSwitch } from './LangSwitch';
+import { NotificationsBell } from './NotificationsBell';
 import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
@@ -34,8 +35,7 @@ export function Topbar({ search, onSearch, onMenu, placeholder }: Props) {
 
       <LangSwitch />
       <ThemeToggle />
-      <button className="icon-btn" aria-label="Assistant"><SparkIcon /></button>
-      <button className="icon-btn" aria-label="Notifications"><BellIcon /></button>
+      <NotificationsBell />
     </header>
   );
 }

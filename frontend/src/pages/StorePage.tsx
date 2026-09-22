@@ -8,11 +8,10 @@ import { BoxesIcon, EditIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
 import { useI18n } from '../i18n/LanguageContext';
+import { LOW_STOCK } from '../lib/stock';
 import { formatPrice } from '../lib/units';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Item, ItemInput } from '../types';
-
-const LOW_STOCK = 10;
 
 export function StorePage() {
   const { search } = useOutletContext<LayoutContext>();

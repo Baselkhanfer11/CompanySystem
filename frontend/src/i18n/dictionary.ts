@@ -50,6 +50,15 @@ const en: Dict = {
   'theme.toLight': 'Switch to light mode',
   'theme.toDark': 'Switch to dark mode',
 
+  // Notifications
+  'notif.title': 'Notifications',
+  'notif.empty': 'You’re all caught up',
+  'notif.emptySub': 'No low-stock alerts right now.',
+  'notif.outOfStock': 'Out of stock',
+  'notif.onlyLeft': 'Only {n} {unit} left',
+  'notif.viewStore': 'View store',
+  'notif.loading': 'Checking stock…',
+
   // Roles
   'role.Administrator': 'Administrator',
   'role.WarehouseManager': 'Warehouse Manager',
@@ -253,6 +262,15 @@ const ar: Dict = {
   // Theme toggle
   'theme.toLight': 'التبديل إلى الوضع الفاتح',
   'theme.toDark': 'التبديل إلى الوضع الداكن',
+
+  // Notifications
+  'notif.title': 'الإشعارات',
+  'notif.empty': 'كل شيء على ما يرام',
+  'notif.emptySub': 'لا توجد تنبيهات مخزون منخفض حالياً.',
+  'notif.outOfStock': 'نفد من المخزن',
+  'notif.onlyLeft': 'بقي {n} {unit} فقط',
+  'notif.viewStore': 'عرض المخزن',
+  'notif.loading': 'جارٍ فحص المخزون…',
 
   // Roles
   'role.Administrator': 'مدير النظام',
