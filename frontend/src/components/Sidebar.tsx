@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { roleLabel } from '../auth/roles';
+import { isAdmin, roleLabel } from '../auth/roles';
 import {
   BoxesIcon, CartIcon, CubeIcon, DashboardIcon, LogoutIcon,
-  ProjectsIcon, TrendingIcon, UsersIcon,
+  ProjectsIcon, ShieldIcon, TrendingIcon, UsersIcon,
 } from './icons';
 import { Avatar } from './Avatar';
 
@@ -43,6 +43,14 @@ export function Sidebar({ open }: { open: boolean }) {
           <span>{item.label}</span>
         </NavLink>
       ))}
+
+      {/* Users management — administrators only */}
+      {isAdmin(user?.role) && (
+        <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <ShieldIcon />
+          <span>Users</span>
+        </NavLink>
+      )}
 
       <div className="nav-label">Operations</div>
       {soon.map((item) => (
