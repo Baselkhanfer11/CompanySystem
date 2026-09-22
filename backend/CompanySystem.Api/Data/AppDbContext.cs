@@ -25,6 +25,9 @@ public class AppDbContext : DbContext
     // The "Projects" table (sites that material/cost is charged to).
     public DbSet<Project> Projects => Set<Project>();
 
+    // The "Documents" table (uploaded files moving through the approval pipeline).
+    public DbSet<Document> Documents => Set<Document>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -62,5 +65,21 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Project>()
             .HasIndex(p => p.Code)
             .IsUnique();
+
+        // A document belongs to a project. Deleting the project removes its
+        // documents (their files are cleaned up in the delete flow).
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.Project)
+            .WithMany()
+            .HasForeignKey(d => d.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Track who uploaded a document, but keep the document even if that user
+        // is removed (Restrict also avoids multiple cascade paths to Documents).
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.UploadedBy)
+            .WithMany()
+            .HasForeignKey(d => d.UploadedById)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
