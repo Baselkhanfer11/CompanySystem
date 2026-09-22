@@ -337,6 +337,21 @@ const en: Dict = {
   'docReview.resubmitTitle': 'Resubmit document',
   'docReview.resubmitSub': 'Upload the corrected file for “{title}”. It goes back to the manager.',
   'docReview.resubmitted': 'Document resubmitted',
+
+  // Document history / timeline (the trace)
+  'docTimeline.title': 'Document history',
+  'docTimeline.sub': 'Every step, from submission to now.',
+  'docTimeline.view': 'History',
+  'docTimeline.project': 'Project',
+  'docTimeline.empty': 'No history yet.',
+  'docTimeline.by': 'by {name}',
+  'docTimeline.step.Engineer': 'Engineer',
+  'docTimeline.step.Manager': 'Manager',
+  'docTimeline.step.CEO': 'CEO',
+  'docTimeline.action.Submitted': 'Submitted',
+  'docTimeline.action.Approved': 'Approved',
+  'docTimeline.action.Returned': 'Returned for edits',
+  'docTimeline.action.Resubmitted': 'Resubmitted',
 };
 
 const ar: Dict = {
@@ -662,6 +677,21 @@ const ar: Dict = {
   'docReview.resubmitTitle': 'إعادة إرسال المستند',
   'docReview.resubmitSub': 'ارفع الملف المصحّح لـ «{title}». سيعود إلى المدير.',
   'docReview.resubmitted': 'تمت إعادة إرسال المستند',
+
+  // Document history / timeline (the trace)
+  'docTimeline.title': 'سجل المستند',
+  'docTimeline.sub': 'كل خطوة، من التقديم حتى الآن.',
+  'docTimeline.view': 'السجل',
+  'docTimeline.project': 'المشروع',
+  'docTimeline.empty': 'لا يوجد سجل بعد.',
+  'docTimeline.by': 'بواسطة {name}',
+  'docTimeline.step.Engineer': 'المهندس',
+  'docTimeline.step.Manager': 'المدير',
+  'docTimeline.step.CEO': 'المدير التنفيذي',
+  'docTimeline.action.Submitted': 'تم التقديم',
+  'docTimeline.action.Approved': 'تم الاعتماد',
+  'docTimeline.action.Returned': 'أُعيد للتعديل',
+  'docTimeline.action.Resubmitted': 'أُعيد الإرسال',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };

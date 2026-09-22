@@ -98,3 +98,6 @@ export const UploadIcon = (p: P) => (
 export const UndoIcon = (p: P) => (
   <svg {...base} {...p}><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H9"/></svg>
 );
+export const HistoryIcon = (p: P) => (
+  <svg {...base} {...p}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+);

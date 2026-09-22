@@ -120,3 +120,18 @@ export interface ApprovalDocument {
   createdAt: string;
   updatedAt: string;
 }
+
+// One entry in a document's history (the trace/timeline).
+export interface DocumentEvent {
+  id: number;
+  action: string; // Submitted | Approved | Returned | Resubmitted
+  actorName: string;
+  note?: string | null;
+  createdAt: string;
+}
+
+// A document plus its full history.
+export interface DocumentDetail {
+  document: ApprovalDocument;
+  events: DocumentEvent[];
+}

@@ -33,6 +33,26 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         return Ok(docs.Select(ToDto));
     }
 
+    // GET /api/documents/5  → one document plus its full history (the trace)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<DocumentDetailDto>> GetDetail(int id)
+    {
+        var doc = await db.Documents
+            .Include(d => d.Project)
+            .Include(d => d.UploadedBy)
+            .FirstOrDefaultAsync(d => d.Id == id);
+        if (doc is null) return NotFound();
+
+        var events = await db.DocumentEvents
+            .Where(e => e.DocumentId == id)
+            .Include(e => e.Actor)
+            .OrderBy(e => e.Id)
+            .Select(e => new DocumentEventDto(e.Id, e.Action, e.Actor!.FullName, e.Note, e.CreatedAt))
+            .ToListAsync();
+
+        return Ok(new DocumentDetailDto(ToDto(doc), events));
+    }
+
     // POST /api/documents  → upload a new document (any signed-in user = engineer)
     [HttpPost]
     public async Task<ActionResult<DocumentDto>> Upload([FromForm] string title, [FromForm] int projectId, IFormFile? file)

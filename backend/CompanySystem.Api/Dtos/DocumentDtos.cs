@@ -17,3 +17,16 @@ public record DocumentDto(
 
 // Body for returning a document to the engineer (the note is required there).
 public record ReviewNoteDto(string? Note);
+
+// One entry in a document's history (who did what, when).
+public record DocumentEventDto(
+    int Id,
+    string Action,
+    string ActorName,
+    string? Note,
+    DateTime CreatedAt);
+
+// A document plus its full history — powers the trace/timeline view.
+public record DocumentDetailDto(
+    DocumentDto Document,
+    IReadOnlyList<DocumentEventDto> Events);

@@ -6,7 +6,8 @@ import { useAuth } from '../auth/AuthContext';
 import { ROLES } from '../auth/roles';
 import { useNotifications } from '../data/NotificationsContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { CheckIcon, DownloadIcon, FileIcon, PlusIcon, TrashIcon, UndoIcon, UploadIcon } from '../components/icons';
+import { CheckIcon, DownloadIcon, FileIcon, HistoryIcon, PlusIcon, TrashIcon, UndoIcon, UploadIcon } from '../components/icons';
+import { DocumentTimelineModal } from '../components/DocumentTimelineModal';
 import { ResubmitDocumentModal } from '../components/ResubmitDocumentModal';
 import { ReturnDocumentModal } from '../components/ReturnDocumentModal';
 import { useToast } from '../components/toast';
@@ -40,6 +41,7 @@ export function DocumentsPage() {
   const [resubmitBusy, setResubmitBusy] = useState(false);
   const [rejecting, setRejecting] = useState<ApprovalDocument | null>(null);
   const [rejectBusy, setRejectBusy] = useState(false);
+  const [tracing, setTracing] = useState<number | null>(null); // document id shown in the timeline
 
   const load = () => {
     setLoading(true);
@@ -219,6 +221,7 @@ export function DocumentsPage() {
                         {canResubmit(d) && (
                           <button className="act-btn success" onClick={() => setResubmitting(d)} aria-label={t('docReview.resubmitAction')} title={t('docReview.resubmitAction')}><UploadIcon /></button>
                         )}
+                        <button className="act-btn" onClick={() => setTracing(d.id)} aria-label={t('docTimeline.view')} title={t('docTimeline.view')}><HistoryIcon /></button>
                         <button className="act-btn" onClick={() => handleDownload(d)} disabled={downloadingId === d.id} aria-label={t('doc.download')} title={t('doc.download')}>
                           {downloadingId === d.id ? <span className="spinner" /> : <DownloadIcon />}
                         </button>
@@ -263,6 +266,12 @@ export function DocumentsPage() {
         busy={rejectBusy}
         onCancel={() => setRejecting(null)}
         onConfirm={handleReject}
+      />
+
+      <DocumentTimelineModal
+        open={tracing !== null}
+        docId={tracing}
+        onClose={() => setTracing(null)}
       />
     </div>
   );
