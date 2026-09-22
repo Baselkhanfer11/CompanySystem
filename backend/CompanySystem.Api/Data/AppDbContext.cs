@@ -22,6 +22,9 @@ public class AppDbContext : DbContext
     // The "Items" table (store / warehouse stock).
     public DbSet<Item> Items => Set<Item>();
 
+    // The "Projects" table (sites that material/cost is charged to).
+    public DbSet<Project> Projects => Set<Project>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -54,5 +57,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Item>()
             .Property(i => i.Price)
             .HasPrecision(18, 2);
+
+        // Project codes must be unique.
+        modelBuilder.Entity<Project>()
+            .HasIndex(p => p.Code)
+            .IsUnique();
     }
 }

@@ -285,6 +285,11 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .badge.active .dot { background: var(--emerald); box-shadow: 0 0 8px var(--emerald); }
 .badge.inactive { background: rgba(107,115,146,0.12); color: var(--text-muted); border: 1px solid var(--border); }
 .badge.inactive .dot { background: var(--text-dim); }
+/* Project statuses */
+.badge.onhold { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+.badge.onhold .dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.badge.done { background: rgba(56,189,248,0.12); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
+.badge.done .dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
 
 .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .act-btn {

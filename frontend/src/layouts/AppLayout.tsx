@@ -14,6 +14,7 @@ export interface LayoutContext {
 const SEARCH_KEY_BY_PATH: Record<string, string> = {
   '/employees': 'search.employees',
   '/store': 'search.items',
+  '/projects': 'search.projects',
   '/users': 'search.users',
 };
 

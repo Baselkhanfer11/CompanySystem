@@ -67,6 +67,7 @@ const en: Dict = {
   // Search placeholders
   'search.employees': 'Search employees…',
   'search.items': 'Search items…',
+  'search.projects': 'Search projects…',
   'search.users': 'Search users…',
 
   // Login
@@ -225,6 +226,46 @@ const en: Dict = {
   'itemModal.qtyInvalid': 'Quantity must be 0 or more.',
   'itemModal.priceInvalid': 'Price must be 0 or more.',
   'itemModal.create': 'Create item',
+
+  // Projects page
+  'project.title': 'Projects',
+  'project.sub': 'The sites and jobs your company works on.',
+  'project.add': 'Add project',
+  'project.all': 'All projects',
+  'project.countOne': '{n} project',
+  'project.countMany': '{n} projects',
+  'project.couldntLoad': 'Couldn’t load projects',
+  'project.noneTitle': 'No projects yet',
+  'project.addFirst': 'Add your first project to get started.',
+  'project.colName': 'Project',
+  'project.colCode': 'Code',
+  'project.colStatus': 'Status',
+  'project.colCreated': 'Created',
+  'project.colActions': 'Actions',
+  'project.updated': 'Project updated',
+  'project.added': 'Project added',
+  'project.removed': 'Project removed',
+  'project.deleteQ': 'Delete project?',
+  'project.deleteMsg': 'This will permanently remove {name}.',
+  'project.status.Active': 'Active',
+  'project.status.OnHold': 'On hold',
+  'project.status.Completed': 'Completed',
+
+  // Project modal
+  'projectModal.editTitle': 'Edit project',
+  'projectModal.newTitle': 'New project',
+  'projectModal.editSub': 'Update this project.',
+  'projectModal.newSub': 'Add a new project or site.',
+  'projectModal.name': 'Name',
+  'projectModal.namePlaceholder': 'e.g. Downtown Tower',
+  'projectModal.code': 'Code',
+  'projectModal.codePlaceholder': 'e.g. PRJ-001',
+  'projectModal.status': 'Status',
+  'projectModal.description': 'Description',
+  'projectModal.descriptionPlaceholder': 'Optional notes about the project…',
+  'projectModal.nameRequired': 'Name is required.',
+  'projectModal.codeRequired': 'Code is required.',
+  'projectModal.create': 'Create project',
 };
 
 const ar: Dict = {
@@ -280,6 +321,7 @@ const ar: Dict = {
   // Search placeholders
   'search.employees': 'ابحث عن موظف…',
   'search.items': 'ابحث عن صنف…',
+  'search.projects': 'ابحث عن مشروع…',
   'search.users': 'ابحث عن مستخدم…',
 
   // Login
@@ -438,6 +480,46 @@ const ar: Dict = {
   'itemModal.qtyInvalid': 'يجب أن تكون الكمية 0 أو أكثر.',
   'itemModal.priceInvalid': 'يجب أن يكون السعر 0 أو أكثر.',
   'itemModal.create': 'إنشاء الصنف',
+
+  // Projects page
+  'project.title': 'المشاريع',
+  'project.sub': 'المواقع والأعمال التي تعمل عليها شركتك.',
+  'project.add': 'إضافة مشروع',
+  'project.all': 'كل المشاريع',
+  'project.countOne': 'مشروع واحد',
+  'project.countMany': '{n} مشاريع',
+  'project.couldntLoad': 'تعذّر تحميل المشاريع',
+  'project.noneTitle': 'لا توجد مشاريع بعد',
+  'project.addFirst': 'أضِف أول مشروع للبدء.',
+  'project.colName': 'المشروع',
+  'project.colCode': 'الرمز',
+  'project.colStatus': 'الحالة',
+  'project.colCreated': 'تاريخ الإنشاء',
+  'project.colActions': 'إجراءات',
+  'project.updated': 'تم تحديث المشروع',
+  'project.added': 'تمت إضافة المشروع',
+  'project.removed': 'تم حذف المشروع',
+  'project.deleteQ': 'حذف المشروع؟',
+  'project.deleteMsg': 'سيؤدي هذا إلى حذف {name} نهائياً.',
+  'project.status.Active': 'نشط',
+  'project.status.OnHold': 'متوقف مؤقتاً',
+  'project.status.Completed': 'مكتمل',
+
+  // Project modal
+  'projectModal.editTitle': 'تعديل المشروع',
+  'projectModal.newTitle': 'مشروع جديد',
+  'projectModal.editSub': 'حدّث هذا المشروع.',
+  'projectModal.newSub': 'أضِف مشروعاً أو موقعاً جديداً.',
+  'projectModal.name': 'الاسم',
+  'projectModal.namePlaceholder': 'مثال: برج وسط المدينة',
+  'projectModal.code': 'الرمز',
+  'projectModal.codePlaceholder': 'مثال: PRJ-001',
+  'projectModal.status': 'الحالة',
+  'projectModal.description': 'الوصف',
+  'projectModal.descriptionPlaceholder': 'ملاحظات اختيارية عن المشروع…',
+  'projectModal.nameRequired': 'الاسم مطلوب.',
+  'projectModal.codeRequired': 'الرمز مطلوب.',
+  'projectModal.create': 'إنشاء المشروع',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };

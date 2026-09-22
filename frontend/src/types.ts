@@ -75,3 +75,20 @@ export interface ItemInput {
   unit: string;
   price: number;
 }
+
+// A project / site the company works on.
+export interface Project {
+  id: number;
+  name: string;
+  code: string;
+  status: string; // one of PROJECT_STATUSES
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface ProjectInput {
+  name: string;
+  code: string;
+  status: string;
+  description?: string | null;
+}
