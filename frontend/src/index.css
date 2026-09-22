@@ -487,3 +487,52 @@ table.data tbody tr:last-child td { border-bottom: none; }
   [dir="rtl"] .sidebar { left: auto; right: 0; transform: translateX(100%); }
   [dir="rtl"] .sidebar.open { transform: translateX(0); }
 }
+
+/* ============================================================
+   Light theme
+   Redefine the colour tokens (everything reads these), then
+   patch the handful of spots that hardcoded dark colours.
+   ============================================================ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #eef0f6;
+  --bg-2: #f2f4f9;
+  --surface: rgba(255, 255, 255, 0.7);
+  --surface-2: rgba(255, 255, 255, 0.95);
+  --surface-solid: #ffffff;
+  --border: rgba(22, 27, 55, 0.10);
+  --border-strong: rgba(22, 27, 55, 0.18);
+
+  --text: #1b1f2b;
+  --text-muted: #565e75;
+  --text-dim: #838aa0;
+
+  --shadow: 0 10px 30px -14px rgba(30, 35, 70, 0.20);
+  --shadow-lg: 0 24px 60px -22px rgba(30, 35, 70, 0.26);
+  --ring: 0 0 0 3px rgba(124, 108, 255, 0.20);
+}
+
+/* Softer ambient glow on a light background */
+:root[data-theme="light"] body::before {
+  background:
+    radial-gradient(600px 400px at 15% -5%, rgba(124, 108, 255, 0.10), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgba(176, 108, 255, 0.08), transparent 55%),
+    radial-gradient(600px 600px at 90% 100%, rgba(51, 214, 230, 0.06), transparent 60%);
+}
+
+/* Chrome that hardcoded dark surfaces */
+:root[data-theme="light"] .sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 252, 0.94));
+}
+:root[data-theme="light"] .topbar { background: rgba(255, 255, 255, 0.68); }
+:root[data-theme="light"] .item-actions .act-btn { background: rgba(255, 255, 255, 0.85); }
+:root[data-theme="light"] .modal-overlay { background: rgba(30, 35, 70, 0.35); }
+
+/* Scrollbar + loading shimmer were built from white overlays */
+:root[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(22, 27, 55, 0.18); }
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(22, 27, 55, 0.28); }
+:root[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, rgba(22,27,55,0.05) 25%, rgba(22,27,55,0.10) 37%, rgba(22,27,55,0.05) 63%);
+  background-size: 400% 100%;
+}

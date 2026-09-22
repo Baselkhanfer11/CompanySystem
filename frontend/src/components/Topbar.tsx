@@ -1,5 +1,6 @@
 import { BellIcon, MenuIcon, SearchIcon, SparkIcon } from './icons';
 import { LangSwitch } from './LangSwitch';
+import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
   search: string;
@@ -32,6 +33,7 @@ export function Topbar({ search, onSearch, onMenu, placeholder }: Props) {
       <div className="topbar-spacer" />
 
       <LangSwitch />
+      <ThemeToggle />
       <button className="icon-btn" aria-label="Assistant"><SparkIcon /></button>
       <button className="icon-btn" aria-label="Notifications"><BellIcon /></button>
     </header>

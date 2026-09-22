@@ -11,6 +11,17 @@
       rel="stylesheet"
     />
     <title>CompanySystem</title>
+    <!-- Apply the saved theme + language before first paint (no flash of the wrong theme) -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('cs_theme');
+          document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
+          var l = localStorage.getItem('cs_lang');
+          if (l === 'ar') { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

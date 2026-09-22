@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { AlertIcon, CubeIcon } from '../components/icons';
 import { LangSwitch } from '../components/LangSwitch';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useI18n } from '../i18n/LanguageContext';
 
 export function LoginPage() {
@@ -34,8 +35,9 @@ export function LoginPage() {
 
   return (
     <div className="login-wrap">
-      <div style={{ position: 'absolute', top: 20, insetInlineEnd: 20 }}>
+      <div style={{ position: 'absolute', top: 20, insetInlineEnd: 20, display: 'flex', gap: 10, alignItems: 'center' }}>
         <LangSwitch />
+        <ThemeToggle />
       </div>
       <form className="login-card rise" onSubmit={submit}>
         <div className="login-brand">

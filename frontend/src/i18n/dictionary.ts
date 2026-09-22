@@ -46,6 +46,10 @@ const en: Dict = {
   'nav.soon': 'Soon',
   'nav.signOut': 'Sign out',
 
+  // Theme toggle
+  'theme.toLight': 'Switch to light mode',
+  'theme.toDark': 'Switch to dark mode',
+
   // Roles
   'role.Administrator': 'Administrator',
   'role.WarehouseManager': 'Warehouse Manager',
@@ -245,6 +249,10 @@ const ar: Dict = {
   'nav.sales': 'المبيعات',
   'nav.soon': 'قريباً',
   'nav.signOut': 'تسجيل الخروج',
+
+  // Theme toggle
+  'theme.toLight': 'التبديل إلى الوضع الفاتح',
+  'theme.toDark': 'التبديل إلى الوضع الداكن',
 
   // Roles
   'role.Administrator': 'مدير النظام',
