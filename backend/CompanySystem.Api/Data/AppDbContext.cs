@@ -19,6 +19,9 @@ public class AppDbContext : DbContext
     // The "Users" table (login accounts).
     public DbSet<User> Users => Set<User>();
 
+    // The "Items" table (store / warehouse stock).
+    public DbSet<Item> Items => Set<Item>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -41,5 +44,15 @@ public class AppDbContext : DbContext
             .HasIndex(u => u.EmployeeId)
             .IsUnique()
             .HasFilter("[EmployeeId] IS NOT NULL");
+
+        // Item codes must be unique.
+        modelBuilder.Entity<Item>()
+            .HasIndex(i => i.Code)
+            .IsUnique();
+
+        // Store money with 2 decimal places.
+        modelBuilder.Entity<Item>()
+            .Property(i => i.Price)
+            .HasPrecision(18, 2);
     }
 }

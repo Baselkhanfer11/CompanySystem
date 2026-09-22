@@ -30,6 +30,10 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
         if (result == PasswordVerificationResult.Failed)
             return Unauthorized(new { message = "Invalid username or password." });
 
+        // A login tied to an employee is only valid while that employee is active.
+        if (await IsLinkedToInactiveEmployee(user))
+            return Unauthorized(new { message = "This account is currently disabled. Contact an administrator." });
+
         var (token, expiresAt) = tokens.Create(user);
         return Ok(new AuthResponse(token, expiresAt, UserDto.From(user)));
     }
@@ -44,6 +48,15 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
         if (user is null || !user.IsActive)
             return Unauthorized();
 
+        // Log out on refresh if the linked employee was deactivated.
+        if (await IsLinkedToInactiveEmployee(user))
+            return Unauthorized();
+
         return Ok(UserDto.From(user));
     }
+
+    // True when the user is linked to an employee that no longer exists or is inactive.
+    private async Task<bool> IsLinkedToInactiveEmployee(User user) =>
+        user.EmployeeId is int empId &&
+        !await db.Employees.AnyAsync(e => e.Id == empId && e.IsActive);
 }

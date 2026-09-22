@@ -13,7 +13,6 @@ const live = [
 ];
 
 const soon = [
-  { label: 'Store', icon: <BoxesIcon /> },
   { label: 'Projects', icon: <ProjectsIcon /> },
   { label: 'Purchases', icon: <CartIcon /> },
   { label: 'Sales', icon: <TrendingIcon /> },
@@ -53,6 +52,10 @@ export function Sidebar({ open }: { open: boolean }) {
       )}
 
       <div className="nav-label">Operations</div>
+      <NavLink to="/store" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <BoxesIcon />
+        <span>Store</span>
+      </NavLink>
       {soon.map((item) => (
         <div key={item.label} className="nav-item disabled">
           {item.icon}

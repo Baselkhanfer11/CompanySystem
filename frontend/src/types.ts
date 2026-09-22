@@ -55,3 +55,23 @@ export interface AuthResponse {
   expiresAt: string;
   user: User;
 }
+
+// A store / warehouse stock item.
+export interface Item {
+  id: number;
+  name: string;
+  code: string;
+  quantity: number;
+  unit: string;
+  price: number;
+  imageUrl?: string | null;
+  createdAt: string;
+}
+
+export interface ItemInput {
+  name: string;
+  code: string;
+  quantity: number;
+  unit: string;
+  price: number;
+}

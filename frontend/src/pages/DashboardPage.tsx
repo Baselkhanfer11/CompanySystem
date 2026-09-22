@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { employeesApi } from '../api/employees';
+import { itemsApi } from '../api/items';
 import { Avatar } from '../components/Avatar';
 import { StatCard } from '../components/StatCard';
 import {
   BoxesIcon, BriefcaseIcon, TrendingIcon, UserCheckIcon, UsersIcon,
 } from '../components/icons';
-import type { Employee } from '../types';
+import type { Employee, Item } from '../types';
 
 export function DashboardPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    employeesApi.getAll().then(setEmployees).catch(() => {}).finally(() => setLoading(false));
+    Promise.all([
+      employeesApi.getAll().then(setEmployees).catch(() => {}),
+      itemsApi.getAll().then(setItems).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const total = employees.length;
@@ -46,7 +51,7 @@ export function DashboardPage() {
         <StatCard icon={<UsersIcon />} value={loading ? '—' : total} label="Total employees" color="#7c6cff" trend="Team size" delay={0} />
         <StatCard icon={<UserCheckIcon />} value={loading ? '—' : active} label="Active" color="#34d399" trend={total ? `${Math.round((active / total) * 100)}% active` : '—'} trendUp delay={70} />
         <StatCard icon={<BriefcaseIcon />} value={loading ? '—' : positions} label="Distinct roles" color="#33d6e6" trend="Positions" delay={140} />
-        <StatCard icon={<BoxesIcon />} value="0" label="Items in store" color="#fbbf24" trend="Coming soon" delay={210} />
+        <StatCard icon={<BoxesIcon />} value={loading ? '—' : items.length} label="Items in store" color="#fbbf24" trend={items.length ? 'In stock' : 'Add items'} delay={210} />
       </div>
 
       {/* Recent employees + coming soon */}
