@@ -67,6 +67,7 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
               value={form.fullName}
               onChange={(e) => set('fullName', e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submit()}
+              autoComplete="off"
             />
           </div>
 
@@ -78,6 +79,7 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
                 placeholder="name@company.com"
                 value={form.email ?? ''}
                 onChange={(e) => set('email', e.target.value)}
+                autoComplete="off"
               />
             </div>
             <div className="field">
@@ -87,6 +89,7 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
                 placeholder="e.g. Warehouse Manager"
                 value={form.position ?? ''}
                 onChange={(e) => set('position', e.target.value)}
+                autoComplete="off"
               />
             </div>
           </div>

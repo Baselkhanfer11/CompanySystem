@@ -67,6 +67,8 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
               placeholder="e.g. sara"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="off"
+              name="new-login-username"
               style={isManage ? { opacity: 0.6 } : undefined}
             />
             {isManage && <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Username can’t be changed.</span>}
@@ -89,6 +91,8 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
                 placeholder={isManage ? 'Leave blank to keep' : '••••••••'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                name="new-login-password"
               />
             </div>
           </div>

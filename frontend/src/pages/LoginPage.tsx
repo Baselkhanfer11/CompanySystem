@@ -48,6 +48,7 @@ export function LoginPage() {
             placeholder="admin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
           />
         </div>
 
@@ -59,6 +60,7 @@ export function LoginPage() {
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
           />
         </div>
 

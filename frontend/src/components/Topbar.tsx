@@ -19,6 +19,8 @@ export function Topbar({ search, onSearch, onMenu }: Props) {
           placeholder="Search employees…"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
+          autoComplete="off"
+          name="employee-search"
         />
       </div>
 
