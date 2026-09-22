@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────
+#  .NET / C# (backend)
+# ─────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+
+# ─────────────────────────────────────────────
+#  Node / Bun / Vite (frontend)
+# ─────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Bun
+# (bun.lock IS committed on purpose — it locks dependency versions)
+
+# ─────────────────────────────────────────────
+#  Environment & secrets — NEVER commit these
+# ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+
+# ─────────────────────────────────────────────
+#  Editors / OS
+# ─────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+Thumbs.db
+.DS_Store
