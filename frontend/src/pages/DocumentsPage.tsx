@@ -4,6 +4,7 @@ import { documentsApi } from '../api/documents';
 import { projectsApi } from '../api/projects';
 import { useAuth } from '../auth/AuthContext';
 import { ROLES } from '../auth/roles';
+import { useNotifications } from '../data/NotificationsContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { CheckIcon, DownloadIcon, FileIcon, PlusIcon, TrashIcon, UndoIcon, UploadIcon } from '../components/icons';
 import { ResubmitDocumentModal } from '../components/ResubmitDocumentModal';
@@ -21,6 +22,7 @@ export function DocumentsPage() {
   const toast = useToast();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { refresh: refreshNotifs } = useNotifications();
 
   const [docs, setDocs] = useState<ApprovalDocument[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -71,6 +73,7 @@ export function DocumentsPage() {
       toast('success', t('doc.uploaded'));
       setModalOpen(false);
       load();
+      refreshNotifs();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -84,7 +87,7 @@ export function DocumentsPage() {
 
   const handleApprove = async (d: ApprovalDocument) => {
     setBusyId(d.id);
-    try { await documentsApi.approve(d.id); toast('success', t('docReview.approved')); load(); }
+    try { await documentsApi.approve(d.id); toast('success', t('docReview.approved')); load(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setBusyId(null); }
   };
@@ -92,7 +95,7 @@ export function DocumentsPage() {
   const handleReturn = async (note: string) => {
     if (!returning) return;
     setReturnBusy(true);
-    try { await documentsApi.returnToEngineer(returning.id, note); toast('success', t('docReview.returned')); setReturning(null); load(); }
+    try { await documentsApi.returnToEngineer(returning.id, note); toast('success', t('docReview.returned')); setReturning(null); load(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setReturnBusy(false); }
   };
@@ -100,7 +103,7 @@ export function DocumentsPage() {
   const handleResubmit = async (form: FormData) => {
     if (!resubmitting) return;
     setResubmitBusy(true);
-    try { await documentsApi.resubmit(resubmitting.id, form); toast('success', t('docReview.resubmitted')); setResubmitting(null); load(); }
+    try { await documentsApi.resubmit(resubmitting.id, form); toast('success', t('docReview.resubmitted')); setResubmitting(null); load(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setResubmitBusy(false); }
   };
@@ -108,7 +111,7 @@ export function DocumentsPage() {
   const handleReject = async () => {
     if (!rejecting) return;
     setRejectBusy(true);
-    try { await documentsApi.reject(rejecting.id); toast('success', t('docReview.rejected')); setRejecting(null); load(); }
+    try { await documentsApi.reject(rejecting.id); toast('success', t('docReview.rejected')); setRejecting(null); load(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setRejectBusy(false); }
   };

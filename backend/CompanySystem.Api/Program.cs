@@ -38,7 +38,14 @@ builder.Services
     });
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Always send timestamps as UTC (with a 'Z'), so the browser shows
+        // correct local times and "x minutes ago" values.
+        options.JsonSerializerOptions.Converters.Add(new CompanySystem.Api.Json.UtcDateTimeConverter());
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

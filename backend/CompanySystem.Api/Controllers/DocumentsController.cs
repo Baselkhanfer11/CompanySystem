@@ -63,6 +63,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         await db.SaveChangesAsync();
 
         LogEvent(doc.Id, DocumentActions.Submitted, null);
+        await NotifyStageReviewers(doc); // tell the managers it's waiting
         await db.SaveChangesAsync();
 
         await db.Entry(doc).Reference(d => d.Project).LoadAsync();
@@ -98,6 +99,11 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         doc.UpdatedAt = DateTime.UtcNow;
 
         LogEvent(doc.Id, DocumentActions.Approved, null);
+        if (doc.Status == DocumentStatuses.PendingCEO)
+            await NotifyStageReviewers(doc); // now the CEO's turn
+        else
+            Notify(doc.UploadedById, NotificationTypes.Approved, doc.Title, doc.Id, null); // final approval
+
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -115,7 +121,9 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         doc.Status = DocumentStatuses.Returned;
         doc.UpdatedAt = DateTime.UtcNow;
 
-        LogEvent(doc.Id, DocumentActions.Returned, body.Note.Trim());
+        var note = body.Note.Trim();
+        LogEvent(doc.Id, DocumentActions.Returned, note);
+        Notify(doc.UploadedById, NotificationTypes.Returned, doc.Title, doc.Id, note);
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -127,6 +135,10 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         var doc = await db.Documents.FindAsync(id);
         if (doc is null) return NotFound();
         if (!CanReview(doc)) return Forbidden("You can't review this document right now.");
+
+        // Notify the uploader BEFORE removing the document (the notification has
+        // no FK to it, so it survives the delete).
+        Notify(doc.UploadedById, NotificationTypes.Rejected, doc.Title, null, null);
 
         storage.Delete(doc.StoredName);
         db.Documents.Remove(doc); // history events cascade-delete with it
@@ -157,6 +169,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         doc.UpdatedAt = DateTime.UtcNow;
 
         LogEvent(doc.Id, DocumentActions.Resubmitted, null);
+        await NotifyStageReviewers(doc); // tell the managers it's back
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -186,6 +199,39 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
             DocumentId = documentId,
             Action = action,
             ActorId = CurrentUserId,
+            Note = note,
+        });
+
+    // Notifies everyone who reviews at the document's current stage that it's
+    // waiting for them (manager stage → managers; CEO stage → admins). The
+    // uploader is skipped so people aren't pinged about their own submission.
+    private async Task NotifyStageReviewers(Document doc)
+    {
+        var role = doc.Status switch
+        {
+            DocumentStatuses.PendingManager => Roles.WarehouseManager,
+            DocumentStatuses.PendingCEO => Roles.Administrator,
+            _ => null,
+        };
+        if (role is null) return;
+
+        var reviewerIds = await db.Users
+            .Where(u => u.Role == role && u.IsActive && u.Id != doc.UploadedById)
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        foreach (var recipientId in reviewerIds)
+            Notify(recipientId, NotificationTypes.NeedsReview, doc.Title, doc.Id, null);
+    }
+
+    // Queues one notification (call SaveChangesAsync afterwards).
+    private void Notify(int recipientId, string type, string title, int? documentId, string? note) =>
+        db.Notifications.Add(new Notification
+        {
+            RecipientId = recipientId,
+            Type = type,
+            Title = title,
+            DocumentId = documentId,
             Note = note,
         });
 

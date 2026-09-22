@@ -54,11 +54,21 @@ const en: Dict = {
   // Notifications
   'notif.title': 'Notifications',
   'notif.empty': 'You’re all caught up',
-  'notif.emptySub': 'No low-stock alerts right now.',
+  'notif.emptySub': 'No new notifications right now.',
   'notif.outOfStock': 'Out of stock',
   'notif.onlyLeft': 'Only {n} {unit} left',
   'notif.viewStore': 'View store',
   'notif.loading': 'Checking stock…',
+  'notif.doc.needsReview': 'Needs your review',
+  'notif.doc.approved': 'Approved',
+  'notif.doc.returned': 'Returned for edits',
+  'notif.doc.rejected': 'Rejected & removed',
+
+  // Relative time (used in the bell)
+  'time.now': 'just now',
+  'time.m': '{n}m',
+  'time.h': '{n}h',
+  'time.d': '{n}d',
 
   // Roles
   'role.Administrator': 'Administrator',
@@ -369,11 +379,21 @@ const ar: Dict = {
   // Notifications
   'notif.title': 'الإشعارات',
   'notif.empty': 'كل شيء على ما يرام',
-  'notif.emptySub': 'لا توجد تنبيهات مخزون منخفض حالياً.',
+  'notif.emptySub': 'لا توجد إشعارات جديدة حالياً.',
   'notif.outOfStock': 'نفد من المخزن',
   'notif.onlyLeft': 'بقي {n} {unit} فقط',
   'notif.viewStore': 'عرض المخزن',
   'notif.loading': 'جارٍ فحص المخزون…',
+  'notif.doc.needsReview': 'بانتظار مراجعتك',
+  'notif.doc.approved': 'تم الاعتماد',
+  'notif.doc.returned': 'أُعيد للتعديل',
+  'notif.doc.rejected': 'رُفض وأُزيل',
+
+  // Relative time (used in the bell)
+  'time.now': 'الآن',
+  'time.m': 'قبل {n} د',
+  'time.h': 'قبل {n} س',
+  'time.d': 'قبل {n} ي',
 
   // Roles
   'role.Administrator': 'مدير النظام',

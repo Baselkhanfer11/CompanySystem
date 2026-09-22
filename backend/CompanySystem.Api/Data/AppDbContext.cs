@@ -31,6 +31,9 @@ public class AppDbContext : DbContext
     // The "DocumentEvents" table (a document's approval history / audit trail).
     public DbSet<DocumentEvent> DocumentEvents => Set<DocumentEvent>();
 
+    // The "Notifications" table (per-user bell alerts; outlives the document).
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -96,6 +99,14 @@ public class AppDbContext : DbContext
             .HasOne(e => e.Actor)
             .WithMany()
             .HasForeignKey(e => e.ActorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // A notification belongs to its recipient. (DocumentId is a loose int
+        // with no FK on purpose, so removing a document keeps its notifications.)
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Recipient)
+            .WithMany()
+            .HasForeignKey(n => n.RecipientId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
 import { ItemsProvider } from '../data/ItemsContext';
+import { NotificationsProvider } from '../data/NotificationsContext';
 import { useI18n } from '../i18n/LanguageContext';
 
 export interface LayoutContext {
@@ -36,6 +37,7 @@ export function AppLayout() {
 
   return (
     <ItemsProvider>
+      <NotificationsProvider>
       <div className="app-shell">
         <Sidebar open={menuOpen} />
         <div className="main-area">
@@ -50,6 +52,7 @@ export function AppLayout() {
           </div>
         </div>
       </div>
+      </NotificationsProvider>
     </ItemsProvider>
   );
 }

@@ -605,11 +605,20 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .notif-ic svg { width: 18px; height: 18px; }
 .notif-ic.warn { background: rgba(251,191,36,0.14); color: var(--amber); }
 .notif-ic.crit { background: rgba(251,113,133,0.14); color: var(--rose); }
+.notif-ic.ok { background: rgba(52,211,153,0.14); color: var(--emerald); }
 .notif-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .notif-name { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .notif-sub { font-size: 12px; font-weight: 500; }
 .notif-sub.warn { color: var(--amber); }
 .notif-sub.crit { color: var(--rose); }
+.notif-sub.ok { color: var(--emerald); }
+/* Unread notification: subtle tint + accent dot on the left */
+.notif-item.unread { background: rgba(124,108,255,0.06); }
+.notif-item.unread::before {
+  content: ''; position: absolute; inset-inline-start: 6px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);
+}
+.notif-item { position: relative; }
 .notif-code { font-size: 11px; color: var(--text-dim); font-family: ui-monospace, monospace; flex-shrink: 0; }
 
 .notif-empty { padding: 34px 20px; text-align: center; color: var(--text-muted); }

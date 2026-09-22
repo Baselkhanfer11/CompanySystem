@@ -93,6 +93,18 @@ export interface ProjectInput {
   description?: string | null;
 }
 
+// A bell notification. Named AppNotification to avoid clashing with the DOM's
+// global `Notification`.
+export interface AppNotification {
+  id: number;
+  type: string; // NeedsReview | Approved | Returned | Rejected
+  title: string;
+  documentId?: number | null;
+  note?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 // A document (uploaded Excel file) moving through the approval pipeline.
 // Named ApprovalDocument to avoid clashing with the DOM's global `Document`.
 export interface ApprovalDocument {
