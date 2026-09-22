@@ -307,6 +307,26 @@ const en: Dict = {
   'docModal.projectRequired': 'Please choose a project.',
   'docModal.fileRequired': 'Please choose a file.',
   'docModal.fileType': 'Only Excel files (.xlsx, .xls) are allowed.',
+
+  // Document review (approve / return / reject / resubmit)
+  'docReview.approve': 'Approve',
+  'docReview.approved': 'Document approved',
+  'docReview.reject': 'Reject & remove',
+  'docReview.rejected': 'Document rejected & removed',
+  'docReview.rejectQ': 'Reject & remove document?',
+  'docReview.rejectMsg': 'This permanently removes “{title}” and its file. This cannot be undone.',
+  'docReview.returnAction': 'Return for edits',
+  'docReview.returned': 'Returned to the engineer',
+  'docReview.returnTitle': 'Return for edits',
+  'docReview.returnSub': 'Send “{title}” back to the engineer to fix.',
+  'docReview.note': 'Note',
+  'docReview.notePlaceholder': 'e.g. The cement quantity looks too high — please double-check.',
+  'docReview.noteHint': 'The engineer sees this note. Explain what needs fixing.',
+  'docReview.noteRequired': 'A note is required when returning a document.',
+  'docReview.resubmitAction': 'Resubmit',
+  'docReview.resubmitTitle': 'Resubmit document',
+  'docReview.resubmitSub': 'Upload the corrected file for “{title}”. It goes back to the manager.',
+  'docReview.resubmitted': 'Document resubmitted',
 };
 
 const ar: Dict = {
@@ -602,6 +622,26 @@ const ar: Dict = {
   'docModal.projectRequired': 'يرجى اختيار مشروع.',
   'docModal.fileRequired': 'يرجى اختيار ملف.',
   'docModal.fileType': 'يُسمح بملفات Excel فقط (.xlsx، .xls).',
+
+  // Document review (approve / return / reject / resubmit)
+  'docReview.approve': 'اعتماد',
+  'docReview.approved': 'تم اعتماد المستند',
+  'docReview.reject': 'رفض وإزالة',
+  'docReview.rejected': 'تم رفض المستند وإزالته',
+  'docReview.rejectQ': 'رفض المستند وإزالته؟',
+  'docReview.rejectMsg': 'سيؤدي هذا إلى حذف «{title}» وملفه نهائياً. لا يمكن التراجع عن هذا.',
+  'docReview.returnAction': 'إعادة للتعديل',
+  'docReview.returned': 'أُعيد إلى المهندس',
+  'docReview.returnTitle': 'إعادة للتعديل',
+  'docReview.returnSub': 'أعِد «{title}» إلى المهندس لإصلاحه.',
+  'docReview.note': 'ملاحظة',
+  'docReview.notePlaceholder': 'مثال: كمية الإسمنت تبدو كبيرة — يرجى التأكد.',
+  'docReview.noteHint': 'سيرى المهندس هذه الملاحظة. اشرح ما يجب إصلاحه.',
+  'docReview.noteRequired': 'الملاحظة مطلوبة عند إعادة المستند.',
+  'docReview.resubmitAction': 'إعادة الإرسال',
+  'docReview.resubmitTitle': 'إعادة إرسال المستند',
+  'docReview.resubmitSub': 'ارفع الملف المصحّح لـ «{title}». سيعود إلى المدير.',
+  'docReview.resubmitted': 'تمت إعادة إرسال المستند',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };

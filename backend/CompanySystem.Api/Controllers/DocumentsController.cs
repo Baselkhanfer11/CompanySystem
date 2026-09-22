@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Dtos;
 using CompanySystem.Api.Models;
@@ -18,6 +19,8 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     private static readonly string[] AllowedExtensions = { ".xlsx", ".xls" };
     private const long MaxFileSize = 10 * 1024 * 1024;
 
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
     // GET /api/documents  → list all documents (newest first)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll()
@@ -36,37 +39,32 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     {
         if (string.IsNullOrWhiteSpace(title))
             return BadRequest(new { message = "Title is required." });
-        if (file is null || file.Length == 0)
-            return BadRequest(new { message = "A file is required." });
-        if (file.Length > MaxFileSize)
-            return BadRequest(new { message = "File is too large (max 10 MB)." });
 
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (Array.IndexOf(AllowedExtensions, ext) < 0)
-            return BadRequest(new { message = "Only Excel files (.xlsx, .xls) are allowed." });
+        var fileError = ValidateFile(file);
+        if (fileError is not null) return BadRequest(new { message = fileError });
 
         var project = await db.Projects.FindAsync(projectId);
         if (project is null)
             return BadRequest(new { message = "The selected project was not found." });
 
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var storedName = await storage.SaveAsync(file);
-
+        var storedName = await storage.SaveAsync(file!);
         var doc = new Document
         {
             Title = title.Trim(),
             ProjectId = projectId,
-            FileName = Path.GetFileName(file.FileName),
+            FileName = Path.GetFileName(file!.FileName),
             StoredName = storedName,
             ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
             FileSize = file.Length,
             Status = DocumentStatuses.PendingManager,
-            UploadedById = userId,
+            UploadedById = CurrentUserId,
         };
         db.Documents.Add(doc);
         await db.SaveChangesAsync();
 
-        // Load the related names so the returned DTO is complete.
+        LogEvent(doc.Id, DocumentActions.Submitted, null);
+        await db.SaveChangesAsync();
+
         await db.Entry(doc).Reference(d => d.Project).LoadAsync();
         await db.Entry(doc).Reference(d => d.UploadedBy).LoadAsync();
         return CreatedAtAction(nameof(GetAll), new { id = doc.Id }, ToDto(doc));
@@ -84,6 +82,114 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
 
         return File(stream, doc.ContentType, doc.FileName);
     }
+
+    // POST /api/documents/5/approve  → approve at the current stage (moves it up)
+    [HttpPost("{id:int}/approve")]
+    public async Task<IActionResult> Approve(int id)
+    {
+        var doc = await db.Documents.FindAsync(id);
+        if (doc is null) return NotFound();
+        if (!CanReview(doc)) return Forbidden("You can't review this document right now.");
+
+        // Manager stage → CEO stage; CEO stage → final Approved.
+        doc.Status = doc.Status == DocumentStatuses.PendingManager
+            ? DocumentStatuses.PendingCEO
+            : DocumentStatuses.Approved;
+        doc.UpdatedAt = DateTime.UtcNow;
+
+        LogEvent(doc.Id, DocumentActions.Approved, null);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // POST /api/documents/5/return  → send back to the engineer (note required)
+    [HttpPost("{id:int}/return")]
+    public async Task<IActionResult> ReturnToEngineer(int id, ReviewNoteDto body)
+    {
+        var doc = await db.Documents.FindAsync(id);
+        if (doc is null) return NotFound();
+        if (!CanReview(doc)) return Forbidden("You can't review this document right now.");
+        if (string.IsNullOrWhiteSpace(body.Note))
+            return BadRequest(new { message = "A note is required when returning a document." });
+
+        doc.Status = DocumentStatuses.Returned;
+        doc.UpdatedAt = DateTime.UtcNow;
+
+        LogEvent(doc.Id, DocumentActions.Returned, body.Note.Trim());
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // POST /api/documents/5/reject  → reject and remove the document ("kill it")
+    [HttpPost("{id:int}/reject")]
+    public async Task<IActionResult> Reject(int id)
+    {
+        var doc = await db.Documents.FindAsync(id);
+        if (doc is null) return NotFound();
+        if (!CanReview(doc)) return Forbidden("You can't review this document right now.");
+
+        storage.Delete(doc.StoredName);
+        db.Documents.Remove(doc); // history events cascade-delete with it
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // POST /api/documents/5/resubmit  → engineer re-uploads a returned document
+    [HttpPost("{id:int}/resubmit")]
+    public async Task<IActionResult> Resubmit(int id, IFormFile? file)
+    {
+        var doc = await db.Documents.FindAsync(id);
+        if (doc is null) return NotFound();
+        if (doc.UploadedById != CurrentUserId)
+            return Forbidden("Only the person who uploaded a document can resubmit it.");
+        if (doc.Status != DocumentStatuses.Returned)
+            return BadRequest(new { message = "Only a returned document can be resubmitted." });
+
+        var fileError = ValidateFile(file);
+        if (fileError is not null) return BadRequest(new { message = fileError });
+
+        storage.Delete(doc.StoredName); // drop the old file
+        doc.StoredName = await storage.SaveAsync(file!);
+        doc.FileName = Path.GetFileName(file!.FileName);
+        doc.ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
+        doc.FileSize = file.Length;
+        doc.Status = DocumentStatuses.PendingManager; // starts the pipeline again
+        doc.UpdatedAt = DateTime.UtcNow;
+
+        LogEvent(doc.Id, DocumentActions.Resubmitted, null);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // --- helpers ---
+
+    // Can the current user review this document at its current stage?
+    // Manager stage → WarehouseManager; CEO stage → Administrator.
+    private bool CanReview(Document doc) =>
+        (doc.Status == DocumentStatuses.PendingManager && User.IsInRole(Roles.WarehouseManager)) ||
+        (doc.Status == DocumentStatuses.PendingCEO && User.IsInRole(Roles.Administrator));
+
+    // Validates an uploaded file. Returns an error message, or null when valid.
+    private static string? ValidateFile(IFormFile? file)
+    {
+        if (file is null || file.Length == 0) return "A file is required.";
+        if (file.Length > MaxFileSize) return "File is too large (max 10 MB).";
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (Array.IndexOf(AllowedExtensions, ext) < 0) return "Only Excel files (.xlsx, .xls) are allowed.";
+        return null;
+    }
+
+    // Adds a history entry (call SaveChangesAsync afterwards).
+    private void LogEvent(int documentId, string action, string? note) =>
+        db.DocumentEvents.Add(new DocumentEvent
+        {
+            DocumentId = documentId,
+            Action = action,
+            ActorId = CurrentUserId,
+            Note = note,
+        });
+
+    private ObjectResult Forbidden(string message) => StatusCode(StatusCodes.Status403Forbidden, new { message });
 
     // Projects the metadata row into the DTO (with related names).
     private static DocumentDto ToDto(Document d) => new(

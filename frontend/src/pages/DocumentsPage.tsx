@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { documentsApi } from '../api/documents';
 import { projectsApi } from '../api/projects';
-import { DownloadIcon, FileIcon, PlusIcon } from '../components/icons';
+import { useAuth } from '../auth/AuthContext';
+import { ROLES } from '../auth/roles';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { CheckIcon, DownloadIcon, FileIcon, PlusIcon, TrashIcon, UndoIcon, UploadIcon } from '../components/icons';
+import { ResubmitDocumentModal } from '../components/ResubmitDocumentModal';
+import { ReturnDocumentModal } from '../components/ReturnDocumentModal';
 import { useToast } from '../components/toast';
 import { UploadDocumentModal } from '../components/UploadDocumentModal';
 import { useI18n } from '../i18n/LanguageContext';
@@ -15,6 +20,7 @@ export function DocumentsPage() {
   const { search } = useOutletContext<LayoutContext>();
   const toast = useToast();
   const { t } = useI18n();
+  const { user } = useAuth();
 
   const [docs, setDocs] = useState<ApprovalDocument[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -24,6 +30,14 @@ export function DocumentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null); // approving
+
+  const [returning, setReturning] = useState<ApprovalDocument | null>(null);
+  const [returnBusy, setReturnBusy] = useState(false);
+  const [resubmitting, setResubmitting] = useState<ApprovalDocument | null>(null);
+  const [resubmitBusy, setResubmitBusy] = useState(false);
+  const [rejecting, setRejecting] = useState<ApprovalDocument | null>(null);
+  const [rejectBusy, setRejectBusy] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -32,7 +46,6 @@ export function DocumentsPage() {
   };
   useEffect(load, []);
 
-  // Projects feed the upload dropdown; load them quietly in the background.
   useEffect(() => {
     projectsApi.getAll().then(setProjects).catch(() => {});
   }, []);
@@ -44,6 +57,12 @@ export function DocumentsPage() {
       [d.title, d.fileName, d.projectName, d.uploadedByName].some((v) => v.toLowerCase().includes(q)),
     );
   }, [docs, search]);
+
+  // Who can do what, based on the current user's role and the document's stage.
+  const canReview = (d: ApprovalDocument) =>
+    (d.status === 'PendingManager' && user?.role === ROLES.WarehouseManager) ||
+    (d.status === 'PendingCEO' && user?.role === ROLES.Administrator);
+  const canResubmit = (d: ApprovalDocument) => d.status === 'Returned' && d.uploadedById === user?.id;
 
   const handleUpload = async (form: FormData) => {
     setSaving(true);
@@ -61,6 +80,37 @@ export function DocumentsPage() {
     try { await documentsApi.download(d.id, d.fileName); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setDownloadingId(null); }
+  };
+
+  const handleApprove = async (d: ApprovalDocument) => {
+    setBusyId(d.id);
+    try { await documentsApi.approve(d.id); toast('success', t('docReview.approved')); load(); }
+    catch (e) { toast('error', (e as Error).message); }
+    finally { setBusyId(null); }
+  };
+
+  const handleReturn = async (note: string) => {
+    if (!returning) return;
+    setReturnBusy(true);
+    try { await documentsApi.returnToEngineer(returning.id, note); toast('success', t('docReview.returned')); setReturning(null); load(); }
+    catch (e) { toast('error', (e as Error).message); }
+    finally { setReturnBusy(false); }
+  };
+
+  const handleResubmit = async (form: FormData) => {
+    if (!resubmitting) return;
+    setResubmitBusy(true);
+    try { await documentsApi.resubmit(resubmitting.id, form); toast('success', t('docReview.resubmitted')); setResubmitting(null); load(); }
+    catch (e) { toast('error', (e as Error).message); }
+    finally { setResubmitBusy(false); }
+  };
+
+  const handleReject = async () => {
+    if (!rejecting) return;
+    setRejectBusy(true);
+    try { await documentsApi.reject(rejecting.id); toast('success', t('docReview.rejected')); setRejecting(null); load(); }
+    catch (e) { toast('error', (e as Error).message); }
+    finally { setRejectBusy(false); }
   };
 
   return (
@@ -154,6 +204,18 @@ export function DocumentsPage() {
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(d.createdAt)}</td>
                     <td>
                       <div className="row-actions">
+                        {canReview(d) && (
+                          <>
+                            <button className="act-btn success" onClick={() => handleApprove(d)} disabled={busyId === d.id} aria-label={t('docReview.approve')} title={t('docReview.approve')}>
+                              {busyId === d.id ? <span className="spinner" /> : <CheckIcon />}
+                            </button>
+                            <button className="act-btn" onClick={() => setReturning(d)} aria-label={t('docReview.returnAction')} title={t('docReview.returnAction')}><UndoIcon /></button>
+                            <button className="act-btn danger" onClick={() => setRejecting(d)} aria-label={t('docReview.reject')} title={t('docReview.reject')}><TrashIcon /></button>
+                          </>
+                        )}
+                        {canResubmit(d) && (
+                          <button className="act-btn success" onClick={() => setResubmitting(d)} aria-label={t('docReview.resubmitAction')} title={t('docReview.resubmitAction')}><UploadIcon /></button>
+                        )}
                         <button className="act-btn" onClick={() => handleDownload(d)} disabled={downloadingId === d.id} aria-label={t('doc.download')} title={t('doc.download')}>
                           {downloadingId === d.id ? <span className="spinner" /> : <DownloadIcon />}
                         </button>
@@ -173,6 +235,31 @@ export function DocumentsPage() {
         saving={saving}
         onClose={() => setModalOpen(false)}
         onSave={handleUpload}
+      />
+
+      <ReturnDocumentModal
+        open={!!returning}
+        doc={returning}
+        saving={returnBusy}
+        onClose={() => setReturning(null)}
+        onSave={handleReturn}
+      />
+
+      <ResubmitDocumentModal
+        open={!!resubmitting}
+        doc={resubmitting}
+        saving={resubmitBusy}
+        onClose={() => setResubmitting(null)}
+        onSave={handleResubmit}
+      />
+
+      <ConfirmDialog
+        open={!!rejecting}
+        title={t('docReview.rejectQ')}
+        message={t('docReview.rejectMsg', { title: rejecting?.title ?? '' })}
+        busy={rejectBusy}
+        onCancel={() => setRejecting(null)}
+        onConfirm={handleReject}
       />
     </div>
   );

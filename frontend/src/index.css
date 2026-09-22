@@ -317,6 +317,7 @@ table.data tbody tr:last-child td { border-bottom: none; }
 }
 .act-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
 .act-btn.danger:hover { color: var(--rose); border-color: rgba(251,113,133,0.3); background: rgba(251,113,133,0.1); }
+.act-btn.success:hover { color: var(--emerald); border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.1); }
 .act-btn svg { width: 16px; height: 16px; }
 .act-btn:disabled:hover { background: transparent; border-color: transparent; color: var(--text-muted); }
 

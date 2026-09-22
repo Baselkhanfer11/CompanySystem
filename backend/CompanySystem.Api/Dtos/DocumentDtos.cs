@@ -14,3 +14,6 @@ public record DocumentDto(
     string UploadedByName,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+
+// Body for returning a document to the engineer (the note is required there).
+public record ReviewNoteDto(string? Note);

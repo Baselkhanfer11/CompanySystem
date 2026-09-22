@@ -28,6 +28,9 @@ public class AppDbContext : DbContext
     // The "Documents" table (uploaded files moving through the approval pipeline).
     public DbSet<Document> Documents => Set<Document>();
 
+    // The "DocumentEvents" table (a document's approval history / audit trail).
+    public DbSet<DocumentEvent> DocumentEvents => Set<DocumentEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -80,6 +83,19 @@ public class AppDbContext : DbContext
             .HasOne(d => d.UploadedBy)
             .WithMany()
             .HasForeignKey(d => d.UploadedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // A document's history entries are deleted with the document (e.g. when
+        // it's rejected/removed). Keep the actor link non-cascading.
+        modelBuilder.Entity<DocumentEvent>()
+            .HasOne(e => e.Document)
+            .WithMany()
+            .HasForeignKey(e => e.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<DocumentEvent>()
+            .HasOne(e => e.Actor)
+            .WithMany()
+            .HasForeignKey(e => e.ActorId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
