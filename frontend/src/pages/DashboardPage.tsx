@@ -1,26 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { employeesApi } from '../api/employees';
-import { itemsApi } from '../api/items';
 import { Avatar } from '../components/Avatar';
 import { StatCard } from '../components/StatCard';
 import {
   BoxesIcon, BriefcaseIcon, TrendingIcon, UserCheckIcon, UsersIcon,
 } from '../components/icons';
+import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
-import type { Employee, Item } from '../types';
+import type { Employee } from '../types';
 
 export function DashboardPage() {
   const { t } = useI18n();
+  // Items come from the shared cache (same one the bell uses) — no extra request.
+  const { items, loading: itemsLoading } = useItems();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      employeesApi.getAll().then(setEmployees).catch(() => {}),
-      itemsApi.getAll().then(setItems).catch(() => {}),
-    ]).finally(() => setLoading(false));
+    employeesApi.getAll().then(setEmployees).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const total = employees.length;
@@ -53,7 +51,7 @@ export function DashboardPage() {
         <StatCard icon={<UsersIcon />} value={loading ? '—' : total} label={t('dash.totalEmployees')} color="#7c6cff" trend={t('dash.teamSize')} delay={0} />
         <StatCard icon={<UserCheckIcon />} value={loading ? '—' : active} label={t('dash.active')} color="#34d399" trend={total ? t('dash.activePct', { p: Math.round((active / total) * 100) }) : '—'} trendUp delay={70} />
         <StatCard icon={<BriefcaseIcon />} value={loading ? '—' : positions} label={t('dash.distinctRoles')} color="#33d6e6" trend={t('dash.positions')} delay={140} />
-        <StatCard icon={<BoxesIcon />} value={loading ? '—' : items.length} label={t('dash.itemsInStore')} color="#fbbf24" trend={items.length ? t('dash.inStock') : t('dash.addItems')} delay={210} />
+        <StatCard icon={<BoxesIcon />} value={itemsLoading ? '—' : items.length} label={t('dash.itemsInStore')} color="#fbbf24" trend={items.length ? t('dash.inStock') : t('dash.addItems')} delay={210} />
       </div>
 
       {/* Recent employees + coming soon */}

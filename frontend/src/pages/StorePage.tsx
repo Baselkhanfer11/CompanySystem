@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
 import { useAuth } from '../auth/AuthContext';
@@ -23,6 +23,11 @@ export function StorePage() {
 
   // Items come from the shared cache (also feeds the notifications bell).
   const { items, loading, error: loadError, refresh } = useItems();
+
+  // Stale-while-revalidate: show the cached items instantly, then quietly
+  // re-check the server on each visit so the list is always up to date
+  // (e.g. if another user changed stock) — without a loading flash.
+  useEffect(() => { refresh(); }, [refresh]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
