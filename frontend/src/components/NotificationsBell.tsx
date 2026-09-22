@@ -1,34 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { itemsApi } from '../api/items';
+import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import { isLowStock, isOutOfStock } from '../lib/stock';
-import type { Item } from '../types';
 import { BellIcon, BoxesIcon } from './icons';
 
 export function NotificationsBell() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  // Reads the same shared items cache as the Store page — one request, always in sync.
+  const { items, loading, refresh } = useItems();
 
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Only items that need attention, worst first (out of stock before low).
   const alerts = items
     .filter((i) => isOutOfStock(i.quantity) || isLowStock(i.quantity))
     .sort((a, b) => a.quantity - b.quantity);
 
-  const load = () => {
-    setLoading(true);
-    itemsApi.getAll().then(setItems).catch(() => setItems([])).finally(() => setLoading(false));
-  };
-
-  // Fetch once for the badge count, then refresh each time the panel opens.
-  useEffect(load, []);
   const toggle = () => {
     setOpen((o) => {
-      if (!o) load();
+      if (!o) refresh(); // pull the latest stock when the panel opens (silent)
       return !o;
     });
   };

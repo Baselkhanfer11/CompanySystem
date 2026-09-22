@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
 import { useAuth } from '../auth/AuthContext';
@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BoxesIcon, EditIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
+import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import { LOW_STOCK } from '../lib/stock';
 import { formatPrice } from '../lib/units';
@@ -20,22 +21,14 @@ export function StorePage() {
   const { user } = useAuth();
   const manage = canManage(user?.role);
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  // Items come from the shared cache (also feeds the notifications bell).
+  const { items, loading, error: loadError, refresh } = useItems();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<Item | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    itemsApi.getAll().then(setItems).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -52,7 +45,7 @@ export function StorePage() {
       if (editing) { await itemsApi.update(editing.id, data); toast('success', t('store.updated')); }
       else { await itemsApi.create(data); toast('success', t('store.added')); }
       setModalOpen(false);
-      load();
+      await refresh();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -64,7 +57,7 @@ export function StorePage() {
       await itemsApi.remove(deleting.id);
       toast('success', t('store.removed'));
       setDeleting(null);
-      load();
+      await refresh();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -98,7 +91,7 @@ export function StorePage() {
           </div>
           <h4>{t('store.couldntLoad')}</h4>
           <p>{loadError}. {t('common.backendHint')}</p>
-          <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+          <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
         </div></div>
       )}
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
+import { ItemsProvider } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 
 export interface LayoutContext {
@@ -32,19 +33,21 @@ export function AppLayout() {
   }, [pathname]);
 
   return (
-    <div className="app-shell">
-      <Sidebar open={menuOpen} />
-      <div className="main-area">
-        <Topbar
-          search={search}
-          onSearch={setSearch}
-          onMenu={() => setMenuOpen((o) => !o)}
-          placeholder={searchPlaceholder}
-        />
-        <div className="page-scroll">
-          <Outlet context={{ search } satisfies LayoutContext} />
+    <ItemsProvider>
+      <div className="app-shell">
+        <Sidebar open={menuOpen} />
+        <div className="main-area">
+          <Topbar
+            search={search}
+            onSearch={setSearch}
+            onMenu={() => setMenuOpen((o) => !o)}
+            placeholder={searchPlaceholder}
+          />
+          <div className="page-scroll">
+            <Outlet context={{ search } satisfies LayoutContext} />
+          </div>
         </div>
       </div>
-    </div>
+    </ItemsProvider>
   );
 }
