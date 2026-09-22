@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { employeesApi } from '../api/employees';
+import { useAuth } from '../auth/AuthContext';
+import { canManage } from '../auth/roles';
 import { Avatar } from '../components/Avatar';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmployeeModal } from '../components/EmployeeModal';
@@ -16,6 +18,8 @@ function formatDate(iso: string) {
 export function EmployeesPage() {
   const { search } = useOutletContext<LayoutContext>();
   const toast = useToast();
+  const { user } = useAuth();
+  const manage = canManage(user?.role); // can this user add/edit/delete?
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,9 +96,11 @@ export function EmployeesPage() {
           <h1>Employees</h1>
           <p>Manage the people in your company.</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          <PlusIcon /> Add employee
-        </button>
+        {manage && (
+          <button className="btn btn-primary" onClick={openCreate}>
+            <PlusIcon /> Add employee
+          </button>
+        )}
       </div>
 
       <div className="panel rise">
@@ -139,7 +145,7 @@ export function EmployeesPage() {
             <div className="empty-illus"><UsersIcon /></div>
             <h4>{search ? 'No matches' : 'No employees yet'}</h4>
             <p>{search ? 'Try a different search term.' : 'Add your first employee to get started.'}</p>
-            {!search && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> Add employee</button>}
+            {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> Add employee</button>}
           </div>
         )}
 
@@ -153,7 +159,7 @@ export function EmployeesPage() {
                   <th>Position</th>
                   <th>Status</th>
                   <th>Hired</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  {manage && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -175,12 +181,14 @@ export function EmployeesPage() {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(e.hireDate)}</td>
-                    <td>
-                      <div className="row-actions">
-                        <button className="act-btn" onClick={() => openEdit(e)} aria-label="Edit"><EditIcon /></button>
-                        <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label="Delete"><TrashIcon /></button>
-                      </div>
-                    </td>
+                    {manage && (
+                      <td>
+                        <div className="row-actions">
+                          <button className="act-btn" onClick={() => openEdit(e)} aria-label="Edit"><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label="Delete"><TrashIcon /></button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

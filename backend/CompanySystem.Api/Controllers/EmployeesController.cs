@@ -1,11 +1,14 @@
+using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CompanySystem.Api.Controllers;
 
 [ApiController]
+[Authorize] // must be logged in to reach ANY endpoint here
 [Route("api/[controller]")] // → the base URL is  /api/employees
 public class EmployeesController : ControllerBase
 {
@@ -36,7 +39,8 @@ public class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
-    // POST /api/employees  → create a new employee
+    // POST /api/employees  → create a new employee (managers only)
+    [Authorize(Roles = Roles.Managers)]
     [HttpPost]
     public async Task<ActionResult<Employee>> Create(Employee employee)
     {
@@ -47,7 +51,8 @@ public class EmployeesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = employee.Id }, employee);
     }
 
-    // PUT /api/employees/5  → update an existing employee
+    // PUT /api/employees/5  → update an existing employee (managers only)
+    [Authorize(Roles = Roles.Managers)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, Employee updated)
     {
@@ -65,7 +70,8 @@ public class EmployeesController : ControllerBase
         return NoContent(); // 204 — success, nothing to return
     }
 
-    // DELETE /api/employees/5  → delete an employee
+    // DELETE /api/employees/5  → delete an employee (managers only)
+    [Authorize(Roles = Roles.Managers)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

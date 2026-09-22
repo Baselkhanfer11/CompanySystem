@@ -15,3 +15,35 @@ export interface EmployeeInput {
   position?: string | null;
   isActive: boolean;
 }
+
+// A login account (mirrors the backend UserDto — never includes the password).
+export interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// What /api/auth/login returns.
+export interface AuthResponse {
+  token: string;
+  expiresAt: string;
+  user: User;
+}
+
+// Admin create/update user payloads.
+export interface CreateUserInput {
+  username: string;
+  fullName: string;
+  password: string;
+  role: string;
+  isActive: boolean;
+}
+export interface UpdateUserInput {
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  newPassword?: string | null;
+}

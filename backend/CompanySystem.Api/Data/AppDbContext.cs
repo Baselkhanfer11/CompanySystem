@@ -15,4 +15,17 @@ public class AppDbContext : DbContext
 
     // The "Employees" table.
     public DbSet<Employee> Employees => Set<Employee>();
+
+    // The "Users" table (login accounts).
+    public DbSet<User> Users => Set<User>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Usernames must be unique — no two accounts can share one.
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+    }
 }

@@ -1,8 +1,11 @@
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { roleLabel } from '../auth/roles';
 import {
-  BoxesIcon, BriefcaseIcon, CartIcon, CubeIcon, DashboardIcon,
+  BoxesIcon, CartIcon, CubeIcon, DashboardIcon, LogoutIcon,
   ProjectsIcon, TrendingIcon, UsersIcon,
 } from './icons';
+import { Avatar } from './Avatar';
 
 const live = [
   { to: '/', label: 'Dashboard', icon: <DashboardIcon />, end: true },
@@ -17,6 +20,7 @@ const soon = [
 ];
 
 export function Sidebar({ open }: { open: boolean }) {
+  const { user, logout } = useAuth();
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand">
@@ -51,13 +55,14 @@ export function Sidebar({ open }: { open: boolean }) {
 
       <div className="sidebar-footer">
         <div className="user-chip">
-          <div className="brand-logo" style={{ width: 34, height: 34, borderRadius: 10 }}>
-            <BriefcaseIcon />
-          </div>
+          <Avatar name={user?.fullName || 'User'} size={34} />
           <div className="meta">
-            <div className="name">Basel Khanfer</div>
-            <div className="role">Administrator</div>
+            <div className="name">{user?.fullName || 'User'}</div>
+            <div className="role">{roleLabel(user?.role)}</div>
           </div>
+          <button className="act-btn" onClick={logout} aria-label="Sign out" title="Sign out">
+            <LogoutIcon />
+          </button>
         </div>
       </div>
     </aside>
