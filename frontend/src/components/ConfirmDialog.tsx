@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/LanguageContext';
 import { TrashIcon } from './icons';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm }: Props) {
+  const { t } = useI18n();
   if (!open) return null;
   return (
     <div className="modal-overlay" onClick={onCancel}>
@@ -24,10 +26,10 @@ export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm 
           </div>
         </div>
         <div className="modal-foot" style={{ justifyContent: 'center' }}>
-          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={onConfirm} disabled={busy}>
             {busy && <span className="spinner" style={{ borderTopColor: 'var(--rose)' }} />}
-            Delete
+            {t('common.delete')}
           </button>
         </div>
       </div>

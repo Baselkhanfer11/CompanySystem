@@ -438,3 +438,52 @@ table.data tbody tr:last-child td { border-bottom: none; }
   .mobile-only { display: grid; }
   .search-box { width: 200px; }
 }
+
+/* ============================================================
+   Language switcher
+   ============================================================ */
+.lang-switch {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 11px; padding: 3px;
+}
+.lang-opt {
+  min-width: 34px; height: 30px; padding: 0 8px;
+  border: none; background: none; border-radius: 8px;
+  color: var(--text-dim); font-weight: 700; font-size: 13px;
+  transition: all 0.16s ease;
+}
+.lang-opt:hover { color: var(--text); }
+.lang-opt.active {
+  background: var(--accent-grad); color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(124,108,255,0.6);
+}
+
+/* ============================================================
+   RTL (Arabic) — mirror the layout and swap fonts
+   ============================================================ */
+[dir="rtl"] body { font-family: 'Cairo', 'Inter', system-ui, sans-serif; }
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4 {
+  font-family: 'Cairo', 'Sora', sans-serif; letter-spacing: 0;
+}
+
+/* Sidebar sits on the right, with its border and active marker mirrored */
+[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--border); }
+[dir="rtl"] .nav-item.active::before {
+  left: auto; right: -16px; border-radius: 4px 0 0 4px;
+}
+[dir="rtl"] .soon-tag { margin-left: 0; margin-right: auto; }
+
+/* Store card hover actions move to the left corner */
+[dir="rtl"] .item-actions { right: auto; left: 8px; }
+
+/* Keep codes / prices / numeric fields left-to-right even in Arabic */
+[dir="rtl"] .item-code,
+[dir="rtl"] .user-chip .role,
+[dir="rtl"] input[type="number"] { direction: ltr; text-align: right; }
+
+/* Mobile drawer slides in from the right in RTL */
+@media (max-width: 860px) {
+  [dir="rtl"] .sidebar { left: auto; right: 0; transform: translateX(100%); }
+  [dir="rtl"] .sidebar.open { transform: translateX(0); }
+}

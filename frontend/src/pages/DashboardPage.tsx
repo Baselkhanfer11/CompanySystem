@@ -7,9 +7,11 @@ import { StatCard } from '../components/StatCard';
 import {
   BoxesIcon, BriefcaseIcon, TrendingIcon, UserCheckIcon, UsersIcon,
 } from '../components/icons';
+import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, Item } from '../types';
 
 export function DashboardPage() {
+  const { t } = useI18n();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,20 +40,20 @@ export function DashboardPage() {
       >
         <div style={{ position: 'absolute', right: -30, top: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)', filter: 'blur(20px)' }} />
         <div style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent-2)', fontWeight: 600 }}>
-          Welcome back
+          {t('dash.welcome')}
         </div>
-        <h1 style={{ fontSize: 28, marginTop: 8 }}>Company overview</h1>
+        <h1 style={{ fontSize: 28, marginTop: 8 }}>{t('dash.overview')}</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 6, maxWidth: 460 }}>
-          A quick snapshot of your team. More modules — store, projects, and sales — are on the way.
+          {t('dash.overviewSub')}
         </p>
       </div>
 
       {/* Stats */}
       <div className="stat-grid">
-        <StatCard icon={<UsersIcon />} value={loading ? '—' : total} label="Total employees" color="#7c6cff" trend="Team size" delay={0} />
-        <StatCard icon={<UserCheckIcon />} value={loading ? '—' : active} label="Active" color="#34d399" trend={total ? `${Math.round((active / total) * 100)}% active` : '—'} trendUp delay={70} />
-        <StatCard icon={<BriefcaseIcon />} value={loading ? '—' : positions} label="Distinct roles" color="#33d6e6" trend="Positions" delay={140} />
-        <StatCard icon={<BoxesIcon />} value={loading ? '—' : items.length} label="Items in store" color="#fbbf24" trend={items.length ? 'In stock' : 'Add items'} delay={210} />
+        <StatCard icon={<UsersIcon />} value={loading ? '—' : total} label={t('dash.totalEmployees')} color="#7c6cff" trend={t('dash.teamSize')} delay={0} />
+        <StatCard icon={<UserCheckIcon />} value={loading ? '—' : active} label={t('dash.active')} color="#34d399" trend={total ? t('dash.activePct', { p: Math.round((active / total) * 100) }) : '—'} trendUp delay={70} />
+        <StatCard icon={<BriefcaseIcon />} value={loading ? '—' : positions} label={t('dash.distinctRoles')} color="#33d6e6" trend={t('dash.positions')} delay={140} />
+        <StatCard icon={<BoxesIcon />} value={loading ? '—' : items.length} label={t('dash.itemsInStore')} color="#fbbf24" trend={items.length ? t('dash.inStock') : t('dash.addItems')} delay={210} />
       </div>
 
       {/* Recent employees + coming soon */}
@@ -59,15 +61,15 @@ export function DashboardPage() {
         <div className="panel rise" style={{ animationDelay: '120ms' }}>
           <div className="panel-head">
             <div>
-              <h3>Recent employees</h3>
-              <div className="sub">Latest additions to your team</div>
+              <h3>{t('dash.recent')}</h3>
+              <div className="sub">{t('dash.recentSub')}</div>
             </div>
-            <Link className="btn btn-ghost" to="/employees">View all</Link>
+            <Link className="btn btn-ghost" to="/employees">{t('dash.viewAll')}</Link>
           </div>
           {recent.length === 0 ? (
             <div className="empty-state" style={{ padding: 40 }}>
               <div className="empty-illus"><UsersIcon /></div>
-              <p style={{ margin: 0 }}>No employees yet.</p>
+              <p style={{ margin: 0 }}>{t('dash.noEmployees')}</p>
             </div>
           ) : (
             <div style={{ padding: 8 }}>
@@ -76,10 +78,10 @@ export function DashboardPage() {
                   <Avatar name={e.fullName} size={36} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600 }}>{e.fullName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.position || 'No position'}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.position || t('dash.noPosition')}</div>
                   </div>
-                  <span className={`badge ${e.isActive ? 'active' : 'inactive'}`} style={{ marginLeft: 'auto' }}>
-                    <span className="dot" />{e.isActive ? 'Active' : 'Inactive'}
+                  <span className={`badge ${e.isActive ? 'active' : 'inactive'}`} style={{ marginInlineStart: 'auto' }}>
+                    <span className="dot" />{e.isActive ? t('common.active') : t('common.inactive')}
                   </span>
                 </div>
               ))}
@@ -88,11 +90,11 @@ export function DashboardPage() {
         </div>
 
         <div className="panel rise" style={{ animationDelay: '200ms' }}>
-          <div className="panel-head"><div><h3>What’s next</h3><div className="sub">Upcoming modules</div></div></div>
+          <div className="panel-head"><div><h3>{t('dash.whatsNext')}</h3><div className="sub">{t('dash.upcoming')}</div></div></div>
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
-              { icon: <BoxesIcon />, label: 'Store & inventory', desc: 'Track materials and stock levels' },
-              { icon: <TrendingIcon />, label: 'Purchases & sales', desc: 'Buy in, sell out, see statistics' },
+              { icon: <BoxesIcon />, label: t('dash.mStore'), desc: t('dash.mStoreDesc') },
+              { icon: <TrendingIcon />, label: t('dash.mSales'), desc: t('dash.mSalesDesc') },
             ].map((x) => (
               <div key={x.label} style={{ display: 'flex', gap: 12, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="stat-icon" style={{ width: 38, height: 38, margin: 0, background: 'rgba(124,108,255,0.15)', color: 'var(--accent)' }}>{x.icon}</div>

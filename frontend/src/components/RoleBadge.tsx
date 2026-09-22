@@ -1,4 +1,5 @@
-import { ROLES, roleLabel } from '../auth/roles';
+import { ROLES } from '../auth/roles';
+import { useI18n } from '../i18n/LanguageContext';
 
 const COLORS: Record<string, string> = {
   [ROLES.Administrator]: '#7c6cff',
@@ -7,11 +8,12 @@ const COLORS: Record<string, string> = {
 };
 
 export function RoleBadge({ role }: { role: string }) {
+  const { t } = useI18n();
   const c = COLORS[role] ?? '#99a1b7';
   return (
     <span className="badge" style={{ background: `${c}1e`, color: c, border: `1px solid ${c}40` }}>
       <span className="dot" style={{ background: c }} />
-      {roleLabel(role)}
+      {t(`role.${role}`)}
     </span>
   );
 }

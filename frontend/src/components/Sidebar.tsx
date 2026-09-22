@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { isAdmin, roleLabel } from '../auth/roles';
+import { isAdmin } from '../auth/roles';
+import { useI18n } from '../i18n/LanguageContext';
 import {
   BoxesIcon, CartIcon, CubeIcon, DashboardIcon, LogoutIcon,
   ProjectsIcon, ShieldIcon, TrendingIcon, UsersIcon,
@@ -8,29 +9,30 @@ import {
 import { Avatar } from './Avatar';
 
 const live = [
-  { to: '/', label: 'Dashboard', icon: <DashboardIcon />, end: true },
-  { to: '/employees', label: 'Employees', icon: <UsersIcon /> },
+  { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, end: true },
+  { to: '/employees', labelKey: 'nav.employees', icon: <UsersIcon /> },
 ];
 
 const soon = [
-  { label: 'Projects', icon: <ProjectsIcon /> },
-  { label: 'Purchases', icon: <CartIcon /> },
-  { label: 'Sales', icon: <TrendingIcon /> },
+  { labelKey: 'nav.projects', icon: <ProjectsIcon /> },
+  { labelKey: 'nav.purchases', icon: <CartIcon /> },
+  { labelKey: 'nav.sales', icon: <TrendingIcon /> },
 ];
 
 export function Sidebar({ open }: { open: boolean }) {
   const { user, logout } = useAuth();
+  const { t } = useI18n();
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand">
         <div className="brand-logo"><CubeIcon /></div>
         <div>
           <div className="brand-name">CompanySystem</div>
-          <div className="brand-sub">Inventory · ERP</div>
+          <div className="brand-sub">{t('brand.sub')}</div>
         </div>
       </div>
 
-      <div className="nav-label">Main</div>
+      <div className="nav-label">{t('nav.main')}</div>
       {live.map((item) => (
         <NavLink
           key={item.to}
@@ -39,7 +41,7 @@ export function Sidebar({ open }: { open: boolean }) {
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
         >
           {item.icon}
-          <span>{item.label}</span>
+          <span>{t(item.labelKey)}</span>
         </NavLink>
       ))}
 
@@ -47,20 +49,20 @@ export function Sidebar({ open }: { open: boolean }) {
       {isAdmin(user?.role) && (
         <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <ShieldIcon />
-          <span>Users</span>
+          <span>{t('nav.users')}</span>
         </NavLink>
       )}
 
-      <div className="nav-label">Operations</div>
+      <div className="nav-label">{t('nav.operations')}</div>
       <NavLink to="/store" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <BoxesIcon />
-        <span>Store</span>
+        <span>{t('nav.store')}</span>
       </NavLink>
       {soon.map((item) => (
-        <div key={item.label} className="nav-item disabled">
+        <div key={item.labelKey} className="nav-item disabled">
           {item.icon}
-          <span>{item.label}</span>
-          <span className="soon-tag">Soon</span>
+          <span>{t(item.labelKey)}</span>
+          <span className="soon-tag">{t('nav.soon')}</span>
         </div>
       ))}
 
@@ -69,9 +71,9 @@ export function Sidebar({ open }: { open: boolean }) {
           <Avatar name={user?.fullName || 'User'} size={34} />
           <div className="meta">
             <div className="name">{user?.fullName || 'User'}</div>
-            <div className="role">{roleLabel(user?.role)}</div>
+            <div className="role">{user?.role ? t(`role.${user.role}`) : ''}</div>
           </div>
-          <button className="act-btn" onClick={logout} aria-label="Sign out" title="Sign out">
+          <button className="act-btn" onClick={logout} aria-label={t('nav.signOut')} title={t('nav.signOut')}>
             <LogoutIcon />
           </button>
         </div>

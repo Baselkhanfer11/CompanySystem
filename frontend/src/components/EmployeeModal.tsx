@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, EmployeeInput } from '../types';
 import { XIcon } from './icons';
 
@@ -13,6 +14,7 @@ interface Props {
 const empty: EmployeeInput = { fullName: '', email: '', position: '', isActive: true };
 
 export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props) {
+  const { t } = useI18n();
   const [form, setForm] = useState<EmployeeInput>(empty);
   const [error, setError] = useState('');
 
@@ -40,7 +42,7 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
 
   const submit = () => {
     if (!form.fullName.trim()) {
-      setError('Full name is required.');
+      setError(t('empModal.nameRequired'));
       return;
     }
     onSave({ ...form, fullName: form.fullName.trim() });
@@ -51,19 +53,19 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h3>{initial ? 'Edit employee' : 'New employee'}</h3>
-            <p>{initial ? 'Update the details below.' : 'Add a new person to your company.'}</p>
+            <h3>{initial ? t('empModal.editTitle') : t('empModal.newTitle')}</h3>
+            <p>{initial ? t('empModal.editSub') : t('empModal.newSub')}</p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close"><XIcon /></button>
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}><XIcon /></button>
         </div>
 
         <div className="modal-body">
           <div className="field">
-            <label>Full name <span className="req">*</span></label>
+            <label>{t('empModal.fullName')} <span className="req">*</span></label>
             <input
               className="input"
               autoFocus
-              placeholder="e.g. Sara Ahmad"
+              placeholder={t('empModal.fullNamePlaceholder')}
               value={form.fullName}
               onChange={(e) => set('fullName', e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -73,20 +75,20 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
 
           <div className="field-row">
             <div className="field">
-              <label>Email</label>
+              <label>{t('empModal.email')}</label>
               <input
                 className="input"
-                placeholder="name@company.com"
+                placeholder={t('empModal.emailPlaceholder')}
                 value={form.email ?? ''}
                 onChange={(e) => set('email', e.target.value)}
                 autoComplete="off"
               />
             </div>
             <div className="field">
-              <label>Position</label>
+              <label>{t('empModal.position')}</label>
               <input
                 className="input"
-                placeholder="e.g. Warehouse Manager"
+                placeholder={t('empModal.positionPlaceholder')}
                 value={form.position ?? ''}
                 onChange={(e) => set('position', e.target.value)}
                 autoComplete="off"
@@ -95,14 +97,14 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
           </div>
 
           <div className="field">
-            <label>Status</label>
+            <label>{t('empModal.status')}</label>
             <div
               className={`switch ${form.isActive ? 'on' : ''}`}
               onClick={() => set('isActive', !form.isActive)}
               style={{ cursor: 'pointer' }}
             >
               <div className="switch-track"><div className="knob" /></div>
-              <span style={{ fontWeight: 500 }}>{form.isActive ? 'Active' : 'Inactive'}</span>
+              <span style={{ fontWeight: 500 }}>{form.isActive ? t('common.active') : t('common.inactive')}</span>
             </div>
           </div>
 
@@ -110,10 +112,10 @@ export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props)
         </div>
 
         <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
           <button className="btn btn-primary" onClick={submit} disabled={saving}>
             {saving && <span className="spinner" />}
-            {initial ? 'Save changes' : 'Create employee'}
+            {initial ? t('common.saveChanges') : t('empModal.create')}
           </button>
         </div>
       </div>

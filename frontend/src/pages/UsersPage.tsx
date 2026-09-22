@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ShieldIcon, TrashIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { useToast } from '../components/toast';
+import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { User } from '../types';
@@ -15,6 +16,7 @@ import type { User } from '../types';
 export function UsersPage() {
   const { search } = useOutletContext<LayoutContext>();
   const toast = useToast();
+  const { t } = useI18n();
   const { user: me } = useAuth();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -40,8 +42,8 @@ export function UsersPage() {
     return (
       <div className="empty-state" style={{ paddingTop: 100 }}>
         <div className="empty-illus"><ShieldIcon /></div>
-        <h4>Admins only</h4>
-        <p>You don’t have permission to manage users.</p>
+        <h4>{t('users.adminsOnly')}</h4>
+        <p>{t('users.noPermission')}</p>
       </div>
     );
   }
@@ -51,7 +53,7 @@ export function UsersPage() {
     setDeleteBusy(true);
     try {
       await usersApi.remove(deleting.id);
-      toast('success', 'Login removed');
+      toast('success', t('users.loginRemoved'));
       setDeleting(null);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -61,15 +63,15 @@ export function UsersPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Users</h1>
-        <p>Everyone who can sign in. Grant access to staff from the <Link to="/employees" style={{ color: 'var(--accent-2)' }}>Employees</Link> page.</p>
+        <h1>{t('users.title')}</h1>
+        <p>{t('users.sub1')}<Link to="/employees" style={{ color: 'var(--accent-2)' }}>{t('nav.employees')}</Link>{t('users.sub2')}</p>
       </div>
 
       <div className="panel rise">
         <div className="panel-head">
           <div>
-            <h3>All logins</h3>
-            <div className="sub">{loading ? 'Loading…' : `${filtered.length} account${filtered.length === 1 ? '' : 's'}`}</div>
+            <h3>{t('users.all')}</h3>
+            <div className="sub">{loading ? t('common.loading') : (filtered.length === 1 ? t('users.countOne', { n: filtered.length }) : t('users.countMany', { n: filtered.length }))}</div>
           </div>
         </div>
 
@@ -90,9 +92,9 @@ export function UsersPage() {
             <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
               <ShieldIcon style={{ color: 'var(--rose)' }} />
             </div>
-            <h4>Couldn’t load users</h4>
+            <h4>{t('users.couldntLoad')}</h4>
             <p>{loadError}</p>
-            <button className="btn btn-ghost" onClick={load}>Try again</button>
+            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
           </div>
         )}
 
@@ -101,12 +103,12 @@ export function UsersPage() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Type</th>
-                  <th>Created</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{t('users.colUser')}</th>
+                  <th>{t('users.colRole')}</th>
+                  <th>{t('users.colStatus')}</th>
+                  <th>{t('users.colType')}</th>
+                  <th>{t('users.colCreated')}</th>
+                  <th style={{ textAlign: 'end' }}>{t('users.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,7 +120,7 @@ export function UsersPage() {
                         <div>
                           <div className="name">
                             {u.fullName}
-                            {u.id === me?.id && <span className="soon-tag" style={{ marginLeft: 8 }}>You</span>}
+                            {u.id === me?.id && <span className="soon-tag" style={{ marginInlineStart: 8 }}>{t('common.you')}</span>}
                           </div>
                           <div className="email">@{u.username}</div>
                         </div>
@@ -127,11 +129,11 @@ export function UsersPage() {
                     <td><RoleBadge role={u.role} /></td>
                     <td>
                       <span className={`badge ${u.isActive ? 'active' : 'inactive'}`}>
-                        <span className="dot" />{u.isActive ? 'Active' : 'Inactive'}
+                        <span className="dot" />{u.isActive ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
-                      {u.employeeId ? 'Staff login' : 'System account'}
+                      {u.employeeId ? t('users.staffLogin') : t('users.systemAccount')}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</td>
                     <td>
@@ -141,8 +143,8 @@ export function UsersPage() {
                           onClick={() => setDeleting(u)}
                           disabled={u.id === me?.id}
                           style={u.id === me?.id ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
-                          aria-label="Remove login"
-                          title={u.id === me?.id ? 'You can’t remove your own login' : 'Remove login'}
+                          aria-label={t('users.removeLogin')}
+                          title={u.id === me?.id ? t('users.cantRemoveSelf') : t('users.removeLogin')}
                         >
                           <TrashIcon />
                         </button>
@@ -158,8 +160,8 @@ export function UsersPage() {
 
       <ConfirmDialog
         open={!!deleting}
-        title="Remove login?"
-        message={`${deleting?.fullName} will no longer be able to sign in.`}
+        title={t('users.removeQ')}
+        message={t('users.removeMsg', { name: deleting?.fullName ?? '' })}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}

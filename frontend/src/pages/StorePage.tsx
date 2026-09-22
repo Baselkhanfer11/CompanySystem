@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BoxesIcon, EditIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
+import { useI18n } from '../i18n/LanguageContext';
 import { formatPrice } from '../lib/units';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Item, ItemInput } from '../types';
@@ -16,6 +17,7 @@ const LOW_STOCK = 10;
 export function StorePage() {
   const { search } = useOutletContext<LayoutContext>();
   const toast = useToast();
+  const { t } = useI18n();
   const { user } = useAuth();
   const manage = canManage(user?.role);
 
@@ -48,8 +50,8 @@ export function StorePage() {
   const handleSave = async (data: ItemInput) => {
     setSaving(true);
     try {
-      if (editing) { await itemsApi.update(editing.id, data); toast('success', 'Item updated'); }
-      else { await itemsApi.create(data); toast('success', 'Item added'); }
+      if (editing) { await itemsApi.update(editing.id, data); toast('success', t('store.updated')); }
+      else { await itemsApi.create(data); toast('success', t('store.added')); }
       setModalOpen(false);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -61,7 +63,7 @@ export function StorePage() {
     setDeleteBusy(true);
     try {
       await itemsApi.remove(deleting.id);
-      toast('success', 'Item removed');
+      toast('success', t('store.removed'));
       setDeleting(null);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -72,10 +74,10 @@ export function StorePage() {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1>Store</h1>
-          <p>Your warehouse items and stock levels.</p>
+          <h1>{t('store.title')}</h1>
+          <p>{t('store.sub')}</p>
         </div>
-        {manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> Add item</button>}
+        {manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('store.add')}</button>}
       </div>
 
       {loading && (
@@ -95,18 +97,18 @@ export function StorePage() {
           <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
             <BoxesIcon style={{ color: 'var(--rose)' }} />
           </div>
-          <h4>Couldn’t load items</h4>
-          <p>{loadError}. Make sure the backend API is running.</p>
-          <button className="btn btn-ghost" onClick={load}>Try again</button>
+          <h4>{t('store.couldntLoad')}</h4>
+          <p>{loadError}. {t('common.backendHint')}</p>
+          <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
         </div></div>
       )}
 
       {!loading && !loadError && filtered.length === 0 && (
         <div className="panel"><div className="empty-state">
           <div className="empty-illus"><BoxesIcon /></div>
-          <h4>{search ? 'No matches' : 'No items yet'}</h4>
-          <p>{search ? 'Try a different search term.' : 'Add your first item to the store.'}</p>
-          {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> Add item</button>}
+          <h4>{search ? t('common.noMatches') : t('store.noneTitle')}</h4>
+          <p>{search ? t('common.differentSearch') : t('store.addFirst')}</p>
+          {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('store.add')}</button>}
         </div></div>
       )}
 
@@ -120,8 +122,8 @@ export function StorePage() {
                   {i.imageUrl ? <img src={i.imageUrl} alt={i.name} /> : <BoxesIcon />}
                   {manage && (
                     <div className="item-actions">
-                      <button className="act-btn" onClick={() => openEdit(i)} aria-label="Edit"><EditIcon /></button>
-                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label="Delete"><TrashIcon /></button>
+                      <button className="act-btn" onClick={() => openEdit(i)} aria-label={t('common.edit')}><EditIcon /></button>
+                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label={t('common.delete')}><TrashIcon /></button>
                     </div>
                   )}
                 </div>
@@ -129,7 +131,7 @@ export function StorePage() {
                 <div className="item-code">{i.code}</div>
                 <div className="item-meta">
                   <span className={`qty-badge ${low ? 'low' : ''}`}>
-                    {i.quantity} {i.unit}{low ? ' · low' : ''}
+                    {i.quantity} {i.unit}{low ? ' · ' + t('store.low') : ''}
                   </span>
                   <span className="item-price">{formatPrice(i.price)}</span>
                 </div>
@@ -143,8 +145,8 @@ export function StorePage() {
 
       <ConfirmDialog
         open={!!deleting}
-        title="Delete item?"
-        message={`This will permanently remove ${deleting?.name}.`}
+        title={t('store.deleteQ')}
+        message={t('store.deleteMsg', { name: deleting?.name ?? '' })}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}

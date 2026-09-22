@@ -10,6 +10,7 @@ import { EmployeeModal } from '../components/EmployeeModal';
 import { EditIcon, KeyIcon, PlusIcon, TrashIcon, UsersIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { useToast } from '../components/toast';
+import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Employee, EmployeeInput, GrantAccessInput, UpdateAccessInput } from '../types';
@@ -17,6 +18,7 @@ import type { Employee, EmployeeInput, GrantAccessInput, UpdateAccessInput } fro
 export function EmployeesPage() {
   const { search } = useOutletContext<LayoutContext>();
   const toast = useToast();
+  const { t } = useI18n();
   const { user } = useAuth();
   const manage = canManage(user?.role); // add/edit/delete employees
   const admin = isAdmin(user?.role);     // manage login access
@@ -62,8 +64,8 @@ export function EmployeesPage() {
   const handleSave = async (data: EmployeeInput) => {
     setSaving(true);
     try {
-      if (editing) { await employeesApi.update(editing.id, data); toast('success', 'Employee updated'); }
-      else { await employeesApi.create(data); toast('success', 'Employee added'); }
+      if (editing) { await employeesApi.update(editing.id, data); toast('success', t('emp.updated')); }
+      else { await employeesApi.create(data); toast('success', t('emp.added')); }
       setModalOpen(false);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -75,7 +77,7 @@ export function EmployeesPage() {
     setDeleteBusy(true);
     try {
       await employeesApi.remove(deleting.id);
-      toast('success', 'Employee removed');
+      toast('success', t('emp.removed'));
       setDeleting(null);
       load();
     } catch (e) { toast('error', (e as Error).message); }
@@ -86,14 +88,14 @@ export function EmployeesPage() {
 
   const handleGrant = async (employeeId: number, data: GrantAccessInput) => {
     setAccessSaving(true);
-    try { await employeesApi.grantAccess(employeeId, data); toast('success', 'Access granted'); setAccessOpen(false); load(); }
+    try { await employeesApi.grantAccess(employeeId, data); toast('success', t('access.granted')); setAccessOpen(false); load(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setAccessSaving(false); }
   };
 
   const handleUpdateAccess = async (employeeId: number, data: UpdateAccessInput) => {
     setAccessSaving(true);
-    try { await employeesApi.updateAccess(employeeId, data); toast('success', 'Access updated'); setAccessOpen(false); load(); }
+    try { await employeesApi.updateAccess(employeeId, data); toast('success', t('access.updated')); setAccessOpen(false); load(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setAccessSaving(false); }
   };
@@ -101,7 +103,7 @@ export function EmployeesPage() {
   const confirmRevoke = async () => {
     if (!revoking) return;
     setRevokeBusy(true);
-    try { await employeesApi.revokeAccess(revoking.id); toast('success', 'Access revoked'); setRevoking(null); load(); }
+    try { await employeesApi.revokeAccess(revoking.id); toast('success', t('access.revoked')); setRevoking(null); load(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setRevokeBusy(false); }
   };
@@ -110,12 +112,12 @@ export function EmployeesPage() {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1>Employees</h1>
-          <p>Manage the people in your company.</p>
+          <h1>{t('emp.title')}</h1>
+          <p>{t('emp.sub')}</p>
         </div>
         {manage && (
           <button className="btn btn-primary" onClick={openCreate}>
-            <PlusIcon /> Add employee
+            <PlusIcon /> {t('emp.add')}
           </button>
         )}
       </div>
@@ -123,9 +125,11 @@ export function EmployeesPage() {
       <div className="panel rise">
         <div className="panel-head">
           <div>
-            <h3>All employees</h3>
+            <h3>{t('emp.all')}</h3>
             <div className="sub">
-              {loading ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? 'person' : 'people'}${search ? ' found' : ''}`}
+              {loading
+                ? t('common.loading')
+                : `${filtered.length === 1 ? t('emp.countOne', { n: filtered.length }) : t('emp.countMany', { n: filtered.length })}${search ? ' ' + t('common.found') : ''}`}
             </div>
           </div>
         </div>
@@ -147,18 +151,18 @@ export function EmployeesPage() {
             <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
               <UsersIcon style={{ color: 'var(--rose)' }} />
             </div>
-            <h4>Couldn’t load employees</h4>
-            <p>{loadError}. Make sure the backend API is running.</p>
-            <button className="btn btn-ghost" onClick={load}>Try again</button>
+            <h4>{t('emp.couldntLoad')}</h4>
+            <p>{loadError}. {t('common.backendHint')}</p>
+            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
           </div>
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
           <div className="empty-state">
             <div className="empty-illus"><UsersIcon /></div>
-            <h4>{search ? 'No matches' : 'No employees yet'}</h4>
-            <p>{search ? 'Try a different search term.' : 'Add your first employee to get started.'}</p>
-            {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> Add employee</button>}
+            <h4>{search ? t('common.noMatches') : t('emp.noneTitle')}</h4>
+            <p>{search ? t('common.differentSearch') : t('emp.addFirst')}</p>
+            {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('emp.add')}</button>}
           </div>
         )}
 
@@ -167,12 +171,12 @@ export function EmployeesPage() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>Employee</th>
-                  <th>Position</th>
-                  <th>Status</th>
-                  {admin && <th>Access</th>}
-                  <th>Hired</th>
-                  {manage && <th style={{ textAlign: 'right' }}>Actions</th>}
+                  <th>{t('emp.colEmployee')}</th>
+                  <th>{t('emp.colPosition')}</th>
+                  <th>{t('emp.colStatus')}</th>
+                  {admin && <th>{t('emp.colAccess')}</th>}
+                  <th>{t('emp.colHired')}</th>
+                  {manage && <th style={{ textAlign: 'end' }}>{t('emp.colActions')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -190,18 +194,18 @@ export function EmployeesPage() {
                     <td>{e.position || <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
                     <td>
                       <span className={`badge ${e.isActive ? 'active' : 'inactive'}`}>
-                        <span className="dot" />{e.isActive ? 'Active' : 'Inactive'}
+                        <span className="dot" />{e.isActive ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     {admin && (
                       <td>
-                        <button className="access-cell" onClick={() => openAccess(e)} title="Manage login access">
+                        <button className="access-cell" onClick={() => openAccess(e)} title={t('emp.manageAccessTitle')}>
                           {e.access ? (
                             <span style={{ opacity: e.access.isActive ? 1 : 0.55 }}>
                               <RoleBadge role={e.access.role} />
                             </span>
                           ) : (
-                            <span className="grant-hint"><KeyIcon /> Grant access</span>
+                            <span className="grant-hint"><KeyIcon /> {t('emp.grantAccess')}</span>
                           )}
                         </button>
                       </td>
@@ -210,8 +214,8 @@ export function EmployeesPage() {
                     {manage && (
                       <td>
                         <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(e)} aria-label="Edit"><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label="Delete"><TrashIcon /></button>
+                          <button className="act-btn" onClick={() => openEdit(e)} aria-label={t('common.edit')}><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label={t('common.delete')}><TrashIcon /></button>
                         </div>
                       </td>
                     )}
@@ -243,8 +247,11 @@ export function EmployeesPage() {
 
       <ConfirmDialog
         open={!!deleting}
-        title="Delete employee?"
-        message={`This will permanently remove ${deleting?.fullName}${deleting?.access ? ' and their login account' : ''}.`}
+        title={t('emp.deleteQ')}
+        message={t('emp.deleteMsg', {
+          name: deleting?.fullName ?? '',
+          login: deleting?.access ? t('emp.deleteLoginPart') : '',
+        })}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
@@ -252,8 +259,8 @@ export function EmployeesPage() {
 
       <ConfirmDialog
         open={!!revoking}
-        title="Revoke access?"
-        message={`${revoking?.fullName} will no longer be able to sign in. Their employee record stays.`}
+        title={t('emp.revokeQ')}
+        message={t('emp.revokeMsg', { name: revoking?.fullName ?? '' })}
         busy={revokeBusy}
         onCancel={() => setRevoking(null)}
         onConfirm={confirmRevoke}
