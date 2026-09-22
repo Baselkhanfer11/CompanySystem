@@ -22,7 +22,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// Only force HTTPS in production. In development this lets the React dev
+// proxy talk to the plain HTTP endpoint without redirect issues.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 
