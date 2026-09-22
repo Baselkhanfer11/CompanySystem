@@ -42,9 +42,34 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
+// Download a file with the auth token attached, then save it via a temporary
+// link. Used for endpoints that return a file (not JSON), e.g. document files.
+async function download(url: string, filename: string): Promise<void> {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
 export const api = {
   get: <T>(url: string) => request<T>(url),
   post: <T>(url: string, body: unknown) => request<T>(url, jsonInit('POST', body)),
   put: <T>(url: string, body: unknown) => request<T>(url, jsonInit('PUT', body)),
   del: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
+  // Multipart upload — pass a FormData. We deliberately DON'T set Content-Type;
+  // the browser adds the correct multipart boundary automatically.
+  postForm: <T>(url: string, form: FormData) => request<T>(url, { method: 'POST', body: form }),
+  download,
 };

@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { isAdmin } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import {
-  BoxesIcon, CartIcon, CubeIcon, DashboardIcon, LogoutIcon,
+  BoxesIcon, CartIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
   ProjectsIcon, ShieldIcon, TrendingIcon, UsersIcon,
 } from './icons';
 import { Avatar } from './Avatar';
@@ -60,6 +60,10 @@ export function Sidebar({ open }: { open: boolean }) {
       <NavLink to="/projects" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <ProjectsIcon />
         <span>{t('nav.projects')}</span>
+      </NavLink>
+      <NavLink to="/documents" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <FileIcon />
+        <span>{t('nav.documents')}</span>
       </NavLink>
       {soon.map((item) => (
         <div key={item.labelKey} className="nav-item disabled">

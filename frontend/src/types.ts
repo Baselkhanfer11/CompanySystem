@@ -92,3 +92,19 @@ export interface ProjectInput {
   status: string;
   description?: string | null;
 }
+
+// A document (uploaded Excel file) moving through the approval pipeline.
+// Named ApprovalDocument to avoid clashing with the DOM's global `Document`.
+export interface ApprovalDocument {
+  id: number;
+  title: string;
+  projectId: number;
+  projectName: string;
+  fileName: string;
+  fileSize: number;
+  status: string; // one of DOC_STATUSES
+  uploadedById: number;
+  uploadedByName: string;
+  createdAt: string;
+  updatedAt: string;
+}

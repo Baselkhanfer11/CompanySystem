@@ -41,6 +41,7 @@ const en: Dict = {
   'nav.users': 'Users',
   'nav.store': 'Store',
   'nav.projects': 'Projects',
+  'nav.documents': 'Documents',
   'nav.purchases': 'Purchases',
   'nav.sales': 'Sales',
   'nav.soon': 'Soon',
@@ -68,6 +69,7 @@ const en: Dict = {
   'search.employees': 'Search employees…',
   'search.items': 'Search items…',
   'search.projects': 'Search projects…',
+  'search.documents': 'Search documents…',
   'search.users': 'Search users…',
 
   // Login
@@ -266,6 +268,45 @@ const en: Dict = {
   'projectModal.nameRequired': 'Name is required.',
   'projectModal.codeRequired': 'Code is required.',
   'projectModal.create': 'Create project',
+
+  // Documents page
+  'doc.title': 'Documents',
+  'doc.sub': 'Files submitted for approval, tracked from engineer to CEO.',
+  'doc.upload': 'Upload document',
+  'doc.all': 'All documents',
+  'doc.countOne': '{n} document',
+  'doc.countMany': '{n} documents',
+  'doc.couldntLoad': 'Couldn’t load documents',
+  'doc.noneTitle': 'No documents yet',
+  'doc.addFirst': 'Upload your first document to get started.',
+  'doc.colDocument': 'Document',
+  'doc.colProject': 'Project',
+  'doc.colStatus': 'Status',
+  'doc.colUploadedBy': 'Uploaded by',
+  'doc.colDate': 'Date',
+  'doc.colActions': 'Actions',
+  'doc.download': 'Download',
+  'doc.uploaded': 'Document uploaded',
+  'doc.status.PendingManager': 'Pending manager',
+  'doc.status.PendingCEO': 'Pending CEO',
+  'doc.status.Approved': 'Approved',
+  'doc.status.Returned': 'Returned',
+
+  // Upload document modal
+  'docModal.title': 'Upload document',
+  'docModal.sub': 'Attach an Excel file and submit it for approval.',
+  'docModal.docTitle': 'Title',
+  'docModal.docTitlePlaceholder': 'e.g. Q1 material budget',
+  'docModal.project': 'Project',
+  'docModal.noProjects': 'Create a project first — documents must belong to one.',
+  'docModal.file': 'File',
+  'docModal.choose': 'Choose an Excel file…',
+  'docModal.fileHint': 'Excel only (.xlsx, .xls), up to 10 MB.',
+  'docModal.upload': 'Upload',
+  'docModal.titleRequired': 'Title is required.',
+  'docModal.projectRequired': 'Please choose a project.',
+  'docModal.fileRequired': 'Please choose a file.',
+  'docModal.fileType': 'Only Excel files (.xlsx, .xls) are allowed.',
 };
 
 const ar: Dict = {
@@ -295,6 +336,7 @@ const ar: Dict = {
   'nav.users': 'المستخدمون',
   'nav.store': 'المخزن',
   'nav.projects': 'المشاريع',
+  'nav.documents': 'المستندات',
   'nav.purchases': 'المشتريات',
   'nav.sales': 'المبيعات',
   'nav.soon': 'قريباً',
@@ -322,6 +364,7 @@ const ar: Dict = {
   'search.employees': 'ابحث عن موظف…',
   'search.items': 'ابحث عن صنف…',
   'search.projects': 'ابحث عن مشروع…',
+  'search.documents': 'ابحث عن مستند…',
   'search.users': 'ابحث عن مستخدم…',
 
   // Login
@@ -520,6 +563,45 @@ const ar: Dict = {
   'projectModal.nameRequired': 'الاسم مطلوب.',
   'projectModal.codeRequired': 'الرمز مطلوب.',
   'projectModal.create': 'إنشاء المشروع',
+
+  // Documents page
+  'doc.title': 'المستندات',
+  'doc.sub': 'الملفات المقدَّمة للاعتماد، متتبَّعة من المهندس إلى المدير التنفيذي.',
+  'doc.upload': 'رفع مستند',
+  'doc.all': 'كل المستندات',
+  'doc.countOne': 'مستند واحد',
+  'doc.countMany': '{n} مستندات',
+  'doc.couldntLoad': 'تعذّر تحميل المستندات',
+  'doc.noneTitle': 'لا توجد مستندات بعد',
+  'doc.addFirst': 'ارفع أول مستند للبدء.',
+  'doc.colDocument': 'المستند',
+  'doc.colProject': 'المشروع',
+  'doc.colStatus': 'الحالة',
+  'doc.colUploadedBy': 'رفعه',
+  'doc.colDate': 'التاريخ',
+  'doc.colActions': 'إجراءات',
+  'doc.download': 'تنزيل',
+  'doc.uploaded': 'تم رفع المستند',
+  'doc.status.PendingManager': 'بانتظار المدير',
+  'doc.status.PendingCEO': 'بانتظار المدير التنفيذي',
+  'doc.status.Approved': 'معتمد',
+  'doc.status.Returned': 'مُعاد',
+
+  // Upload document modal
+  'docModal.title': 'رفع مستند',
+  'docModal.sub': 'أرفِق ملف Excel وقدّمه للاعتماد.',
+  'docModal.docTitle': 'العنوان',
+  'docModal.docTitlePlaceholder': 'مثال: موازنة المواد للربع الأول',
+  'docModal.project': 'المشروع',
+  'docModal.noProjects': 'أنشئ مشروعاً أولاً — يجب أن ينتمي المستند إلى مشروع.',
+  'docModal.file': 'الملف',
+  'docModal.choose': 'اختر ملف Excel…',
+  'docModal.fileHint': 'ملفات Excel فقط (.xlsx، .xls)، حتى 10 ميغابايت.',
+  'docModal.upload': 'رفع',
+  'docModal.titleRequired': 'العنوان مطلوب.',
+  'docModal.projectRequired': 'يرجى اختيار مشروع.',
+  'docModal.fileRequired': 'يرجى اختيار ملف.',
+  'docModal.fileType': 'يُسمح بملفات Excel فقط (.xlsx، .xls).',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };

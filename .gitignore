@@ -4,6 +4,10 @@
 bin/
 obj/
 *.user
+
+# Uploaded documents live on disk, not in git.
+# (**/ so it matches the folder wherever it is nested, e.g. backend/CompanySystem.Api/Storage/uploads/)
+**/Storage/uploads/
 *.suo
 .vs/
 [Dd]ebug/

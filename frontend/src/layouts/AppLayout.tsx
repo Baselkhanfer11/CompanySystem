@@ -15,6 +15,7 @@ const SEARCH_KEY_BY_PATH: Record<string, string> = {
   '/employees': 'search.employees',
   '/store': 'search.items',
   '/projects': 'search.projects',
+  '/documents': 'search.documents',
   '/users': 'search.users',
 };
 
