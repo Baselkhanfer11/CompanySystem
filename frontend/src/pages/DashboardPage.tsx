@@ -1,30 +1,81 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { employeesApi } from '../api/employees';
+import { dashboardApi } from '../api/dashboard';
+import { useAuth } from '../auth/AuthContext';
 import { Avatar } from '../components/Avatar';
-import { StatCard } from '../components/StatCard';
 import {
-  BoxesIcon, BriefcaseIcon, TrendingIcon, UserCheckIcon, UsersIcon,
+  AlertIcon, BoxesIcon, CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SwapIcon, UndoIcon, UsersIcon, WalletIcon,
 } from '../components/icons';
+import { StatCard } from '../components/StatCard';
 import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
-import type { Employee } from '../types';
+import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
+import { STATUS_BADGE_CLASS } from '../lib/projects';
+import { isLowStock, isOutOfStock } from '../lib/stock';
+import type { Activity, Dashboard } from '../types';
+
+const ATTENTION_ROWS = 5;
+
+// Keep names/values as their own direction inside a sentence (matters in Arabic).
+const iso = (s: string) => `⁨${s}⁩`;
 
 export function DashboardPage() {
   const { t } = useI18n();
-  // Items come from the shared cache (same one the bell uses) — no extra request.
-  const { items, loading: itemsLoading } = useItems();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  // One request for the dashboard; stock and shortages come from the shared
+  // cache the bell already keeps up to date — no extra requests for those.
+  const { items, shortages } = useItems();
+  const [data, setData] = useState<Dashboard | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    employeesApi.getAll().then(setEmployees).catch(() => {}).finally(() => setLoading(false));
+    let active = true;
+    dashboardApi.get()
+      .then((d) => { if (active) setData(d); })
+      .catch((e) => { if (active) setError((e as Error).message); });
+    return () => { active = false; };
   }, []);
 
-  const total = employees.length;
-  const active = employees.filter((e) => e.isActive).length;
-  const positions = new Set(employees.map((e) => e.position).filter(Boolean)).size;
-  const recent = [...employees].sort((a, b) => b.id - a.id).slice(0, 5);
+  const loading = !data && !error;
+  const seesCosts = data?.costThisMonth != null; // the server leaves money out for non-managers
+
+  // ---- tiles ----
+  const short = shortages.filter((s) => s.toBuy > 0);
+  const toBuyTotal = short.reduce((sum, s) => sum + s.estimatedCost, 0);
+  const out = items.filter((i) => isOutOfStock(i.quantity));
+  const low = items.filter((i) => isLowStock(i.quantity));
+  const onHold = data?.projects.filter((p) => p.status === 'OnHold').length ?? 0;
+  const money = (n: number) => <span title={formatUsd(n)}>{formatUsdShort(n)}</span>;
+
+  const costTrend = () => {
+    const now = data?.costThisMonth ?? 0;
+    const before = data?.costLastMonth ?? 0;
+    if (before <= 0) return { text: t('dash.firstMonth'), up: false };
+    const pct = Math.round(((now - before) / before) * 100);
+    if (pct === 0) return { text: t('dash.vsLastSame'), up: false };
+    return pct > 0 ? { text: t('dash.vsLastUp', { p: pct }), up: true } : { text: t('dash.vsLastDown', { p: -pct }), up: false };
+  };
+
+  // ---- needs attention: shortages first (worst first), then empty stock nobody plans for ----
+  const shortIds = new Set(short.map((s) => s.itemId));
+  const attention = [
+    ...short.map((s) => ({ key: `s-${s.itemId}`, kind: 'short' as const, s })),
+    ...out.filter((i) => !shortIds.has(i.id)).map((i) => ({ key: `o-${i.id}`, kind: 'out' as const, i })),
+  ].slice(0, ATTENTION_ROWS);
+
+  // ---- activity sentences ----
+  const itemList = (names: string[]) =>
+    names.length <= 2 ? names.join(', ') : t('dash.andMore', { list: names.slice(0, 2).join(', '), n: names.length - 2 });
+  const describe = (a: Activity) => {
+    const vars = { actor: iso(a.actorName), items: iso(itemList(a.items)), supplier: iso(a.supplierName ?? ''), site: iso(a.projectName ?? '') };
+    if (a.kind === 'Purchase') return t(a.projectName ? 'dash.act.purchaseSite' : 'dash.act.purchaseWarehouse', vars);
+    return t(`dash.act.${a.kind}`, vars);
+  };
+  const activityIcon = { Purchase: <CartIcon />, Issue: <SwapIcon />, Return: <UndoIcon /> };
+  const activityTone = { Purchase: 'ok', Issue: 'info', Return: 'warn' };
+
+  const firstName = user?.fullName?.split(' ')[0] ?? '';
 
   return (
     <div>
@@ -36,69 +87,140 @@ export function DashboardPage() {
           background: 'linear-gradient(120deg, rgba(124,108,255,0.18), rgba(176,108,255,0.06) 60%, transparent)',
         }}
       >
-        <div style={{ position: 'absolute', right: -30, top: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)', filter: 'blur(20px)' }} />
+        <div style={{ position: 'absolute', insetInlineEnd: -30, top: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)', filter: 'blur(20px)' }} />
         <div style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent-2)', fontWeight: 600 }}>
-          {t('dash.welcome')}
+          {firstName ? t('dash.welcomeName', { name: firstName }) : t('dash.welcome')}
         </div>
         <h1 style={{ fontSize: 28, marginTop: 8 }}>{t('dash.overview')}</h1>
-        <p style={{ color: 'var(--text-muted)', marginTop: 6, maxWidth: 460 }}>
-          {t('dash.overviewSub')}
-        </p>
+        <p style={{ color: 'var(--text-muted)', marginTop: 6, maxWidth: 520 }}>{t('dash.overviewSub2')}</p>
       </div>
 
-      {/* Stats */}
-      <div className="stat-grid">
-        <StatCard icon={<UsersIcon />} value={loading ? '—' : total} label={t('dash.totalEmployees')} color="#7c6cff" trend={t('dash.teamSize')} delay={0} />
-        <StatCard icon={<UserCheckIcon />} value={loading ? '—' : active} label={t('dash.active')} color="#34d399" trend={total ? t('dash.activePct', { p: Math.round((active / total) * 100) }) : '—'} trendUp delay={70} />
-        <StatCard icon={<BriefcaseIcon />} value={loading ? '—' : positions} label={t('dash.distinctRoles')} color="#33d6e6" trend={t('dash.positions')} delay={140} />
-        <StatCard icon={<BoxesIcon />} value={itemsLoading ? '—' : items.length} label={t('dash.itemsInStore')} color="#fbbf24" trend={items.length ? t('dash.inStock') : t('dash.addItems')} delay={210} />
-      </div>
-
-      {/* Recent employees + coming soon */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }} className="dash-cols">
-        <div className="panel rise" style={{ animationDelay: '120ms' }}>
-          <div className="panel-head">
-            <div>
-              <h3>{t('dash.recent')}</h3>
-              <div className="sub">{t('dash.recentSub')}</div>
-            </div>
-            <Link className="btn btn-ghost" to="/employees">{t('dash.viewAll')}</Link>
+      {error && (
+        <div className="panel" style={{ marginBottom: 18 }}>
+          <div className="empty-state" style={{ padding: 30 }}>
+            <h4>{t('dash.couldntLoad')}</h4>
+            <p>{error}. {t('common.backendHint')}</p>
           </div>
-          {recent.length === 0 ? (
-            <div className="empty-state" style={{ padding: 40 }}>
-              <div className="empty-illus"><UsersIcon /></div>
-              <p style={{ margin: 0 }}>{t('dash.noEmployees')}</p>
-            </div>
-          ) : (
-            <div style={{ padding: 8 }}>
-              {recent.map((e) => (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12 }}>
-                  <Avatar name={e.fullName} size={36} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{e.fullName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.position || t('dash.noPosition')}</div>
+        </div>
+      )}
+
+      {/* Tiles — money first for managers, the team for everyone else */}
+      <div className="stat-grid">
+        {seesCosts ? (
+          <StatCard icon={<WalletIcon />} value={money(data!.costThisMonth!)} label={t('dash.costMonth')} color="#7c6cff" trend={costTrend().text} trendUp={costTrend().up} delay={0} />
+        ) : (
+          <StatCard icon={<UsersIcon />} value={loading ? '—' : data?.activeEmployees ?? '—'} label={t('dash.team')} color="#7c6cff" trend={data ? t('dash.teamOf', { n: data.employees }) : undefined} delay={0} />
+        )}
+        <StatCard icon={<ClipboardIcon />} value={money(toBuyTotal)} label={t('dash.toBuy')} color="#fb7185" trend={short.length ? t('dash.toBuyItems', { n: short.length }) : t('dash.toBuyNone')} delay={70} />
+        <StatCard icon={<BoxesIcon />} value={out.length + low.length} label={t('dash.alerts')} color="#fbbf24" trend={out.length + low.length ? t('dash.alertsDetail', { out: out.length, low: low.length }) : t('dash.alertsNone')} delay={140} />
+        <StatCard icon={<ProjectsIcon />} value={loading ? '—' : data?.activeProjects ?? '—'} label={t('dash.activeProjects')} color="#34d399" trend={onHold ? t('dash.onHold', { n: onHold }) : undefined} delay={210} />
+      </div>
+
+      {/* Project progress + needs attention */}
+      <div className="dash-cols dash-row-gap">
+        <div className="panel rise" style={{ animationDelay: '80ms' }}>
+          <div className="panel-head">
+            <div><h3>{t('dash.progress')}</h3><div className="sub">{t('dash.progressSub')}</div></div>
+            <Link className="btn btn-ghost" to="/projects">{t('dash.viewAll')}</Link>
+          </div>
+          <div className="dash-list">
+            {loading && <Skeletons />}
+            {data && data.projects.length === 0 && <div className="dash-empty">{t('dash.noOpenProjects')}</div>}
+            {data?.projects.map((p) => (
+              <Link key={p.id} to="/projects" className="dash-item">
+                <div className="grow">
+                  <div className="dash-item-head">
+                    <span className="name">{p.name}</span>
+                    <span className="code">{p.code}</span>
+                    <span className={`badge ${STATUS_BADGE_CLASS[p.status] ?? 'inactive'}`} style={{ marginInlineStart: 'auto' }}>
+                      <span className="dot" />{t(`project.status.${p.status}`)}
+                    </span>
                   </div>
-                  <span className={`badge ${e.isActive ? 'active' : 'inactive'}`} style={{ marginInlineStart: 'auto' }}>
-                    <span className="dot" />{e.isActive ? t('common.active') : t('common.inactive')}
-                  </span>
+                  {p.hasPlan ? (
+                    <>
+                      <div className="plan-progress-track dash-bar" role="progressbar" aria-valuenow={p.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${p.name} — ${p.progress}%`}>
+                        <span style={{ width: `${Math.min(p.progress, 100)}%` }} />
+                      </div>
+                      <div className="meta">
+                        <strong>{t('plan.progressOf', { p: p.progress })}</strong>
+                        <span>{p.stillToSpend > 0 ? t('dash.stillToSpend', { amount: formatUsd(p.stillToSpend) }) : t('dash.planDone')}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="meta"><span style={{ color: 'var(--text-dim)' }}>{t('dash.noPlan')}</span></div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </Link>
+            ))}
+          </div>
         </div>
 
+        <div className="panel rise" style={{ animationDelay: '140ms' }}>
+          <div className="panel-head">
+            <div><h3>{t('dash.attention')}</h3><div className="sub">{t('dash.attentionSub')}</div></div>
+          </div>
+          <div className="dash-list">
+            {attention.length === 0 ? (
+              <div className="dash-empty"><span className="act-ic ok"><CheckIcon /></span>{t('dash.allGood')}</div>
+            ) : attention.map((a) => a.kind === 'short' ? (
+              <Link key={a.key} to="/to-buy" className="dash-item">
+                <span className="act-ic crit"><AlertIcon /></span>
+                <div className="grow">
+                  <div className="name">{a.s.name}</div>
+                  <div className="meta">
+                    <span>{a.s.projects.length === 1 ? t('dash.forProject', { project: a.s.projects[0].projectName }) : t('dash.forProjects', { n: a.s.projects.length })}</span>
+                  </div>
+                </div>
+                <span className="dash-amount crit">{t('dash.buy', { n: `${a.s.toBuy} ${a.s.unit}`, amount: formatUsd(a.s.estimatedCost) })}</span>
+              </Link>
+            ) : (
+              <Link key={a.key} to="/store" className="dash-item">
+                <span className="act-ic warn"><BoxesIcon /></span>
+                <div className="grow"><div className="name">{a.i.name}</div><div className="meta"><span>{a.i.code}</span></div></div>
+                <span className="dash-amount warn">{t('dash.outOfStock')}</span>
+              </Link>
+            ))}
+            {short.length > 0 && <Link to="/to-buy" className="dash-more">{t('dash.seeToBuy')} →</Link>}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent activity + team */}
+      <div className="dash-cols">
         <div className="panel rise" style={{ animationDelay: '200ms' }}>
-          <div className="panel-head"><div><h3>{t('dash.whatsNext')}</h3><div className="sub">{t('dash.upcoming')}</div></div></div>
-          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { icon: <BoxesIcon />, label: t('dash.mStore'), desc: t('dash.mStoreDesc') },
-              { icon: <TrendingIcon />, label: t('dash.mSales'), desc: t('dash.mSalesDesc') },
-            ].map((x) => (
-              <div key={x.label} style={{ display: 'flex', gap: 12, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <div className="stat-icon" style={{ width: 38, height: 38, margin: 0, background: 'rgba(124,108,255,0.15)', color: 'var(--accent)' }}>{x.icon}</div>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{x.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>{x.desc}</div>
+          <div className="panel-head">
+            <div><h3>{t('dash.activity')}</h3><div className="sub">{t('dash.activitySub')}</div></div>
+          </div>
+          <div className="dash-list">
+            {loading && <Skeletons />}
+            {data && data.activity.length === 0 && <div className="dash-empty">{t('dash.noActivity')}</div>}
+            {data?.activity.map((a) => (
+              <Link key={`${a.kind}-${a.id}`} to={a.kind === 'Purchase' ? '/purchases' : '/movements'} className="dash-item">
+                <span className={`act-ic ${activityTone[a.kind]}`}>{activityIcon[a.kind]}</span>
+                <div className="grow">
+                  <div className="dash-sentence">{describe(a)}</div>
+                  <div className="meta"><span title={formatDateTime(a.createdAt)}>{formatTimeAgo(a.createdAt, t)}</span></div>
+                </div>
+                <span className="dash-amount">{a.kind === 'Return' ? '−' : ''}{formatUsd(a.total)}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel rise" style={{ animationDelay: '260ms' }}>
+          <div className="panel-head">
+            <div><h3>{t('dash.recent')}</h3><div className="sub">{t('dash.recentSub')}</div></div>
+            <Link className="btn btn-ghost" to="/employees">{t('dash.viewAll')}</Link>
+          </div>
+          <div className="dash-list">
+            {loading && <Skeletons />}
+            {data && data.recentEmployees.length === 0 && <div className="dash-empty">{t('dash.noEmployees')}</div>}
+            {data?.recentEmployees.map((e) => (
+              <div key={e.id} className="dash-item static">
+                <Avatar name={e.fullName} size={34} />
+                <div className="grow">
+                  <div className="name">{e.fullName}</div>
+                  <div className="meta"><span>{e.position || t('dash.noPosition')}</span></div>
                 </div>
               </div>
             ))}
@@ -106,5 +228,18 @@ export function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Skeletons() {
+  return (
+    <>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="dash-item static">
+          <div className="skeleton" style={{ width: 34, height: 34, borderRadius: 10 }} />
+          <div className="grow"><div className="skeleton" style={{ height: 13, width: '60%' }} /></div>
+        </div>
+      ))}
+    </>
   );
 }

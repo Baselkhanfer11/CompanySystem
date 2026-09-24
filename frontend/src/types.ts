@@ -421,3 +421,39 @@ export interface Shortage {
   estimatedCost: number;
   projects: { projectId: number; projectName: string; stillNeeded: number }[];
 }
+
+// ---- Home dashboard ----
+
+export interface ProjectProgress {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+  hasPlan: boolean;
+  progress: number; // 0-100
+  stillToSpend: number;
+  itemsOnSite: number;
+}
+
+// A recent purchase or stock movement.
+export interface Activity {
+  kind: 'Purchase' | 'Issue' | 'Return';
+  id: number;
+  actorName: string;
+  supplierName?: string | null;
+  projectName?: string | null; // null on a purchase = delivered to the warehouse
+  items: string[];
+  total: number;
+  createdAt: string;
+}
+
+export interface Dashboard {
+  employees: number;
+  activeEmployees: number;
+  recentEmployees: { id: number; fullName: string; position?: string | null; email?: string | null }[];
+  activeProjects: number;
+  costThisMonth?: number | null; // null when you can't see costs
+  costLastMonth?: number | null;
+  projects: ProjectProgress[];
+  activity: Activity[];
+}
