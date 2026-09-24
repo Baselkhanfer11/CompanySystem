@@ -676,3 +676,43 @@ table.data tbody tr:last-child td { border-bottom: none; }
   font-size: 12.5px; color: var(--text); margin-top: 5px; padding: 7px 11px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
 }
+
+/* ===== Purchases: wide modal, line-item editor, totals ===== */
+.modal.modal-wide { max-width: 780px; }
+.modal.modal-wide .modal-body { max-height: 64vh; overflow-y: auto; }
+
+.btn.btn-sm { padding: 7px 12px; font-size: 12.5px; }
+
+/* Line-item editor (new purchase invoice) */
+.lines { display: flex; flex-direction: column; gap: 8px; }
+.line {
+  display: grid;
+  grid-template-columns: 1fr 78px 120px 92px 38px;
+  gap: 8px;
+  align-items: center;
+}
+.line-head {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim); font-weight: 700;
+}
+.line-qty input, .line-price input { text-align: end; }
+.line-total { text-align: end; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+.line-head .line-total { color: var(--text-dim); font-weight: 700; }
+.line-remove { display: flex; justify-content: center; }
+
+/* Grand total row (modal footer + detail) */
+.grand-total { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); }
+.grand-total strong { font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Purchase detail header facts */
+.detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 18px;
+}
+.detail-grid > div { display: flex; flex-direction: column; gap: 2px; }
+.detail-grid .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); }
+.detail-grid .v { font-size: 14px; color: var(--text); font-weight: 500; }
+
+@media (max-width: 560px) {
+  .line { grid-template-columns: 1fr 56px 88px 34px; }
+  .line .line-total, .line-head .line-total { display: none; }
+}

@@ -4,6 +4,10 @@
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 
+/** Format a money amount with grouped thousands and 2 decimals, e.g. "1,250.00". */
+export const formatMoney = (n: number) =>
+  (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 /** Exact local date + time, e.g. "22 Sep 2026, 07:46 PM" — used for tooltips. */
 export const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-US', {

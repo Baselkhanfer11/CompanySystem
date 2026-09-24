@@ -135,3 +135,86 @@ export interface DocumentDetail {
   document: ApprovalDocument;
   events: DocumentEvent[];
 }
+
+// A supplier / vendor the company buys from.
+export interface Supplier {
+  id: number;
+  name: string;
+  code: string;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status: string; // one of SUPPLIER_STATUSES
+  createdAt: string;
+}
+
+export interface SupplierInput {
+  name: string;
+  code: string;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status: string;
+}
+
+// A purchase (supplier invoice) as shown in the list — summary only.
+export interface PurchaseListItem {
+  id: number;
+  supplierId: number;
+  supplierName: string;
+  projectId?: number | null;
+  projectName?: string | null;
+  invoiceNumber?: string | null;
+  date: string;
+  lineCount: number;
+  total: number;
+  createdByName: string;
+  createdAt: string;
+}
+
+// One line on a purchase, expanded with item details.
+export interface PurchaseLine {
+  id: number;
+  itemId: number;
+  itemName: string;
+  itemCode: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+// A full purchase with all its lines.
+export interface PurchaseDetail {
+  id: number;
+  supplierId: number;
+  supplierName: string;
+  projectId?: number | null;
+  projectName?: string | null;
+  invoiceNumber?: string | null;
+  date: string;
+  notes?: string | null;
+  createdByName: string;
+  createdAt: string;
+  total: number;
+  items: PurchaseLine[];
+}
+
+// What we send to create a purchase.
+export interface PurchaseLineInput {
+  itemId: number;
+  quantity: number;
+  unitPrice: number;
+}
+export interface PurchaseInput {
+  supplierId: number;
+  projectId?: number | null;
+  invoiceNumber?: string | null;
+  date: string;
+  notes?: string | null;
+  items: PurchaseLineInput[];
+}

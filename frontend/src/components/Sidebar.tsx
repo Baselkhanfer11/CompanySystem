@@ -4,7 +4,7 @@ import { isAdmin } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import {
   BoxesIcon, CartIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
-  ProjectsIcon, ShieldIcon, TrendingIcon, UsersIcon,
+  ProjectsIcon, ShieldIcon, TrendingIcon, TruckIcon, UsersIcon,
 } from './icons';
 import { Avatar } from './Avatar';
 
@@ -14,7 +14,6 @@ const live = [
 ];
 
 const soon = [
-  { labelKey: 'nav.purchases', icon: <CartIcon /> },
   { labelKey: 'nav.sales', icon: <TrendingIcon /> },
 ];
 
@@ -64,6 +63,14 @@ export function Sidebar({ open }: { open: boolean }) {
       <NavLink to="/documents" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <FileIcon />
         <span>{t('nav.documents')}</span>
+      </NavLink>
+      <NavLink to="/suppliers" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <TruckIcon />
+        <span>{t('nav.suppliers')}</span>
+      </NavLink>
+      <NavLink to="/purchases" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <CartIcon />
+        <span>{t('nav.purchases')}</span>
       </NavLink>
       {soon.map((item) => (
         <div key={item.labelKey} className="nav-item disabled">
