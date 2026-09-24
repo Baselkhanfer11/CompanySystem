@@ -101,3 +101,9 @@ export const UndoIcon = (p: P) => (
 export const HistoryIcon = (p: P) => (
   <svg {...base} {...p}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
 );
+export const TruckIcon = (p: P) => (
+  <svg {...base} {...p}><path d="M14 18V6a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h1"/><path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-1"/><circle cx="6.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/><path d="M9 18.5h5"/></svg>
+);
+export const ReceiptIcon = (p: P) => (
+  <svg {...base} {...p}><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 V2l-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+);
