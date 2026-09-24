@@ -13,7 +13,7 @@ namespace CompanySystem.Api.Controllers;
 /// <summary>
 /// Material plans: how much each project needs, compared with what's already
 /// on its site — and, across all open projects, what still has to be bought.
-/// Anyone logged in can look; only managers can change a plan.
+/// Anyone logged in can look; managers and the Procurement Officer can change a plan.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -30,8 +30,8 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
         return Ok(plan);
     }
 
-    // PUT /api/projects/5/plan  → replace the whole plan (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // PUT /api/projects/5/plan  → replace the whole plan (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPut("api/projects/{projectId:int}/plan")]
     public async Task<ActionResult<ProjectPlanDto>> SavePlan(int projectId, List<PlanLineInputDto> input)
     {

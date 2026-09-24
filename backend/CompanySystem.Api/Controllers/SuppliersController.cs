@@ -30,8 +30,8 @@ public class SuppliersController(AppDbContext db) : ControllerBase
         return Ok(supplier);
     }
 
-    // POST /api/suppliers  → create (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // POST /api/suppliers  → create (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPost]
     public async Task<ActionResult<Supplier>> Create(SupplierInputDto input)
     {
@@ -54,8 +54,8 @@ public class SuppliersController(AppDbContext db) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
     }
 
-    // PUT /api/suppliers/5  → update (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // PUT /api/suppliers/5  → update (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, SupplierInputDto input)
     {
@@ -78,8 +78,8 @@ public class SuppliersController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
-    // DELETE /api/suppliers/5  → delete (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // DELETE /api/suppliers/5  → delete (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

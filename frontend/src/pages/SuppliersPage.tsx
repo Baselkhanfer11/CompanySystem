@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, TrashIcon, TruckIcon } from '../components/icons';
 import { SupplierModal } from '../components/SupplierModal';
@@ -18,7 +18,7 @@ export function SuppliersPage() {
   const toast = useToast();
   const { t } = useI18n();
   const { user } = useAuth();
-  const manage = canManage(user?.role);
+  const manage = canProcure(user?.role); // managers + the Procurement Officer
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);

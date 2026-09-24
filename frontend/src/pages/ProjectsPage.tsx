@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canManage, canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ClipboardIcon, EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../components/icons';
 import { ProjectModal } from '../components/ProjectModal';
@@ -209,7 +209,7 @@ export function ProjectsPage() {
         onSave={handleSave}
       />
 
-      <ProjectPlanModal project={planning} canEdit={manage} items={items} onClose={() => setPlanning(null)} onSaved={refreshItems} />
+      <ProjectPlanModal project={planning} canEdit={canProcure(user?.role)} items={items} onClose={() => setPlanning(null)} onSaved={refreshItems} />
 
       <SiteStockModal project={viewingSite} rows={viewingSite ? siteRows(viewingSite.id) : []} onClose={() => setViewingSite(null)} />
 

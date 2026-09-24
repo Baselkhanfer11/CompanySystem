@@ -51,9 +51,9 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         return Ok(detail);
     }
 
-    // POST /api/purchases  → record a purchase (managers only). The material
+    // POST /api/purchases  → record a purchase (managers + procurement). The material
     // lands where it was delivered: the warehouse or a project's site.
-    [Authorize(Roles = Roles.Managers)]
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPost]
     public async Task<ActionResult<PurchaseDetailDto>> Create(PurchaseInputDto input)
     {
@@ -88,10 +88,10 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         return CreatedAtAction(nameof(GetById), new { id = purchase.Id }, detail);
     }
 
-    // PUT /api/purchases/5  → edit a purchase (managers only).
+    // PUT /api/purchases/5  → edit a purchase (managers + procurement).
     // Moves stock by the difference (take the old lines out of the old place,
     // put the new lines in the new place) and records exactly what changed.
-    [Authorize(Roles = Roles.Managers)]
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<PurchaseDetailDto>> Update(int id, PurchaseInputDto input)
     {
@@ -192,9 +192,9 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         return Ok(await LoadDetail(purchase.Id));
     }
 
-    // DELETE /api/purchases/5  → delete a purchase (managers only). Takes its
+    // DELETE /api/purchases/5  → delete a purchase (managers + procurement). Takes its
     // material back out of wherever it was delivered.
-    [Authorize(Roles = Roles.Managers)]
+    [Authorize(Roles = Roles.Procurement)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

@@ -3,7 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemLocationsModal } from '../components/ItemLocationsModal';
@@ -21,7 +21,7 @@ export function StorePage() {
   const toast = useToast();
   const { t } = useI18n();
   const { user } = useAuth();
-  const manage = canManage(user?.role);
+  const manage = canProcure(user?.role); // managers + the Procurement Officer
 
   // Items come from the shared cache (also feeds the notifications bell).
   const { items, shortages, loading, error: loadError, refresh } = useItems();

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canProcure } from '../auth/roles';
 import { CartIcon, ClipboardIcon, ProjectsIcon, WalletIcon } from '../components/icons';
 import { StatCard } from '../components/StatCard';
 import { useItems } from '../data/ItemsContext';
@@ -13,7 +13,7 @@ export function ToBuyPage() {
   const { search } = useOutletContext<LayoutContext>();
   const { t } = useI18n();
   const { user } = useAuth();
-  const manage = canManage(user?.role);
+  const manage = canProcure(user?.role); // managers + the Procurement Officer
 
   // The shortages list lives in the shared items cache (the bell uses it too).
   const { shortages, loading, error, refresh } = useItems();

@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/LanguageContext';
 const COLORS: Record<string, string> = {
   [ROLES.Administrator]: '#7c6cff',
   [ROLES.WarehouseManager]: '#33d6e6',
+  [ROLES.ProcurementOfficer]: '#fbbf24',
   [ROLES.Employee]: '#99a1b7',
 };
 
