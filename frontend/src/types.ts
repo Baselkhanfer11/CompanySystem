@@ -244,6 +244,12 @@ export interface PurchaseDraft {
   lines: { itemId: number; quantity: number; unitPrice: number }[];
 }
 
+// A new "send to site" movement that starts pre-filled (from the to-buy list).
+export interface MovementDraft {
+  projectId: number;
+  lines: { itemId: number; quantity: number }[];
+}
+
 export interface PurchaseInput {
   supplierId: number;
   projectId?: number | null;

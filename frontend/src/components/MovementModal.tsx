@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
-import type { Item, MovementType, Project, SiteStock, StockMovementInput } from '../types';
+import type { Item, MovementDraft, MovementType, Project, SiteStock, StockMovementInput } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
 
 interface Props {
   open: boolean;
   initialType: MovementType; // which button opened it (the user can still switch)
+  draft?: MovementDraft | null; // a send that starts pre-filled (e.g. from the to-buy list)
   projects: Project[];
   items: Item[]; // warehouse stock is item.quantity
   siteStock: SiteStock[]; // what's on each site
@@ -26,7 +27,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 let keySeq = 1;
 const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1' });
 
-export function MovementModal({ open, initialType, projects, items, siteStock, saving, onClose, onSave }: Props) {
+export function MovementModal({ open, initialType, draft, projects, items, siteStock, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [type, setType] = useState<MovementType>(initialType);
   const [projectId, setProjectId] = useState('');
@@ -37,13 +38,15 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
 
   useEffect(() => {
     if (!open) return;
-    setType(initialType);
-    setProjectId('');
+    setType(draft ? 'Issue' : initialType);
+    setProjectId(draft ? String(draft.projectId) : '');
     setDate(today());
     setNotes('');
-    setLines([blankLine()]);
+    setLines(draft?.lines.length
+      ? draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity) }))
+      : [blankLine()]);
     setError('');
-  }, [open, initialType]);
+  }, [open, initialType, draft]);
 
   const isIssue = type === 'Issue';
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -109,6 +112,7 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
           <div>
             <h3>{isIssue ? t('movementModal.sendTitle') : t('movementModal.returnTitle')}</h3>
             <p>{isIssue ? t('movementModal.sendSub') : t('movementModal.returnSub')}</p>
+            {draft && isIssue && <div className="field-hint" style={{ color: 'var(--accent-2)' }}>{t('movementModal.draftHint')}</div>}
           </div>
           <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}><XIcon /></button>
         </div>

@@ -630,12 +630,11 @@ const en: Dict = {
   'plan.remove': 'Remove from plan',
   'plan.save': 'Save plan',
   'toBuy.title': 'To buy',
-  'toBuy.sub': 'What open projects still need, minus what the warehouse can send.',
+  'toBuy.sub': 'What open projects still need — what to buy, and what the warehouse can already send.',
   'toBuy.all': 'Shopping list',
   'toBuy.total': 'Estimated cost',
   'toBuy.itemsShort': 'Items to buy',
   'toBuy.projectsShort': 'Projects waiting',
-  'toBuy.covered': 'Covered by warehouse',
   'toBuy.urgent': 'Urgent',
   'toBuy.partial': 'Partly covered',
   'toBuy.coveredPct': '{p}% covered',
@@ -703,6 +702,18 @@ const en: Dict = {
   'toBuy.buyToSite': 'Opens a purchase of {n}, delivered straight to the {site} site',
   'toBuy.buyToWarehouse': 'Opens a purchase of {n}, delivered to the warehouse',
   'purchaseModal.draftHint': 'Filled in from the to-buy list — choose the supplier and check the prices before saving.',
+
+  // Ready to send
+  'toBuy.readyTitle': 'Ready to send',
+  'toBuy.readySub': 'The warehouse already has these — send them to the sites that need them.',
+  'toBuy.readyShort': 'Items ready to send',
+  'toBuy.colSite': 'Site',
+  'toBuy.colSend': 'To send',
+  'toBuy.colValue': '≈ Value',
+  'toBuy.send': 'Send',
+  'toBuy.sendHint': 'Opens a stock movement to {site}, already filled in',
+  'toBuy.nothingToBuy': 'Nothing to buy — the warehouse covers every plan. Send what’s ready below.',
+  'movementModal.draftHint': 'Filled in from the to-buy list — check the quantities, then send.',
 };
 
 const ar: Dict = {
@@ -1321,12 +1332,11 @@ const ar: Dict = {
   'plan.remove': 'إزالة من الخطة',
   'plan.save': 'حفظ الخطة',
   'toBuy.title': 'للشراء',
-  'toBuy.sub': 'ما تحتاجه المشاريع المفتوحة، مطروحاً منه ما يمكن للمستودع إرساله.',
+  'toBuy.sub': 'ما تحتاجه المشاريع المفتوحة — ما يجب شراؤه، وما يمكن للمستودع إرساله الآن.',
   'toBuy.all': 'قائمة الشراء',
   'toBuy.total': 'التكلفة التقديرية',
   'toBuy.itemsShort': 'أصناف للشراء',
   'toBuy.projectsShort': 'مشاريع بانتظار المواد',
-  'toBuy.covered': 'يغطيها المستودع',
   'toBuy.urgent': 'عاجل',
   'toBuy.partial': 'مغطى جزئياً',
   'toBuy.coveredPct': 'مغطى {p}%',
@@ -1394,6 +1404,18 @@ const ar: Dict = {
   'toBuy.buyToSite': 'يفتح مشترى {n} يُسلَّم مباشرة إلى موقع {site}',
   'toBuy.buyToWarehouse': 'يفتح مشترى {n} يُسلَّم إلى المستودع',
   'purchaseModal.draftHint': 'تمت التعبئة من قائمة الشراء — اختر المورّد وتحقق من الأسعار قبل الحفظ.',
+
+  // Ready to send
+  'toBuy.readyTitle': 'جاهز للإرسال',
+  'toBuy.readySub': 'هذه الأصناف موجودة في المستودع — أرسلها إلى المواقع التي تحتاجها.',
+  'toBuy.readyShort': 'أصناف جاهزة للإرسال',
+  'toBuy.colSite': 'الموقع',
+  'toBuy.colSend': 'المطلوب إرساله',
+  'toBuy.colValue': '≈ القيمة',
+  'toBuy.send': 'إرسال',
+  'toBuy.sendHint': 'يفتح حركة مخزون إلى {site} معبّأة مسبقاً',
+  'toBuy.nothingToBuy': 'لا شيء للشراء — المستودع يغطي كل الخطط. أرسل الجاهز من القسم أدناه.',
+  'movementModal.draftHint': 'تمت التعبئة من قائمة الشراء — تحقق من الكميات ثم أرسل.',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };
