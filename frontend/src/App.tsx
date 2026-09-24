@@ -6,6 +6,7 @@ import { EmployeesPage } from './pages/EmployeesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { CostsPage } from './pages/CostsPage';
 import { PurchasesPage } from './pages/PurchasesPage';
 import { StorePage } from './pages/StorePage';
 import { SuppliersPage } from './pages/SuppliersPage';
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
+          <Route path="/costs" element={<CostsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

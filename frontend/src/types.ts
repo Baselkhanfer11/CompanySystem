@@ -218,3 +218,61 @@ export interface PurchaseInput {
   notes?: string | null;
   items: PurchaseLineInput[];
 }
+
+// ---- Cost reports ----
+
+// Spend for one project, or the General bucket (projectId = null).
+export interface ProjectCostRow {
+  projectId: number | null;
+  name: string;
+  code?: string | null;
+  status?: string | null;
+  total: number;
+  purchaseCount: number;
+  lastPurchaseDate?: string | null;
+}
+
+export interface MonthlySpend {
+  year: number;
+  month: number; // 1-12
+  total: number;
+}
+
+export interface ProjectCostsReport {
+  totalSpend: number;
+  projectSpend: number;
+  generalSpend: number;
+  purchaseCount: number;
+  projects: ProjectCostRow[];
+  general: ProjectCostRow;
+  monthly: MonthlySpend[];
+}
+
+export interface SupplierSpend {
+  supplierId: number;
+  name: string;
+  total: number;
+  purchaseCount: number;
+}
+
+export interface ItemSpend {
+  itemId: number;
+  name: string;
+  code: string;
+  unit: string;
+  quantity: number;
+  total: number;
+}
+
+export interface ProjectCostDetail {
+  projectId: number | null;
+  name: string;
+  code?: string | null;
+  status?: string | null;
+  total: number;
+  purchaseCount: number;
+  bySupplier: SupplierSpend[];
+  byItem: ItemSpend[];
+  monthly: MonthlySpend[];
+  recent: PurchaseListItem[];
+}

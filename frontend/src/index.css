@@ -716,3 +716,110 @@ table.data tbody tr:last-child td { border-bottom: none; }
   .line { grid-template-columns: 1fr 56px 88px 34px; }
   .line .line-total, .line-head .line-total { display: none; }
 }
+
+/* ===== Costs dashboard ===== */
+
+/* One filter row above everything it scopes */
+.filter-row { display: flex; align-items: center; gap: 12px; margin: -6px 0 20px; flex-wrap: wrap; }
+.seg {
+  display: inline-flex; padding: 3px; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+}
+.seg-btn {
+  border: 1px solid transparent; background: transparent; color: var(--text-muted);
+  font: inherit; font-size: 13px; font-weight: 500; padding: 7px 13px; border-radius: 8px; cursor: pointer;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.on { background: var(--surface-solid); border-color: var(--border); color: var(--text); font-weight: 600; }
+
+/* Reloading keeps the previous view, faded — no skeleton flash, no layout jump */
+.costs-body { transition: opacity 0.2s; }
+.costs-body.refreshing { opacity: 0.55; pointer-events: none; }
+.inline-error { color: var(--rose); font-size: 13px; margin-bottom: 12px; }
+
+.costs-cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 1000px) { .costs-cols { grid-template-columns: 1fr; } }
+
+/* Ranked bar list — one colour, thin bars, round at the data end only */
+.barlist { display: flex; flex-direction: column; gap: 2px; }
+.barlist-row {
+  display: grid; grid-template-columns: minmax(110px, 1fr) minmax(70px, 1.3fr) minmax(104px, auto);
+  align-items: center; gap: 14px; width: 100%; padding: 10px 12px;
+  border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: start;
+}
+.barlist-row.clickable { cursor: pointer; transition: background 0.15s; }
+.barlist-row.clickable:hover, .barlist-row.clickable:focus-visible { background: rgba(124, 108, 255, 0.07); outline: none; }
+.barlist-row.clickable:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.barlist-label { min-width: 0; display: flex; flex-direction: column; }
+.barlist-label .name { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barlist-label .sub { font-size: 11.5px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barlist-track { height: 10px; }
+.barlist-bar {
+  display: block; height: 100%; min-width: 2px; background: var(--accent);
+  border-start-end-radius: 4px; border-end-end-radius: 4px;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.15s;
+}
+.barlist-row.muted .barlist-bar { background: var(--text-dim); }
+.barlist-row.clickable:hover .barlist-bar { filter: brightness(1.15); }
+.barlist-value { text-align: end; display: flex; flex-direction: column; }
+.barlist-value strong { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.barlist-value span { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
+@media (max-width: 560px) {
+  .barlist-row { grid-template-columns: 1fr auto; }
+  .barlist-track { grid-column: 1 / -1; order: 3; }
+}
+
+/* Monthly column chart */
+.mchart-body { display: flex; position: relative; margin-top: 22px; } /* top room for the peak label */
+.mchart-y { position: relative; width: 48px; flex: none; }
+.mchart-y span {
+  position: absolute; inset-inline-end: 8px; transform: translateY(50%);
+  font-size: 11px; line-height: 1; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.mchart-plot { position: relative; flex: 1; min-width: 0; }
+.mchart-grid { position: absolute; inset-inline: 0; height: 1px; background: var(--border); }
+.mchart-grid.base { background: var(--border-strong); }
+.mchart-cols { position: absolute; inset: 0; display: flex; }
+.mchart-slot {
+  flex: 1 1 0; min-width: 0; position: relative; display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 3px; background: transparent; border: 0; border-radius: 6px 6px 0 0; cursor: default;
+}
+.mchart-slot.on { background: rgba(124, 108, 255, 0.07); }
+.mchart-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mchart-col {
+  display: block; width: 100%; max-width: 24px; min-height: 2px;
+  background: var(--accent); border-radius: 4px 4px 0 0; transition: filter 0.15s;
+}
+.mchart-slot.on .mchart-col { filter: brightness(1.18); }
+.mchart-peak {
+  position: absolute; inset-inline: 0; transform: translateY(-5px); text-align: center; pointer-events: none;
+  font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap;
+}
+.mchart-x { display: flex; padding-inline-start: 48px; margin-top: 8px; }
+.mchart-x span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+.chart-tip {
+  position: absolute; z-index: 5; pointer-events: none; white-space: nowrap;
+  background: var(--surface-solid); border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 6px 10px; box-shadow: var(--shadow-lg);
+}
+.chart-tip strong { display: block; font-size: 13px; color: var(--text); }
+.chart-tip span { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.chart-table-toggle {
+  margin-top: 12px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--text-muted); font: inherit; font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px;
+}
+.chart-table-toggle:hover { color: var(--text); }
+.chart-table { margin-top: 10px; }
+.chart-table td, table.num-cols td { font-variant-numeric: tabular-nums; }
+.chart-empty { padding: 28px 12px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+/* Cost drill-down */
+.mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.mini-stats > div {
+  display: flex; flex-direction: column; gap: 3px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+}
+.mini-stats .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
+.mini-stats .v { font-size: 18px; font-weight: 700; }
+.cost-section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 4px 0 10px; }

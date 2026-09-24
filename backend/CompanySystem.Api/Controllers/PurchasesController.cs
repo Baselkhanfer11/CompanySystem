@@ -30,7 +30,7 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             .ThenByDescending(p => p.Id)
             .ToListAsync();
 
-        return Ok(purchases.Select(ToListDto));
+        return Ok(purchases.Select(PurchaseListDto.From));
     }
 
     // GET /api/purchases/5  → one purchase with all its lines
@@ -159,20 +159,6 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             lines.Sum(l => l.LineTotal),
             lines);
     }
-
-    // Maps a loaded purchase to a summary row for the list.
-    private static PurchaseListDto ToListDto(Purchase p) => new(
-        p.Id,
-        p.SupplierId,
-        p.Supplier?.Name ?? "",
-        p.ProjectId,
-        p.Project?.Name,
-        p.InvoiceNumber,
-        p.Date,
-        p.Items.Count,
-        p.Items.Sum(li => li.Quantity * li.UnitPrice),
-        p.CreatedBy?.FullName ?? "",
-        p.CreatedAt);
 
     private static string? Clean(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

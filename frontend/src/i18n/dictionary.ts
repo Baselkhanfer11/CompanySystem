@@ -44,6 +44,7 @@ const en: Dict = {
   'nav.documents': 'Documents',
   'nav.suppliers': 'Suppliers',
   'nav.purchases': 'Purchases',
+  'nav.costs': 'Costs',
   'nav.sales': 'Sales',
   'nav.soon': 'Soon',
   'nav.signOut': 'Sign out',
@@ -471,6 +472,46 @@ const en: Dict = {
   'purchaseDetail.unitPrice': 'Unit price',
   'purchaseDetail.lineTotal': 'Total',
   'purchaseDetail.total': 'Total',
+
+  // Costs page (cost-per-project dashboard)
+  'costs.title': 'Project costs',
+  'costs.sub': 'Where the money goes — spending per project, from recorded purchases.',
+  'costs.periodLabel': 'Period',
+  'costs.period.month': 'This month',
+  'costs.period.quarter': 'Last 3 months',
+  'costs.period.year': 'This year',
+  'costs.period.all': 'All time',
+  'costs.totalSpend': 'Total spend',
+  'costs.projectSpend': 'Charged to projects',
+  'costs.generalSpend': 'General (no project)',
+  'costs.purchases': 'Purchases',
+  'costs.shareOfTotal': '{p}% of total',
+  'costs.byProject': 'Spend by project',
+  'costs.byProjectSub': 'Biggest first · click a project for the breakdown',
+  'costs.monthly': 'Monthly spend',
+  'costs.generalHint': 'Not charged to a project',
+  'costs.noneInPeriod': 'No purchases in this period',
+  'costs.noneHint': 'Record purchases and charge them to projects to see costs here.',
+  'costs.goPurchases': 'Go to purchases',
+  'costs.couldntLoad': 'Couldn’t load costs',
+  'costs.managersOnly': 'Managers only',
+  'costs.noPermission': 'Only the CEO and managers can view spending reports.',
+
+  // Cost drill-down (one project)
+  'costDetail.total': 'Total spent',
+  'costDetail.purchases': 'Purchases',
+  'costDetail.suppliers': 'Suppliers',
+  'costDetail.bySupplier': 'By supplier',
+  'costDetail.topItems': 'Top items',
+  'costDetail.spent': 'Spent',
+  'costDetail.recent': 'Recent purchases',
+
+  // Charts (shared)
+  'chart.noData': 'No data for this period.',
+  'chart.showTable': 'Show as table',
+  'chart.hideTable': 'Hide table',
+  'chart.month': 'Month',
+  'chart.spend': 'Spend',
 };
 
 const ar: Dict = {
@@ -503,6 +544,7 @@ const ar: Dict = {
   'nav.documents': 'المستندات',
   'nav.suppliers': 'الموردون',
   'nav.purchases': 'المشتريات',
+  'nav.costs': 'التكاليف',
   'nav.sales': 'المبيعات',
   'nav.soon': 'قريباً',
   'nav.signOut': 'تسجيل الخروج',
@@ -930,6 +972,46 @@ const ar: Dict = {
   'purchaseDetail.unitPrice': 'سعر الوحدة',
   'purchaseDetail.lineTotal': 'الإجمالي',
   'purchaseDetail.total': 'الإجمالي',
+
+  // Costs page (cost-per-project dashboard)
+  'costs.title': 'تكاليف المشاريع',
+  'costs.sub': 'أين تذهب الأموال — الإنفاق لكل مشروع من المشتريات المسجّلة.',
+  'costs.periodLabel': 'الفترة',
+  'costs.period.month': 'هذا الشهر',
+  'costs.period.quarter': 'آخر 3 أشهر',
+  'costs.period.year': 'هذه السنة',
+  'costs.period.all': 'كل الأوقات',
+  'costs.totalSpend': 'إجمالي الإنفاق',
+  'costs.projectSpend': 'محمّل على المشاريع',
+  'costs.generalSpend': 'عام (بدون مشروع)',
+  'costs.purchases': 'المشتريات',
+  'costs.shareOfTotal': '{p}% من الإجمالي',
+  'costs.byProject': 'الإنفاق حسب المشروع',
+  'costs.byProjectSub': 'الأعلى أولًا · اضغط على مشروع لعرض التفاصيل',
+  'costs.monthly': 'الإنفاق الشهري',
+  'costs.generalHint': 'غير محمّل على مشروع',
+  'costs.noneInPeriod': 'لا توجد مشتريات في هذه الفترة',
+  'costs.noneHint': 'سجّل المشتريات وحمّلها على المشاريع لتظهر التكاليف هنا.',
+  'costs.goPurchases': 'الذهاب إلى المشتريات',
+  'costs.couldntLoad': 'تعذّر تحميل التكاليف',
+  'costs.managersOnly': 'للمدراء فقط',
+  'costs.noPermission': 'يمكن للمدير التنفيذي والمدراء فقط عرض تقارير الإنفاق.',
+
+  // Cost drill-down (one project)
+  'costDetail.total': 'إجمالي المصروف',
+  'costDetail.purchases': 'المشتريات',
+  'costDetail.suppliers': 'الموردون',
+  'costDetail.bySupplier': 'حسب المورّد',
+  'costDetail.topItems': 'أكثر الأصناف تكلفة',
+  'costDetail.spent': 'المصروف',
+  'costDetail.recent': 'أحدث المشتريات',
+
+  // Charts (shared)
+  'chart.noData': 'لا توجد بيانات لهذه الفترة.',
+  'chart.showTable': 'عرض كجدول',
+  'chart.hideTable': 'إخفاء الجدول',
+  'chart.month': 'الشهر',
+  'chart.spend': 'الإنفاق',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };
