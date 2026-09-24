@@ -1,18 +1,61 @@
 import { useEffect, useState } from 'react';
 import { purchasesApi } from '../api/purchases';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney } from '../lib/format';
-import type { PurchaseDetail } from '../types';
-import { ReceiptIcon, XIcon } from './icons';
+import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
+import type { PurchaseChange, PurchaseDetail } from '../types';
+import { EditIcon, ReceiptIcon, XIcon } from './icons';
 
 interface Props {
   open: boolean;
   purchaseId: number | null;
   onClose: () => void;
+  onEdit?: (detail: PurchaseDetail) => void; // shown only when given (managers)
 }
 
-export function PurchaseDetailModal({ open, purchaseId, onClose }: Props) {
-  const { t } = useI18n();
+type T = (key: string, vars?: Record<string, string | number>) => string;
+
+// "2026-09-10" → "10 Sep 2026", built from the parts so no timezone can shift the day.
+const ymdLabel = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+// Wraps a value in Unicode "first strong isolate" marks. Without this, in Arabic
+// two English values plus the arrow between them merge into one left-to-right
+// run, and the arrow ends up pointing at the OLD value.
+const iso = (s: string) => `⁨${s}⁩`;
+
+// Turns one recorded change into a readable line, e.g. "Steel Bolt M8: 100 → 80 pcs".
+function describeChange(c: PurchaseChange, t: T, arrow: string): string {
+  const qty = (n?: number) => `${n ?? 0} ${c.unit ?? ''}`.trim();
+  const change = (from: string, to: string) => `${iso(from)} ${arrow} ${iso(to)}`;
+
+  switch (c.kind) {
+    case 'LineAdded':
+      return t('purchaseHistory.lineAdded', { item: c.item ?? '', qty: qty(c.toQty), price: formatMoney(c.toPrice ?? 0) });
+    case 'LineRemoved':
+      return t('purchaseHistory.lineRemoved', { item: c.item ?? '', qty: qty(c.fromQty), price: formatMoney(c.fromPrice ?? 0) });
+    case 'LineChanged': {
+      const parts: string[] = [];
+      if (c.fromQty !== c.toQty) parts.push(change(qty(c.fromQty), qty(c.toQty)));
+      if (c.fromPrice !== c.toPrice) parts.push(t('purchaseHistory.price', { change: change(formatMoney(c.fromPrice ?? 0), formatMoney(c.toPrice ?? 0)) }));
+      return `${iso(c.item ?? '')}: ${parts.join(' · ')}`;
+    }
+    default: {
+      if (c.field === 'notes') return t('purchaseHistory.notesChanged');
+      const show = (v?: string | null) => {
+        if (c.field === 'project') return v ?? t('purchase.general');
+        if (c.field === 'date' && v) return ymdLabel(v);
+        return v ?? '—';
+      };
+      const label = t(`purchaseHistory.field.${c.field}`);
+      return `${label}: ${change(show(c.from), show(c.to))}`;
+    }
+  }
+}
+
+export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props) {
+  const { t, dir } = useI18n();
   const [detail, setDetail] = useState<PurchaseDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +74,9 @@ export function PurchaseDetailModal({ open, purchaseId, onClose }: Props) {
   }, [open, purchaseId]);
 
   if (!open) return null;
+
+  // Arrows point the way the text reads: → in English, ← in Arabic.
+  const arrow = dir === 'rtl' ? '←' : '→';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -56,6 +102,14 @@ export function PurchaseDetailModal({ open, purchaseId, onClose }: Props) {
                 <div><span className="k">{t('purchaseDetail.date')}</span><span className="v">{formatDate(detail.date)}</span></div>
                 <div><span className="k">{t('purchaseDetail.invoiceNumber')}</span><span className="v">{detail.invoiceNumber ?? '—'}</span></div>
                 <div><span className="k">{t('purchaseDetail.recordedBy')}</span><span className="v">{detail.createdByName}</span></div>
+                {detail.lastEditedAt && (
+                  <div>
+                    <span className="k">{t('purchaseDetail.lastEdited')}</span>
+                    <span className="v" title={formatDateTime(detail.lastEditedAt)}>
+                      {detail.lastEditedByName} · {formatTimeAgo(detail.lastEditedAt, t)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {detail.notes && <div className="tl-note" style={{ marginTop: 4 }}>“{detail.notes}”</div>}
@@ -91,6 +145,39 @@ export function PurchaseDetailModal({ open, purchaseId, onClose }: Props) {
                 <span>{t('purchaseDetail.total')}</span>
                 <strong>{formatMoney(detail.total)}</strong>
               </div>
+
+              {/* History — who recorded it, then every edit (oldest first) */}
+              <section>
+                <h4 className="cost-section-title">{t('purchaseDetail.history')}</h4>
+                <div className="timeline">
+                  <div className="tl-item">
+                    <span className="tl-dot neutral"><ReceiptIcon /></span>
+                    <div className="tl-body">
+                      <div className="tl-head">
+                        <span className="tl-action">{t('purchaseHistory.recorded')}</span>
+                        <span className="tl-time" title={formatDateTime(detail.createdAt)}>{formatTimeAgo(detail.createdAt, t)}</span>
+                      </div>
+                      <div className="tl-actor">{t('docTimeline.by', { name: detail.createdByName })}</div>
+                    </div>
+                  </div>
+
+                  {detail.history.map((e) => (
+                    <div key={e.id} className="tl-item">
+                      <span className="tl-dot warn"><EditIcon /></span>
+                      <div className="tl-body">
+                        <div className="tl-head">
+                          <span className="tl-action">{t('purchaseHistory.edited')}</span>
+                          <span className="tl-time" title={formatDateTime(e.createdAt)}>{formatTimeAgo(e.createdAt, t)}</span>
+                        </div>
+                        <div className="tl-actor">{t('docTimeline.by', { name: e.actorName })}</div>
+                        <ul className="change-list">
+                          {e.changes.map((c, i) => <li key={i}>{describeChange(c, t, arrow)}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </>
           )}
 
@@ -101,6 +188,11 @@ export function PurchaseDetailModal({ open, purchaseId, onClose }: Props) {
 
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
+          {onEdit && detail && (
+            <button className="btn btn-primary" onClick={() => onEdit(detail)}>
+              <EditIcon /> {t('purchase.edit')}
+            </button>
+          )}
         </div>
       </div>
     </div>

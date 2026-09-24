@@ -472,6 +472,26 @@ const en: Dict = {
   'purchaseDetail.unitPrice': 'Unit price',
   'purchaseDetail.lineTotal': 'Total',
   'purchaseDetail.total': 'Total',
+  'purchaseDetail.lastEdited': 'Last edited',
+  'purchaseDetail.history': 'History',
+
+  // Editing a purchase + its history
+  'purchase.edit': 'Edit',
+  'purchase.updated': 'Purchase updated — stock adjusted',
+  'purchaseModal.editTitle': 'Edit purchase',
+  'purchaseModal.editSub': 'Fix a mistake on this invoice.',
+  'purchaseModal.editHint': 'Changing quantities moves warehouse stock by the difference. Every change is saved in the history.',
+  'purchaseHistory.recorded': 'Recorded',
+  'purchaseHistory.edited': 'Edited',
+  'purchaseHistory.lineAdded': 'Added {item} · {qty} × {price}',
+  'purchaseHistory.lineRemoved': 'Removed {item} · {qty} × {price}',
+  'purchaseHistory.price': 'price {change}',
+  'purchaseHistory.notesChanged': 'Notes updated',
+  'purchaseHistory.field.supplier': 'Supplier',
+  'purchaseHistory.field.project': 'Project',
+  'purchaseHistory.field.date': 'Date',
+  'purchaseHistory.field.invoiceNumber': 'Invoice #',
+  'purchaseHistory.field.notes': 'Notes',
 
   // Costs page (cost-per-project dashboard)
   'costs.title': 'Project costs',
@@ -972,6 +992,26 @@ const ar: Dict = {
   'purchaseDetail.unitPrice': 'سعر الوحدة',
   'purchaseDetail.lineTotal': 'الإجمالي',
   'purchaseDetail.total': 'الإجمالي',
+  'purchaseDetail.lastEdited': 'آخر تعديل',
+  'purchaseDetail.history': 'السجل',
+
+  // Editing a purchase + its history
+  'purchase.edit': 'تعديل',
+  'purchase.updated': 'تم تحديث المشترى — وتعديل المخزون',
+  'purchaseModal.editTitle': 'تعديل المشترى',
+  'purchaseModal.editSub': 'صحّح خطأً في هذه الفاتورة.',
+  'purchaseModal.editHint': 'تغيير الكميات يعدّل مخزون المستودع بمقدار الفرق. يُحفظ كل تغيير في السجل.',
+  'purchaseHistory.recorded': 'تم التسجيل',
+  'purchaseHistory.edited': 'تم التعديل',
+  'purchaseHistory.lineAdded': 'أُضيف {item} · {qty} × {price}',
+  'purchaseHistory.lineRemoved': 'حُذف {item} · {qty} × {price}',
+  'purchaseHistory.price': 'السعر {change}',
+  'purchaseHistory.notesChanged': 'تم تحديث الملاحظات',
+  'purchaseHistory.field.supplier': 'المورّد',
+  'purchaseHistory.field.project': 'المشروع',
+  'purchaseHistory.field.date': 'التاريخ',
+  'purchaseHistory.field.invoiceNumber': 'رقم الفاتورة',
+  'purchaseHistory.field.notes': 'الملاحظات',
 
   // Costs page (cost-per-project dashboard)
   'costs.title': 'تكاليف المشاريع',

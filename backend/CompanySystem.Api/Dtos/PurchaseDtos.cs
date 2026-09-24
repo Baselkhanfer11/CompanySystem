@@ -4,8 +4,9 @@ namespace CompanySystem.Api.Dtos;
 
 // ---- What the frontend sends ----
 
-// One line on a new purchase invoice.
-public record PurchaseItemInputDto(int ItemId, int Quantity, decimal UnitPrice);
+// One line on a purchase invoice. When editing, Id identifies an existing
+// line; leave it null for a new line (and always null when creating).
+public record PurchaseItemInputDto(int ItemId, int Quantity, decimal UnitPrice, int? Id = null);
 
 // A whole purchase (invoice header + its lines).
 public record PurchaseInputDto(
@@ -58,7 +59,15 @@ public record PurchaseItemDto(
     decimal UnitPrice,
     decimal LineTotal);
 
-// The full purchase with all its lines.
+// One entry in a purchase's edit history.
+public record PurchaseEventDto(
+    int Id,
+    string Action,
+    string ActorName,
+    DateTime CreatedAt,
+    IReadOnlyList<PurchaseChange> Changes);
+
+// The full purchase with all its lines and its edit history (oldest first).
 public record PurchaseDetailDto(
     int Id,
     int SupplierId,
@@ -71,4 +80,7 @@ public record PurchaseDetailDto(
     string CreatedByName,
     DateTime CreatedAt,
     decimal Total,
-    IReadOnlyList<PurchaseItemDto> Items);
+    IReadOnlyList<PurchaseItemDto> Items,
+    string? LastEditedByName,
+    DateTime? LastEditedAt,
+    IReadOnlyList<PurchaseEventDto> History);

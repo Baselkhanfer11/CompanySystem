@@ -202,10 +202,38 @@ export interface PurchaseDetail {
   createdAt: string;
   total: number;
   items: PurchaseLine[];
+  lastEditedByName?: string | null;
+  lastEditedAt?: string | null;
+  history: PurchaseEvent[]; // oldest first
 }
 
-// What we send to create a purchase.
+// One change inside an edit. `kind` says which fields are filled in.
+export interface PurchaseChange {
+  kind: 'Field' | 'LineAdded' | 'LineRemoved' | 'LineChanged';
+  field?: 'supplier' | 'project' | 'date' | 'invoiceNumber' | 'notes';
+  from?: string | null;
+  to?: string | null;
+  item?: string;
+  unit?: string;
+  fromQty?: number;
+  toQty?: number;
+  fromPrice?: number;
+  toPrice?: number;
+}
+
+// One entry in a purchase's edit history.
+export interface PurchaseEvent {
+  id: number;
+  action: string; // Edited
+  actorName: string;
+  createdAt: string;
+  changes: PurchaseChange[];
+}
+
+// What we send to create or edit a purchase. When editing, `id` marks an
+// existing line; leave it out for a new line.
 export interface PurchaseLineInput {
+  id?: number | null;
   itemId: number;
   quantity: number;
   unitPrice: number;

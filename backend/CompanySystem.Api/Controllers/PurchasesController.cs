@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Dtos;
@@ -15,6 +17,12 @@ namespace CompanySystem.Api.Controllers;
 public class PurchasesController(AppDbContext db) : ControllerBase
 {
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    // How edit-history changes are stored (camelCase, nulls left out).
+    private static readonly JsonSerializerOptions HistoryJson = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     // GET /api/purchases  → list all purchases (newest first)
     [HttpGet]
@@ -33,7 +41,7 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         return Ok(purchases.Select(PurchaseListDto.From));
     }
 
-    // GET /api/purchases/5  → one purchase with all its lines
+    // GET /api/purchases/5  → one purchase with all its lines and its edit history
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PurchaseDetailDto>> GetById(int id)
     {
@@ -47,30 +55,9 @@ public class PurchasesController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PurchaseDetailDto>> Create(PurchaseInputDto input)
     {
-        // --- validate the header ---
-        var supplierExists = await db.Suppliers.AnyAsync(s => s.Id == input.SupplierId);
-        if (!supplierExists) return BadRequest(new { message = "Supplier not found." });
+        var error = await ValidateInput(input);
+        if (error is not null) return error;
 
-        if (input.ProjectId is int projectId)
-        {
-            var projectExists = await db.Projects.AnyAsync(p => p.Id == projectId);
-            if (!projectExists) return BadRequest(new { message = "Project not found." });
-        }
-
-        // --- validate the lines ---
-        if (input.Items is null || input.Items.Count == 0)
-            return BadRequest(new { message = "At least one line item is required." });
-        if (input.Items.Any(l => l.Quantity <= 0))
-            return BadRequest(new { message = "Every line must have a quantity greater than zero." });
-        if (input.Items.Any(l => l.UnitPrice < 0))
-            return BadRequest(new { message = "Unit price can't be negative." });
-
-        var itemIds = input.Items.Select(l => l.ItemId).Distinct().ToList();
-        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToListAsync();
-        if (items.Count != itemIds.Count)
-            return BadRequest(new { message = "One or more items were not found." });
-
-        // --- create the purchase + its lines ---
         var purchase = new Purchase
         {
             SupplierId = input.SupplierId,
@@ -88,15 +75,117 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         };
         db.Purchases.Add(purchase);
 
-        // --- restock: add each line's quantity to the warehouse item ---
-        var itemsById = items.ToDictionary(i => i.Id);
-        foreach (var line in input.Items)
-            itemsById[line.ItemId].Quantity += line.Quantity;
+        // Restock: add each line's quantity to the warehouse item.
+        await AdjustStock(QuantityByItem(input.Items.Select(l => (l.ItemId, l.Quantity))));
 
         await db.SaveChangesAsync();
 
         var detail = await LoadDetail(purchase.Id);
         return CreatedAtAction(nameof(GetById), new { id = purchase.Id }, detail);
+    }
+
+    // PUT /api/purchases/5  → edit a purchase (managers only).
+    // Moves stock by the difference (new quantity − old quantity) and records
+    // exactly what changed in the purchase's history.
+    [Authorize(Roles = Roles.Managers)]
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<PurchaseDetailDto>> Update(int id, PurchaseInputDto input)
+    {
+        var purchase = await db.Purchases
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (purchase is null) return NotFound();
+
+        var error = await ValidateInput(input);
+        if (error is not null) return error;
+
+        // Every line id sent must be one of this purchase's lines, used once.
+        var existing = purchase.Items.ToDictionary(li => li.Id);
+        var sentIds = input.Items.Where(l => l.Id is not null).Select(l => l.Id!.Value).ToList();
+        if (sentIds.Any(lid => !existing.ContainsKey(lid)) || sentIds.Distinct().Count() != sentIds.Count)
+            return BadRequest(new { message = "One or more lines don't belong to this purchase." });
+
+        // --- stock: new quantities minus old quantities, per item ---
+        var delta = QuantityByItem(input.Items.Select(l => (l.ItemId, l.Quantity)));
+        foreach (var li in purchase.Items)
+            delta[li.ItemId] = delta.GetValueOrDefault(li.ItemId) - li.Quantity;
+
+        var shortfall = await AdjustStock(delta);
+        if (shortfall is not null)
+            return Conflict(new { message = $"Can't save — not enough stock (some items were already used). {shortfall}" });
+
+        // --- work out what changed (names are snapshots for the history) ---
+        var itemIds = input.Items.Select(l => l.ItemId).Concat(purchase.Items.Select(li => li.ItemId)).Distinct().ToList();
+        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+        var changes = new List<PurchaseChange>();
+
+        if (purchase.SupplierId != input.SupplierId)
+            changes.Add(FieldChange("supplier", await SupplierName(purchase.SupplierId), await SupplierName(input.SupplierId)));
+        if (purchase.ProjectId != input.ProjectId)
+            changes.Add(FieldChange("project", await ProjectName(purchase.ProjectId), await ProjectName(input.ProjectId)));
+        if (purchase.Date.Date != input.Date.Date)
+            changes.Add(FieldChange("date", purchase.Date.ToString("yyyy-MM-dd"), input.Date.ToString("yyyy-MM-dd")));
+        if (purchase.InvoiceNumber != Clean(input.InvoiceNumber))
+            changes.Add(FieldChange("invoiceNumber", purchase.InvoiceNumber, Clean(input.InvoiceNumber)));
+        if (purchase.Notes != Clean(input.Notes))
+            changes.Add(FieldChange("notes", purchase.Notes, Clean(input.Notes)));
+
+        // --- apply the header ---
+        purchase.SupplierId = input.SupplierId;
+        purchase.ProjectId = input.ProjectId;
+        purchase.InvoiceNumber = Clean(input.InvoiceNumber);
+        purchase.Date = input.Date;
+        purchase.Notes = Clean(input.Notes);
+
+        // --- apply the lines: update kept ones, add new ones, remove the rest ---
+        var kept = new HashSet<int>();
+        foreach (var l in input.Items)
+        {
+            var item = items[l.ItemId];
+            if (l.Id is int lineId)
+            {
+                var old = existing[lineId];
+                kept.Add(lineId);
+                if (old.ItemId != l.ItemId)
+                {
+                    changes.Add(LineRemoved(items[old.ItemId], old.Quantity, old.UnitPrice));
+                    changes.Add(LineAdded(item, l.Quantity, l.UnitPrice));
+                }
+                else if (old.Quantity != l.Quantity || old.UnitPrice != l.UnitPrice)
+                {
+                    changes.Add(new PurchaseChange(PurchaseChangeKinds.LineChanged, Item: item.Name, Unit: item.Unit,
+                        FromQty: old.Quantity, ToQty: l.Quantity, FromPrice: old.UnitPrice, ToPrice: l.UnitPrice));
+                }
+                old.ItemId = l.ItemId;
+                old.Quantity = l.Quantity;
+                old.UnitPrice = l.UnitPrice;
+            }
+            else
+            {
+                changes.Add(LineAdded(item, l.Quantity, l.UnitPrice));
+                purchase.Items.Add(new PurchaseItem { ItemId = l.ItemId, Quantity = l.Quantity, UnitPrice = l.UnitPrice });
+            }
+        }
+        foreach (var old in existing.Values.Where(li => !kept.Contains(li.Id)))
+        {
+            changes.Add(LineRemoved(items[old.ItemId], old.Quantity, old.UnitPrice));
+            db.PurchaseItems.Remove(old);
+        }
+
+        // Only write a history entry when something actually changed.
+        if (changes.Count > 0)
+        {
+            db.PurchaseEvents.Add(new PurchaseEvent
+            {
+                PurchaseId = purchase.Id,
+                Action = PurchaseActions.Edited,
+                ActorId = CurrentUserId,
+                Changes = JsonSerializer.Serialize(changes, HistoryJson),
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(await LoadDetail(purchase.Id));
     }
 
     // DELETE /api/purchases/5  → delete a purchase (managers only). Reverses the restock.
@@ -109,20 +198,84 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
         if (purchase is null) return NotFound();
 
-        // Undo the stock that this purchase added (never drop below zero).
-        var itemIds = purchase.Items.Select(li => li.ItemId).Distinct().ToList();
-        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToListAsync();
-        var itemsById = items.ToDictionary(i => i.Id);
-        foreach (var line in purchase.Items)
-            if (itemsById.TryGetValue(line.ItemId, out var item))
-                item.Quantity = Math.Max(0, item.Quantity - line.Quantity);
+        // Take back the stock this purchase added — blocked if some was already used.
+        var shortfall = await AdjustStock(QuantityByItem(purchase.Items.Select(li => (li.ItemId, -li.Quantity))));
+        if (shortfall is not null)
+            return Conflict(new { message = $"Can't delete — not enough stock (some items were already used). {shortfall}" });
 
-        db.Purchases.Remove(purchase); // cascade removes its line items
+        db.Purchases.Remove(purchase); // cascade removes its lines and history
         await db.SaveChangesAsync();
         return NoContent();
     }
 
     // --- helpers ---
+
+    // Checks the header and lines shared by create and edit. Returns an error, or null when valid.
+    private async Task<ActionResult?> ValidateInput(PurchaseInputDto input)
+    {
+        if (!await db.Suppliers.AnyAsync(s => s.Id == input.SupplierId))
+            return BadRequest(new { message = "Supplier not found." });
+
+        if (input.ProjectId is int projectId && !await db.Projects.AnyAsync(p => p.Id == projectId))
+            return BadRequest(new { message = "Project not found." });
+
+        if (input.Items is null || input.Items.Count == 0)
+            return BadRequest(new { message = "At least one line item is required." });
+        if (input.Items.Any(l => l.Quantity <= 0))
+            return BadRequest(new { message = "Every line must have a quantity greater than zero." });
+        if (input.Items.Any(l => l.UnitPrice < 0))
+            return BadRequest(new { message = "Unit price can't be negative." });
+
+        var itemIds = input.Items.Select(l => l.ItemId).Distinct().ToList();
+        if (await db.Items.CountAsync(i => itemIds.Contains(i.Id)) != itemIds.Count)
+            return BadRequest(new { message = "One or more items were not found." });
+
+        return null;
+    }
+
+    // Adds up quantities per item (the same item can appear on several lines).
+    private static Dictionary<int, int> QuantityByItem(IEnumerable<(int ItemId, int Quantity)> lines)
+    {
+        var totals = new Dictionary<int, int>();
+        foreach (var (itemId, qty) in lines)
+            totals[itemId] = totals.GetValueOrDefault(itemId) + qty;
+        return totals;
+    }
+
+    // Moves each item's stock by its delta. If ANY item would drop below zero
+    // (because that stock was already used), nothing is changed and a readable
+    // explanation is returned instead. Returns null on success.
+    private async Task<string?> AdjustStock(Dictionary<int, int> delta)
+    {
+        var ids = delta.Where(d => d.Value != 0).Select(d => d.Key).ToList();
+        if (ids.Count == 0) return null;
+
+        var items = await db.Items.Where(i => ids.Contains(i.Id)).ToListAsync();
+        var shortfalls = items
+            .Where(i => i.Quantity + delta[i.Id] < 0)
+            .Select(i => $"{i.Name}: would remove {-delta[i.Id]} {i.Unit}, but only {i.Quantity} {i.Unit} in stock.")
+            .ToList();
+        if (shortfalls.Count > 0) return string.Join(" ", shortfalls);
+
+        foreach (var i in items) i.Quantity += delta[i.Id];
+        return null;
+    }
+
+    private async Task<string?> SupplierName(int id) =>
+        await db.Suppliers.Where(s => s.Id == id).Select(s => s.Name).FirstOrDefaultAsync();
+
+    // Null project = General (no project).
+    private async Task<string?> ProjectName(int? id) =>
+        id is null ? null : await db.Projects.Where(p => p.Id == id).Select(p => p.Name).FirstOrDefaultAsync();
+
+    private static PurchaseChange FieldChange(string field, string? from, string? to) =>
+        new(PurchaseChangeKinds.Field, Field: field, From: from, To: to);
+
+    private static PurchaseChange LineAdded(Item item, int qty, decimal price) =>
+        new(PurchaseChangeKinds.LineAdded, Item: item.Name, Unit: item.Unit, ToQty: qty, ToPrice: price);
+
+    private static PurchaseChange LineRemoved(Item item, int qty, decimal price) =>
+        new(PurchaseChangeKinds.LineRemoved, Item: item.Name, Unit: item.Unit, FromQty: qty, FromPrice: price);
 
     // Loads one purchase and shapes it into the detail DTO (null if not found).
     private async Task<PurchaseDetailDto?> LoadDetail(int id)
@@ -135,7 +288,7 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             .FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return null;
 
-        var lines = p.Items.Select(li => new PurchaseItemDto(
+        var lines = p.Items.OrderBy(li => li.Id).Select(li => new PurchaseItemDto(
             li.Id,
             li.ItemId,
             li.Item?.Name ?? "",
@@ -144,6 +297,19 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             li.Quantity,
             li.UnitPrice,
             li.Quantity * li.UnitPrice)).ToList();
+
+        var events = await db.PurchaseEvents
+            .Where(e => e.PurchaseId == id)
+            .Include(e => e.Actor)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+        var history = events.Select(e => new PurchaseEventDto(
+            e.Id,
+            e.Action,
+            e.Actor?.FullName ?? "",
+            e.CreatedAt,
+            JsonSerializer.Deserialize<List<PurchaseChange>>(e.Changes, HistoryJson) ?? [])).ToList();
+        var last = history.LastOrDefault();
 
         return new PurchaseDetailDto(
             p.Id,
@@ -157,7 +323,10 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             p.CreatedBy?.FullName ?? "",
             p.CreatedAt,
             lines.Sum(l => l.LineTotal),
-            lines);
+            lines,
+            last?.ActorName,
+            last?.CreatedAt,
+            history);
     }
 
     private static string? Clean(string? value) =>

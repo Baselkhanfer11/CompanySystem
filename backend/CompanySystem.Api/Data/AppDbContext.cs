@@ -41,6 +41,9 @@ public class AppDbContext : DbContext
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
 
+    // The "PurchaseEvents" table (a purchase's edit history).
+    public DbSet<PurchaseEvent> PurchaseEvents => Set<PurchaseEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -164,5 +167,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PurchaseItem>()
             .Property(li => li.UnitPrice)
             .HasPrecision(18, 2);
+
+        // A purchase's edit history is deleted with the purchase. Keep the
+        // editor link non-cascading so removing a user never erases history.
+        modelBuilder.Entity<PurchaseEvent>()
+            .HasOne(e => e.Purchase)
+            .WithMany()
+            .HasForeignKey(e => e.PurchaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PurchaseEvent>()
+            .HasOne(e => e.Actor)
+            .WithMany()
+            .HasForeignKey(e => e.ActorId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
