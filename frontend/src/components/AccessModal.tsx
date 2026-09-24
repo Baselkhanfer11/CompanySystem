@@ -51,7 +51,7 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{isManage ? t('acc.manageTitle') : t('acc.grantTitle')}</h3>
             <p>{isManage ? t('acc.manageSub', { name: employee.fullName }) : t('acc.grantSub', { name: employee.fullName })}</p>
@@ -73,7 +73,7 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
               name="new-login-username"
               style={isManage ? { opacity: 0.6 } : undefined}
             />
-            {isManage && <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{t('acc.usernameLocked')}</span>}
+            {isManage && <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-dim)' }}>{t('acc.usernameLocked')}</span>}
           </div>
 
           <div className="field-row">
@@ -107,7 +107,7 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
             </div>
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot" style={{ justifyContent: isManage ? 'space-between' : 'flex-end' }}>
@@ -116,7 +116,7 @@ export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate
               {t('acc.revoke')}
             </button>
           )}
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button className="btn btn-primary" onClick={submit} disabled={saving}>
               {saving && <span className="spinner" />}

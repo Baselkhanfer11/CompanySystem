@@ -19,7 +19,7 @@ export function SiteStockModal({ project, rows, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('stock.siteOf', { name: project.name })}</h3>
             <p>{t('siteModal.sub')}</p>
@@ -36,22 +36,22 @@ export function SiteStockModal({ project, rows, onClose }: Props) {
                 <thead>
                   <tr>
                     <th>{t('purchaseDetail.item')}</th>
-                    <th style={{ textAlign: 'end' }}>{t('purchaseDetail.qty')}</th>
-                    <th style={{ textAlign: 'end' }}>{t('siteModal.cost')}</th>
+                    <th className="num">{t('purchaseDetail.qty')}</th>
+                    <th className="num">{t('siteModal.cost')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.itemId}>
                       <td><div className="name">{r.itemName}</div><div className="email">{r.itemCode}</div></td>
-                      <td style={{ textAlign: 'end' }}>{r.quantity} {r.unit}</td>
-                      <td style={{ textAlign: 'end' }}>{formatMoney(r.value)}</td>
+                      <td className="num">{r.quantity} {r.unit}</td>
+                      <td className="num">{formatMoney(r.value)}</td>
                     </tr>
                   ))}
                   <tr className="total-row">
                     <td>{t('stock.total')}</td>
                     <td />
-                    <td style={{ textAlign: 'end' }}>{formatMoney(totalCost)}</td>
+                    <td className="num">{formatMoney(totalCost)}</td>
                   </tr>
                 </tbody>
               </table>

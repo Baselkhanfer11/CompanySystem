@@ -36,7 +36,7 @@ export function MovementDetailModal({ open, movementId, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{detail ? t(detail.type === 'Issue' ? 'movementModal.sendTitle' : 'movementModal.returnTitle') : t('stock.title')}</h3>
             <p>{detail ? t('stock.siteOf', { name: detail.projectName }) : ''}</p>
@@ -46,7 +46,7 @@ export function MovementDetailModal({ open, movementId, onClose }: Props) {
 
         <div className="modal-body">
           {loading && <div className="notif-empty">{t('common.loading')}</div>}
-          {!loading && error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {!loading && error && <div className="form-error" role="alert">{error}</div>}
 
           {!loading && !error && detail && (
             <>
@@ -62,14 +62,14 @@ export function MovementDetailModal({ open, movementId, onClose }: Props) {
 
               {detail.notes && <div className="tl-note" style={{ marginTop: 4 }}>“{detail.notes}”</div>}
 
-              <div className="table-wrap" style={{ marginTop: 14 }}>
+              <div className="table-wrap" style={{ marginTop: 16 }}>
                 <table className="data">
                   <thead>
                     <tr>
                       <th>{t('purchaseDetail.item')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('purchaseDetail.qty')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('movementDetail.unitCost')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('purchaseDetail.lineTotal')}</th>
+                      <th className="num">{t('purchaseDetail.qty')}</th>
+                      <th className="num">{t('movementDetail.unitCost')}</th>
+                      <th className="num">{t('purchaseDetail.lineTotal')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -79,16 +79,16 @@ export function MovementDetailModal({ open, movementId, onClose }: Props) {
                           <div className="name">{l.itemName}</div>
                           <div className="email">{l.itemCode}</div>
                         </td>
-                        <td style={{ textAlign: 'end' }}>{l.quantity} {l.unit}</td>
-                        <td style={{ textAlign: 'end' }}>{formatMoney(l.unitCost)}</td>
-                        <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatMoney(l.lineTotal)}</td>
+                        <td className="num">{l.quantity} {l.unit}</td>
+                        <td className="num">{formatMoney(l.unitCost)}</td>
+                        <td className="num" style={{ fontWeight: 600 }}>{formatMoney(l.lineTotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="grand-total" style={{ marginTop: 14, justifyContent: 'flex-end' }}>
+              <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
                 <span>{t('purchaseDetail.total')}</span>
                 <strong>{formatMoney(detail.total)}</strong>
               </div>

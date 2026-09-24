@@ -56,7 +56,7 @@ export function ItemModal({ open, initial, saving, onClose, onSave }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('itemModal.editTitle') : t('itemModal.newTitle')}</h3>
             <p>{initial ? t('itemModal.editSub') : t('itemModal.newSub')}</p>
@@ -94,7 +94,7 @@ export function ItemModal({ open, initial, saving, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot">

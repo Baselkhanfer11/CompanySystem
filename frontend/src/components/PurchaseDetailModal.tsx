@@ -81,7 +81,7 @@ export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('purchaseDetail.title')}</h3>
             <p>{detail ? detail.supplierName : t('purchaseDetail.sub')}</p>
@@ -91,7 +91,7 @@ export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props
 
         <div className="modal-body">
           {loading && <div className="notif-empty">{t('common.loading')}</div>}
-          {!loading && error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {!loading && error && <div className="form-error" role="alert">{error}</div>}
 
           {!loading && !error && detail && (
             <>
@@ -115,14 +115,14 @@ export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props
               {detail.notes && <div className="tl-note" style={{ marginTop: 4 }}>“{detail.notes}”</div>}
 
               {/* Lines */}
-              <div className="table-wrap" style={{ marginTop: 14 }}>
+              <div className="table-wrap" style={{ marginTop: 16 }}>
                 <table className="data">
                   <thead>
                     <tr>
                       <th>{t('purchaseDetail.item')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('purchaseDetail.qty')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('purchaseDetail.unitPrice')}</th>
-                      <th style={{ textAlign: 'end' }}>{t('purchaseDetail.lineTotal')}</th>
+                      <th className="num">{t('purchaseDetail.qty')}</th>
+                      <th className="num">{t('purchaseDetail.unitPrice')}</th>
+                      <th className="num">{t('purchaseDetail.lineTotal')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -132,16 +132,16 @@ export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props
                           <div className="name">{li.itemName}</div>
                           <div className="email">{li.itemCode}</div>
                         </td>
-                        <td style={{ textAlign: 'end' }}>{li.quantity} {li.unit}</td>
-                        <td style={{ textAlign: 'end' }}>{formatMoney(li.unitPrice)}</td>
-                        <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatMoney(li.lineTotal)}</td>
+                        <td className="num">{li.quantity} {li.unit}</td>
+                        <td className="num">{formatMoney(li.unitPrice)}</td>
+                        <td className="num" style={{ fontWeight: 600 }}>{formatMoney(li.lineTotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="grand-total" style={{ marginTop: 14, justifyContent: 'flex-end' }}>
+              <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
                 <span>{t('purchaseDetail.total')}</span>
                 <strong>{formatMoney(detail.total)}</strong>
               </div>

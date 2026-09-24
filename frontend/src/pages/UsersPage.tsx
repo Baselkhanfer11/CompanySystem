@@ -7,6 +7,7 @@ import { Avatar } from '../components/Avatar';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ShieldIcon, TrashIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { NONE, peopleChanged, useUsers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
@@ -70,26 +71,11 @@ export function UsersPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 200 }} />
-                <div className="skeleton" style={{ height: 22, width: 90, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton rows={3} />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <ShieldIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('users.couldntLoad')}</h4>
-            <p>{loadError}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<ShieldIcon />} title={t('users.couldntLoad')} error={loadError} onRetry={refresh} hint={false} />
         )}
 
         {!loading && !loadError && filtered.length > 0 && (
@@ -102,7 +88,7 @@ export function UsersPage() {
                   <th>{t('users.colStatus')}</th>
                   <th>{t('users.colType')}</th>
                   <th>{t('users.colCreated')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('users.colActions')}</th>
+                  <th className="num">{t('users.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,7 +112,7 @@ export function UsersPage() {
                         <span className="dot" />{u.isActive ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-md)' }}>
                       {u.employeeId ? t('users.staffLogin') : t('users.systemAccount')}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</td>
@@ -136,9 +122,8 @@ export function UsersPage() {
                           className="act-btn danger"
                           onClick={() => setDeleting(u)}
                           disabled={u.id === me?.id}
-                          style={u.id === me?.id ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
                           aria-label={t('users.removeLogin')}
-                          title={u.id === me?.id ? t('users.cantRemoveSelf') : t('users.removeLogin')}
+                          data-tip={u.id === me?.id ? t('users.cantRemoveSelf') : t('users.removeLogin')}
                         >
                           <TrashIcon />
                         </button>

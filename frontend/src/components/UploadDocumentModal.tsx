@@ -49,7 +49,7 @@ export function UploadDocumentModal({ open, projects, saving, onClose, onSave }:
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('docModal.title')}</h3>
             <p>{t('docModal.sub')}</p>
@@ -66,7 +66,7 @@ export function UploadDocumentModal({ open, projects, saving, onClose, onSave }:
           <div className="field">
             <label>{t('docModal.project')} <span className="req">*</span></label>
             {projects.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('docModal.noProjects')}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-md)' }}>{t('docModal.noProjects')}</div>
             ) : (
               <select className="select" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}
@@ -92,7 +92,7 @@ export function UploadDocumentModal({ open, projects, saving, onClose, onSave }:
             <div className="field-hint">{t('docModal.fileHint')}</div>
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot">

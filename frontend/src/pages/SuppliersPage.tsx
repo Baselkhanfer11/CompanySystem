@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, TrashIcon, TruckIcon } from '../components/icons';
+import { LoadError, TableSkeleton } from '../components/States';
 import { SupplierModal } from '../components/SupplierModal';
 import { useToast } from '../components/toast';
 import { NONE, suppliersChanged, useSuppliers } from '../data/queries';
@@ -92,26 +93,11 @@ export function SuppliersPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <TruckIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('supplier.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<TruckIcon />} title={t('supplier.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -133,7 +119,7 @@ export function SuppliersPage() {
                   <th>{t('supplier.colContact')}</th>
                   <th>{t('supplier.colStatus')}</th>
                   <th>{t('supplier.colCreated')}</th>
-                  {manage && <th style={{ textAlign: 'end' }}>{t('supplier.colActions')}</th>}
+                  {manage && <th className="num">{t('supplier.colActions')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +131,7 @@ export function SuppliersPage() {
                         {s.email && <div className="email">{s.email}</div>}
                       </div>
                     </td>
-                    <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{s.code}</span></td>
+                    <td><span className="cell-code">{s.code}</span></td>
                     <td>
                       <div>
                         <div className="name" style={{ fontWeight: 500 }}>{s.contactPerson || '—'}</div>
@@ -161,8 +147,8 @@ export function SuppliersPage() {
                     {manage && (
                       <td>
                         <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(s)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(s)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                          <button className="act-btn" onClick={() => openEdit(s)} aria-label={t('common.edit')} data-tip={t('common.edit')}><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(s)} aria-label={t('common.delete')} data-tip={t('common.delete')}><TrashIcon /></button>
                         </div>
                       </td>
                     )}

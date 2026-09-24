@@ -62,7 +62,7 @@ export function DocumentTimelineModal({ open, docId, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('docTimeline.title')}</h3>
             <p>{doc ? doc.title : t('docTimeline.sub')}</p>
@@ -72,7 +72,7 @@ export function DocumentTimelineModal({ open, docId, onClose }: Props) {
 
         <div className="modal-body">
           {loading && <div className="notif-empty">{t('common.loading')}</div>}
-          {!loading && error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {!loading && error && <div className="form-error" role="alert">{error}</div>}
 
           {!loading && !error && doc && (
             <>
@@ -81,7 +81,7 @@ export function DocumentTimelineModal({ open, docId, onClose }: Props) {
                 <span className={`badge ${DOC_STATUS_BADGE[doc.status] ?? 'inactive'}`}>
                   <span className="dot" />{t(`doc.status.${doc.status}`)}
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>
+                <span style={{ fontSize: 'var(--fs-md)', color: 'var(--text-dim)' }}>
                   {t('docTimeline.project')}: {doc.projectName}
                 </span>
               </div>

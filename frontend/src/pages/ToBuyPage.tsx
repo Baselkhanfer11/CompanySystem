@@ -6,6 +6,7 @@ import { canProcure } from '../auth/roles';
 import { CartIcon, ClipboardIcon, ProjectsIcon, WalletIcon } from '../components/icons';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { StatCard } from '../components/StatCard';
+import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { NONE, purchasesChanged, useProjects, useSuppliers } from '../data/queries';
@@ -115,14 +116,7 @@ export function ToBuyPage() {
         </div>
 
         {!loading && error && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <ClipboardIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('toBuy.couldntLoad')}</h4>
-            <p>{error}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<ClipboardIcon />} title={t('toBuy.couldntLoad')} error={error} onRetry={refresh} />
         )}
 
         {!loading && !error && filtered.length === 0 && (
@@ -141,10 +135,10 @@ export function ToBuyPage() {
                 <tr>
                   <th>{t('toBuy.colItem')}</th>
                   <th>{t('toBuy.colNeeded')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('toBuy.colWarehouse')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('toBuy.colToBuy')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('toBuy.colPrice')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('toBuy.colCost')}</th>
+                  <th className="num">{t('toBuy.colWarehouse')}</th>
+                  <th className="num">{t('toBuy.colToBuy')}</th>
+                  <th className="num">{t('toBuy.colPrice')}</th>
+                  <th className="num">{t('toBuy.colCost')}</th>
                   {manage && <th aria-label={t('toBuy.buy')} />}
                 </tr>
               </thead>
@@ -161,22 +155,22 @@ export function ToBuyPage() {
                         ))}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'end' }}>
+                    <td className="num">
                       <div className="cover">
                         <span className="cover-text">{s.inWarehouse} {s.unit} · {t('toBuy.coveredPct', { p: coveredPct(s) })}</span>
                         <span className="cover-track" aria-hidden="true"><span style={{ width: `${coveredPct(s)}%` }} /></span>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'end' }}>
+                    <td className="num">
                       <div className="tobuy-qty">
                         {s.toBuy > 0 && <strong>{s.toBuy} {s.unit}</strong>}
                         <span className={`badge ${LEVEL_BADGE[level]}`}><span className="dot" />{t(`toBuy.${level}`)}</span>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'end', color: 'var(--text-muted)' }}>{formatUsd(s.price)}</td>
-                    <td style={{ textAlign: 'end', fontWeight: 600 }}>{s.toBuy > 0 ? formatUsd(s.estimatedCost) : '—'}</td>
+                    <td className="num" style={{ color: 'var(--text-muted)' }}>{formatUsd(s.price)}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>{s.toBuy > 0 ? formatUsd(s.estimatedCost) : '—'}</td>
                     {manage && (
-                      <td style={{ textAlign: 'end' }}>
+                      <td className="num">
                         {s.toBuy > 0 && (
                           <button
                             className={`btn btn-sm ${level === 'urgent' ? 'btn-primary' : 'btn-ghost'}`}

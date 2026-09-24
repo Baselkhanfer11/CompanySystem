@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
 import { PurchaseDetailModal } from '../components/PurchaseDetailModal';
 import { PurchaseModal } from '../components/PurchaseModal';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { NONE, purchasesChanged, useProjects, usePurchases, useSuppliers } from '../data/queries';
@@ -108,26 +109,11 @@ export function PurchasesPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <ReceiptIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('purchase.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<ReceiptIcon />} title={t('purchase.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -149,8 +135,8 @@ export function PurchasesPage() {
                   <th>{t('purchase.colProject')}</th>
                   <th>{t('purchase.colInvoice')}</th>
                   <th style={{ textAlign: 'center' }}>{t('purchase.colLines')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('purchase.colTotal')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('purchase.colActions')}</th>
+                  <th className="num">{t('purchase.colTotal')}</th>
+                  <th className="num">{t('purchase.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,18 +145,18 @@ export function PurchasesPage() {
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
                     <td><div className="name">{p.supplierName}</div><div className="email">{p.createdByName}</div></td>
                     <td>{p.projectName ?? <span style={{ color: 'var(--text-dim)' }}>{t('purchase.general')}</span>}</td>
-                    <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)' }}>{p.invoiceNumber ?? '—'}</span></td>
+                    <td><span className="cell-code">{p.invoiceNumber ?? '—'}</span></td>
                     <td style={{ textAlign: 'center' }}>{p.lineCount}</td>
-                    <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatMoney(p.total)}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>{formatMoney(p.total)}</td>
                     <td>
                       <div className="row-actions">
-                        <button className="act-btn" onClick={() => setViewing(p.id)} aria-label={t('purchase.view')} title={t('purchase.view')}><SearchIcon /></button>
+                        <button className="act-btn" onClick={() => setViewing(p.id)} aria-label={t('purchase.view')} data-tip={t('purchase.view')}><SearchIcon /></button>
                         {manage && (
                           <>
-                            <button className="act-btn" onClick={() => openEdit(p.id)} disabled={editLoadingId === p.id} aria-label={t('purchase.edit')} title={t('purchase.edit')}>
+                            <button className="act-btn" onClick={() => openEdit(p.id)} disabled={editLoadingId === p.id} aria-label={t('purchase.edit')} data-tip={t('purchase.edit')}>
                               {editLoadingId === p.id ? <span className="spinner" /> : <EditIcon />}
                             </button>
-                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} data-tip={t('common.delete')}><TrashIcon /></button>
                           </>
                         )}
                       </div>

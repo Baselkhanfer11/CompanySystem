@@ -41,14 +41,14 @@ export function LoginPage() {
       </div>
       <form className="login-card rise" onSubmit={submit}>
         <div className="login-brand">
-          <div className="brand-logo" style={{ width: 52, height: 52, borderRadius: 15 }}>
+          <div className="brand-logo" style={{ width: 52, height: 52, borderRadius: 'var(--radius)' }}>
             <CubeIcon />
           </div>
         </div>
         <h1 className="login-title">{t('login.title')}</h1>
         <p className="login-sub">{t('login.sub')}</p>
 
-        <div className="field" style={{ marginTop: 22 }}>
+        <div className="field" style={{ marginTop: 24 }}>
           <label>{t('login.username')}</label>
           <input
             className="input"
@@ -60,7 +60,7 @@ export function LoginPage() {
           />
         </div>
 
-        <div className="field" style={{ marginTop: 14 }}>
+        <div className="field" style={{ marginTop: 16 }}>
           <label>{t('login.password')}</label>
           <input
             className="input"

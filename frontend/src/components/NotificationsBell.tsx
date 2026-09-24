@@ -110,7 +110,7 @@ export function NotificationsBell() {
               <div className="notif-empty">
                 <div className="notif-empty-ic"><BellIcon /></div>
                 <div style={{ fontWeight: 600, color: 'var(--text)' }}>{t('notif.empty')}</div>
-                <div style={{ fontSize: 12.5, marginTop: 4 }}>{t('notif.emptySub')}</div>
+                <div style={{ fontSize: 'var(--fs-md)', marginTop: 4 }}>{t('notif.emptySub')}</div>
               </div>
             ) : (
               <div className="notif-list">
