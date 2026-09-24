@@ -6,7 +6,7 @@ import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
+import { EditIcon, PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
 import { PurchaseDetailModal } from '../components/PurchaseDetailModal';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { useToast } from '../components/toast';
@@ -14,7 +14,7 @@ import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { Project, PurchaseInput, PurchaseListItem, Supplier } from '../types';
+import type { Project, PurchaseDetail, PurchaseInput, PurchaseListItem, Supplier } from '../types';
 
 export function PurchasesPage() {
   const { search } = useOutletContext<LayoutContext>();
@@ -31,6 +31,8 @@ export function PurchasesPage() {
   const [loadError, setLoadError] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<PurchaseDetail | null>(null); // null = recording a new one
+  const [editLoadingId, setEditLoadingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<PurchaseListItem | null>(null);
@@ -57,15 +59,26 @@ export function PurchasesPage() {
     );
   }, [purchases, search]);
 
-  const handleCreate = async (data: PurchaseInput) => {
+  const openCreate = () => { setEditing(null); setModalOpen(true); };
+
+  // Editing needs the full invoice (all lines), so load it first.
+  const openEdit = async (id: number) => {
+    setEditLoadingId(id);
+    try { setEditing(await purchasesApi.getById(id)); setModalOpen(true); }
+    catch (e) { toast('error', (e as Error).message); }
+    finally { setEditLoadingId(null); }
+  };
+
+  const handleSave = async (data: PurchaseInput) => {
     setSaving(true);
     try {
-      await purchasesApi.create(data);
-      toast('success', t('purchase.recorded'));
+      if (editing) { await purchasesApi.update(editing.id, data); toast('success', t('purchase.updated')); }
+      else { await purchasesApi.create(data); toast('success', t('purchase.recorded')); }
       setModalOpen(false);
+      setEditing(null);
       load();
       refreshItems(); // stock changed — update the store & bell alerts
-    } catch (e) { toast('error', (e as Error).message); }
+    } catch (e) { toast('error', (e as Error).message); } // e.g. "not enough stock" — the modal stays open
     finally { setSaving(false); }
   };
 
@@ -90,7 +103,7 @@ export function PurchasesPage() {
           <p>{t('purchase.sub')}</p>
         </div>
         {manage && (
-          <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+          <button className="btn btn-primary" onClick={openCreate}>
             <PlusIcon /> {t('purchase.add')}
           </button>
         )}
@@ -136,7 +149,7 @@ export function PurchasesPage() {
             <div className="empty-illus"><ReceiptIcon /></div>
             <h4>{search ? t('common.noMatches') : t('purchase.noneTitle')}</h4>
             <p>{search ? t('common.differentSearch') : t('purchase.addFirst')}</p>
-            {!search && manage && <button className="btn btn-primary" onClick={() => setModalOpen(true)}><PlusIcon /> {t('purchase.add')}</button>}
+            {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('purchase.add')}</button>}
           </div>
         )}
 
@@ -167,7 +180,12 @@ export function PurchasesPage() {
                       <div className="row-actions">
                         <button className="act-btn" onClick={() => setViewing(p.id)} aria-label={t('purchase.view')} title={t('purchase.view')}><SearchIcon /></button>
                         {manage && (
-                          <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                          <>
+                            <button className="act-btn" onClick={() => openEdit(p.id)} disabled={editLoadingId === p.id} aria-label={t('purchase.edit')} title={t('purchase.edit')}>
+                              {editLoadingId === p.id ? <span className="spinner" /> : <EditIcon />}
+                            </button>
+                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -181,18 +199,20 @@ export function PurchasesPage() {
 
       <PurchaseModal
         open={modalOpen}
+        initial={editing}
         suppliers={suppliers}
         projects={projects}
         items={items}
         saving={saving}
-        onClose={() => setModalOpen(false)}
-        onSave={handleCreate}
+        onClose={() => { setModalOpen(false); setEditing(null); }}
+        onSave={handleSave}
       />
 
       <PurchaseDetailModal
         open={viewing !== null}
         purchaseId={viewing}
         onClose={() => setViewing(null)}
+        onEdit={manage ? (d) => { setViewing(null); setEditing(d); setModalOpen(true); } : undefined}
       />
 
       <ConfirmDialog

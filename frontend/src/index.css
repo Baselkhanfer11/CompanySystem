@@ -680,6 +680,9 @@ table.data tbody tr:last-child td { border-bottom: none; }
 /* ===== Purchases: wide modal, line-item editor, totals ===== */
 .modal.modal-wide { max-width: 780px; }
 .modal.modal-wide .modal-body { max-height: 64vh; overflow-y: auto; }
+/* Children keep their full height and the body scrolls instead. Without this,
+   a scroll container inside (like .table-wrap) gets squashed to 0px tall. */
+.modal.modal-wide .modal-body > * { flex-shrink: 0; }
 
 .btn.btn-sm { padding: 7px 12px; font-size: 12.5px; }
 
@@ -823,3 +826,11 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .mini-stats .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
 .mini-stats .v { font-size: 18px; font-weight: 700; }
 .cost-section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 4px 0 10px; }
+
+/* Purchase history: the list of changes inside one "Edited" entry */
+.change-list {
+  margin: 6px 0 0; padding-inline-start: 16px;
+  display: flex; flex-direction: column; gap: 3px;
+  font-size: 12.5px; color: var(--text);
+}
+.change-list li::marker { color: var(--text-dim); }

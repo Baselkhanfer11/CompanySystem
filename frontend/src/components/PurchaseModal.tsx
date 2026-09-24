@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
-import type { Item, Project, PurchaseInput, Supplier } from '../types';
+import type { Item, Project, PurchaseDetail, PurchaseInput, Supplier } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
 
 interface Props {
   open: boolean;
+  initial: PurchaseDetail | null; // null = record a new purchase; otherwise edit this one
   suppliers: Supplier[];
   projects: Project[];
   items: Item[];
@@ -16,6 +17,7 @@ interface Props {
 
 interface LineState {
   key: number; // stable React key
+  id?: number; // an existing line's id when editing (so the server knows which line changed)
   itemId: string;
   quantity: string;
   unitPrice: string;
@@ -37,19 +39,36 @@ const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1', 
 
 const emptyForm: FormState = { supplierId: '', projectId: '', invoiceNumber: '', date: today(), notes: '' };
 
-export function PurchaseModal({ open, suppliers, projects, items, saving, onClose, onSave }: Props) {
+export function PurchaseModal({ open, initial, suppliers, projects, items, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [lines, setLines] = useState<LineState[]>([blankLine()]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (open) {
-      setError('');
+    if (!open) return;
+    setError('');
+    if (initial) {
+      // Edit: start from the saved invoice.
+      setForm({
+        supplierId: String(initial.supplierId),
+        projectId: initial.projectId ? String(initial.projectId) : '',
+        invoiceNumber: initial.invoiceNumber ?? '',
+        date: initial.date.slice(0, 10), // stored as a calendar date, so no timezone shift
+        notes: initial.notes ?? '',
+      });
+      setLines(initial.items.map((li) => ({
+        key: keySeq++,
+        id: li.id,
+        itemId: String(li.itemId),
+        quantity: String(li.quantity),
+        unitPrice: String(li.unitPrice),
+      })));
+    } else {
       setForm({ ...emptyForm, date: today() });
       setLines([blankLine()]);
     }
-  }, [open]);
+  }, [open, initial]);
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -79,7 +98,7 @@ export function PurchaseModal({ open, suppliers, projects, items, saving, onClos
 
     const parsed = lines
       .filter((l) => l.itemId) // ignore blank rows
-      .map((l) => ({ itemId: Number(l.itemId), quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) }));
+      .map((l) => ({ id: l.id ?? null, itemId: Number(l.itemId), quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) }));
 
     if (parsed.length === 0) return setError(t('purchaseModal.noLines'));
     if (parsed.some((l) => !Number.isFinite(l.quantity) || l.quantity <= 0))
@@ -105,13 +124,14 @@ export function PurchaseModal({ open, suppliers, projects, items, saving, onClos
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h3>{t('purchaseModal.title')}</h3>
-            <p>{t('purchaseModal.sub')}</p>
+            <h3>{initial ? t('purchaseModal.editTitle') : t('purchaseModal.title')}</h3>
+            <p>{initial ? t('purchaseModal.editSub') : t('purchaseModal.sub')}</p>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}><XIcon /></button>
         </div>
 
         <div className="modal-body">
+          {initial && <div className="field-hint">{t('purchaseModal.editHint')}</div>}
           {(noSuppliers || noItems) && (
             <div className="field-hint" style={{ color: 'var(--amber)' }}>
               {noSuppliers ? t('purchaseModal.needSupplier') : t('purchaseModal.needItem')}
@@ -204,7 +224,7 @@ export function PurchaseModal({ open, suppliers, projects, items, saving, onClos
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button className="btn btn-primary" onClick={submit} disabled={saving}>
               {saving && <span className="spinner" />}
-              {t('purchaseModal.record')}
+              {initial ? t('common.saveChanges') : t('purchaseModal.record')}
             </button>
           </div>
         </div>
