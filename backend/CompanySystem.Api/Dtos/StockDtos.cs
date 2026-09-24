@@ -17,6 +17,9 @@ public record StockMovementInputDto(
 
 // ---- What the API returns ----
 
+// One line of a movement, briefly: what and how many (e.g. "Safety Helmet · 175 pcs").
+public record MovementLineBriefDto(string ItemName, string Unit, int Quantity);
+
 // A row in the movements list (summary only).
 public record StockMovementListDto(
     int Id,
@@ -27,16 +30,17 @@ public record StockMovementListDto(
     DateTime Date,
     string? Notes,
     int LineCount,
-    IReadOnlyList<string> ItemNames,
+    IReadOnlyList<MovementLineBriefDto> Lines, // in line order
     decimal Total,
     string CreatedByName,
     DateTime CreatedAt)
 {
+    // The item names in line order, each once (worked out here, not in SQL,
+    // because SQL's DISTINCT would lose the order).
+    public IReadOnlyList<string> ItemNames => Lines.Select(l => l.ItemName).Distinct().ToList();
+
     // Builds a list row inside the database query (use with .Select(...)):
     // only the columns shown are read — no full line or item rows.
-    // Item names come back in line order, repeats included; call
-    // WithUniqueItemNames() on the results to drop repeats (SQL's DISTINCT
-    // would lose the order).
     public static readonly Expression<Func<StockMovement, StockMovementListDto>> Projection = m => new StockMovementListDto(
         m.Id,
         m.Type,
@@ -46,12 +50,10 @@ public record StockMovementListDto(
         m.Date,
         m.Notes,
         m.Lines.Count,
-        m.Lines.OrderBy(l => l.Id).Select(l => l.Item!.Name).ToList(),
+        m.Lines.OrderBy(l => l.Id).Select(l => new MovementLineBriefDto(l.Item!.Name, l.Item.Unit, l.Quantity)).ToList(),
         m.Lines.Sum(l => l.Quantity * l.UnitCost),
         m.CreatedBy!.FullName,
         m.CreatedAt);
-
-    public StockMovementListDto WithUniqueItemNames() => this with { ItemNames = ItemNames.Distinct().ToList() };
 }
 
 public record StockMovementLineDto(

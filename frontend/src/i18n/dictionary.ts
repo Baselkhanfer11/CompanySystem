@@ -705,7 +705,14 @@ const en: Dict = {
 
   // Ready to send
   'toBuy.readyTitle': 'Ready to send',
-  'toBuy.readySub': 'The warehouse already has these — send them to the sites that need them.',
+  'toBuy.readySub': 'What the warehouse can send now. Amber = part of the need; the rest is on the shopping list.',
+  'toBuy.partOf': '{n} of {of} {unit}',
+  'toBuy.partHint': 'All the warehouse has — the other {n} are on the shopping list',
+  'toBuy.sentTitle': 'Recently sent',
+  'toBuy.sentSub': 'What went out to the sites in the last 7 days — newest first.',
+  'toBuy.colWhen': 'When',
+  'toBuy.colSent': 'What was sent',
+  'toBuy.justSent': 'Just sent',
   'toBuy.readyShort': 'Items ready to send',
   'toBuy.colSite': 'Site',
   'toBuy.colSend': 'To send',
@@ -757,6 +764,7 @@ const en: Dict = {
   'purchaseModal.bestAt': 'Cheapest recently: {supplier}, {price}',
   'purchaseModal.draftHintSuggested': 'Filled in from the to-buy list, with the cheapest recent supplier and their last prices. Check them before saving.',
   'toBuy.bestAt': 'Best: {price} at {supplier}',
+  'toBuy.best': 'Best {price}',
 };
 
 const ar: Dict = {
@@ -1450,7 +1458,14 @@ const ar: Dict = {
 
   // Ready to send
   'toBuy.readyTitle': 'جاهز للإرسال',
-  'toBuy.readySub': 'هذه الأصناف موجودة في المستودع — أرسلها إلى المواقع التي تحتاجها.',
+  'toBuy.readySub': 'ما يمكن للمستودع إرساله الآن. البرتقالي = جزء من الحاجة؛ والباقي في قائمة الشراء.',
+  'toBuy.partOf': '{n} من {of} {unit}',
+  'toBuy.partHint': 'كل ما في المستودع — والـ {n} الباقية في قائمة الشراء',
+  'toBuy.sentTitle': 'أُرسل مؤخراً',
+  'toBuy.sentSub': 'ما أُرسل إلى المواقع خلال آخر 7 أيام — الأحدث أولاً.',
+  'toBuy.colWhen': 'متى',
+  'toBuy.colSent': 'ما أُرسل',
+  'toBuy.justSent': 'أُرسل الآن',
   'toBuy.readyShort': 'أصناف جاهزة للإرسال',
   'toBuy.colSite': 'الموقع',
   'toBuy.colSend': 'المطلوب إرساله',
@@ -1502,6 +1517,7 @@ const ar: Dict = {
   'purchaseModal.bestAt': 'الأرخص مؤخراً: {supplier}، {price}',
   'purchaseModal.draftHintSuggested': 'تمت التعبئة من قائمة الشراء مع أرخص مورّد مؤخراً وآخر أسعاره. تحقق منها قبل الحفظ.',
   'toBuy.bestAt': 'الأفضل: {price} عند {supplier}',
+  'toBuy.best': 'الأفضل {price}',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };
