@@ -854,3 +854,32 @@ table.data tbody tr:last-child td { border-bottom: none; }
 tr.total-row td { border-top: 1px solid var(--border-strong); font-weight: 700; }
 /* The Send / Return switch at the top of the movement form hugs its buttons. */
 .modal-body > .seg { align-self: flex-start; }
+
+/* ---- Material plans & the to-buy list ---- */
+/* Count pill in the sidebar (e.g. items to buy). margin-inline-start keeps it at the end in RTL too. */
+.nav-count {
+  margin-inline-start: auto; min-width: 20px; padding: 1px 7px; border-radius: 20px; text-align: center;
+  font-size: 11px; font-weight: 700; color: var(--rose);
+  background: rgba(251,113,133,0.12); border: 1px solid rgba(251,113,133,0.28);
+}
+/* Store card: zero in the warehouse. */
+.qty-badge.out { background: rgba(251,113,133,0.12); color: var(--rose); border-color: rgba(251,113,133,0.28); }
+/* Store card: "Short 159 pcs for projects" — links to the to-buy list. */
+.item-short {
+  margin-top: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 600; color: var(--rose); text-decoration: none;
+  background: rgba(251,113,133,0.08); border: 1px solid rgba(251,113,133,0.22);
+}
+.item-short:hover, .item-short:focus-visible { background: rgba(251,113,133,0.14); outline: none; }
+.item-short svg { width: 14px; height: 14px; flex-shrink: 0; }
+/* Plan progress bar (single series → the accent colour). */
+.plan-progress { display: flex; flex-direction: column; gap: 6px; }
+.plan-progress-head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); }
+.plan-progress-head strong { color: var(--text); }
+.plan-progress-track { height: 8px; border-radius: 8px; background: var(--border); overflow: hidden; }
+.plan-progress-track span { display: block; height: 100%; border-radius: 8px; background: var(--accent); transition: width 0.3s; }
+/* Planned-quantity box inside the plan table. */
+.input.plan-qty { width: 96px; padding: 6px 10px; text-align: end; }
+/* "Down town · 159 pcs" chips on the to-buy list. */
+.need-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.need-chip { font-size: 12px; padding: 2px 9px; border-radius: 20px; background: var(--surface-2, rgba(124,108,255,0.08)); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }

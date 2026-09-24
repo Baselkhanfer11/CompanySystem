@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
+import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
-import { LOW_STOCK } from '../lib/stock';
+import { LOW_STOCK, isOutOfStock } from '../lib/stock';
 import { formatPrice } from '../lib/units';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Item, ItemInput, SiteStock } from '../types';
@@ -24,7 +24,8 @@ export function StorePage() {
   const manage = canManage(user?.role);
 
   // Items come from the shared cache (also feeds the notifications bell).
-  const { items, loading, error: loadError, refresh } = useItems();
+  const { items, shortages, loading, error: loadError, refresh } = useItems();
+  const shortByItem = useMemo(() => new Map(shortages.filter((s) => s.toBuy > 0).map((s) => [s.itemId, s])), [shortages]);
 
   // Stale-while-revalidate: show the cached items instantly, then quietly
   // re-check the server on each visit so the list is always up to date
@@ -124,7 +125,9 @@ export function StorePage() {
       {!loading && !loadError && filtered.length > 0 && (
         <div className="item-grid">
           {filtered.map((i) => {
-            const low = i.quantity <= LOW_STOCK;
+            const out = isOutOfStock(i.quantity);
+            const low = !out && i.quantity <= LOW_STOCK;
+            const short = shortByItem.get(i.id);
             const onSites = (sitesByItem.get(i.id) ?? []).reduce((sum, s) => sum + s.quantity, 0);
             return (
               <div key={i.id} className="item-card rise">
@@ -140,11 +143,16 @@ export function StorePage() {
                 <div className="item-name" title={i.name}>{i.name}</div>
                 <div className="item-code">{i.code}</div>
                 <div className="item-meta">
-                  <span className={`qty-badge ${low ? 'low' : ''}`}>
-                    {i.quantity} {i.unit}{low ? ' · ' + t('store.low') : ''}
+                  <span className={`qty-badge ${out ? 'out' : low ? 'low' : ''}`}>
+                    {out ? t('store.out') : `${i.quantity} ${i.unit}${low ? ' · ' + t('store.low') : ''}`}
                   </span>
                   <span className="item-price">{formatPrice(i.price)}</span>
                 </div>
+                {short && (
+                  <Link to="/to-buy" className="item-short">
+                    <AlertIcon /> {t('store.short', { n: `${short.toBuy} ${i.unit}` })}
+                  </Link>
+                )}
                 {onSites > 0 && (
                   <button type="button" className="item-sites" onClick={() => setLocating(i)} title={t('stock.where')}>
                     <MapPinIcon /> {t('stock.onSitesQty', { n: `${onSites} ${i.unit}` })}
