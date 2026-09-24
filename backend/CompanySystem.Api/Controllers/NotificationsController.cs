@@ -18,7 +18,7 @@ public class NotificationsController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<NotificationDto>>> GetMine()
     {
-        var mine = await db.Notifications
+        var mine = await db.Notifications.AsNoTracking()
             .Where(n => n.RecipientId == CurrentUserId)
             .OrderByDescending(n => n.Id)
             .Take(50)

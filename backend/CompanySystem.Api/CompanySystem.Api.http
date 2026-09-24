@@ -1,6 +1,10 @@
 @CompanySystem.Api_HostAddress = http://localhost:5022
 
-GET {{CompanySystem.Api_HostAddress}}/weatherforecast/
+# Paste a token from POST /api/auth/login here to try the API from Visual Studio.
+@token =
+
+GET {{CompanySystem.Api_HostAddress}}/api/dashboard
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ###

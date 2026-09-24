@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { notificationsApi } from '../api/notifications';
 import type { AppNotification } from '../types';
 
@@ -24,10 +24,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      setNotifications(await notificationsApi.getMine());
-    } catch { /* keep the last good list on a transient error */ }
+  // One request at a time: coming back to the tab fires both 'focus' and
+  // 'visibilitychange', and they share the same request instead of sending two.
+  const inFlight = useRef<Promise<void> | null>(null);
+  const refresh = useCallback(() => {
+    inFlight.current ??= notificationsApi.getMine()
+      .then(setNotifications)
+      .catch(() => { /* keep the last good list on a transient error */ })
+      .finally(() => { inFlight.current = null; });
+    return inFlight.current;
   }, []);
 
   const markAllRead = useCallback(async () => {
@@ -46,7 +51,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
     // Poll quietly, and also re-check whenever the user comes back to the tab
     // or refocuses the window — so alerts feel live without a manual refresh.
-    const timer = setInterval(refresh, POLL_MS);
+    // Skip the poll while the tab is hidden — nobody can see the bell, and we
+    // catch up the moment the tab is shown again (below).
+    const timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
     const onFocus = () => refresh();
     const onVisible = () => { if (!document.hidden) refresh(); };
     window.addEventListener('focus', onFocus);

@@ -935,3 +935,6 @@ tr.covered .cover-track span { background: var(--emerald); }
 .level-legend i.urgent { background: var(--rose); }
 .level-legend i.partial { background: var(--amber); }
 .level-legend i.covered { background: var(--emerald); }
+
+/* Shown for the moment a page's code is downloading (first visit only). */
+.page-loading { display: grid; place-items: center; min-height: 240px; }

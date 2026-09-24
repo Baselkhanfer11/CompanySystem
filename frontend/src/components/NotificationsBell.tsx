@@ -20,7 +20,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; tone: string }> = {
 export function NotificationsBell() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { items, shortages, refresh: refreshItems } = useItems();
+  const { items, shortages, revalidate: revalidateItems } = useItems();
   const { notifications, unreadCount, markAllRead } = useNotifications();
 
   const [open, setOpen] = useState(false);
@@ -69,7 +69,7 @@ export function NotificationsBell() {
           });
         }
         setHighlightIds(new Set(notifications.filter((n) => !n.isRead).map((n) => n.id)));
-        refreshItems();
+        revalidateItems();
         markAllRead(); // opening clears the unread badge (keeps highlight via snapshot)
       }
       return next;

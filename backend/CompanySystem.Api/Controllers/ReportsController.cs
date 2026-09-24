@@ -48,10 +48,12 @@ public class ReportsController(AppDbContext db) : ControllerBase
             .Select(g => new { ProjectId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ProjectId, x => x.Count);
 
+        // Group once (instead of scanning every entry for every project).
+        var byBucket = entries.ToLookup(e => e.Bucket);
         ProjectCostRowDto Row(int? id, string name, string? code, string? status)
         {
             var bucket = id ?? WarehouseId;
-            var mine = entries.Where(e => e.Bucket == bucket).ToList();
+            var mine = byBucket[bucket].ToList();
             var delivered = mine.Where(e => e.SupplierId is not null).Sum(e => e.Value);
             var fromWarehouse = mine.Where(e => e.SupplierId is null).Sum(e => e.Value);
             return new(id, name, code, status, delivered + fromWarehouse, delivered, fromWarehouse,
@@ -59,7 +61,7 @@ public class ReportsController(AppDbContext db) : ControllerBase
         }
 
         // Every project is listed (even at zero), most expensive first.
-        var projects = await db.Projects.ToListAsync();
+        var projects = await db.Projects.AsNoTracking().ToListAsync();
         var rows = projects
             .Select(p => Row(p.Id, p.Name, p.Code, p.Status))
             .OrderByDescending(r => r.Total)
@@ -131,22 +133,17 @@ public class ReportsController(AppDbContext db) : ControllerBase
             .ToList();
 
         // The latest few purchases and movements.
-        var recentPurchases = await purchases
-            .Include(p => p.Supplier)
-            .Include(p => p.Project)
-            .Include(p => p.CreatedBy)
-            .Include(p => p.Items)
+        var recentPurchases = await purchases.AsNoTracking()
             .OrderByDescending(p => p.Date)
             .ThenByDescending(p => p.Id)
             .Take(RecentCount)
+            .Select(PurchaseListDto.Projection)
             .ToListAsync();
-        var recentMovements = await movements
-            .Include(m => m.Project)
-            .Include(m => m.CreatedBy)
-            .Include(m => m.Lines).ThenInclude(l => l.Item)
+        var recentMovements = await movements.AsNoTracking()
             .OrderByDescending(m => m.Date)
             .ThenByDescending(m => m.Id)
             .Take(RecentCount)
+            .Select(StockMovementListDto.Projection)
             .ToListAsync();
 
         return Ok(new ProjectCostDetailDto(
@@ -160,8 +157,8 @@ public class ReportsController(AppDbContext db) : ControllerBase
             bySource,
             byItem,
             Monthly(entries, from, to),
-            recentPurchases.Select(PurchaseListDto.From).ToList(),
-            recentMovements.Select(StockMovementListDto.From).ToList()));
+            recentPurchases,
+            recentMovements.Select(m => m.WithUniqueItemNames()).ToList()));
     }
 
     // --- helpers ---

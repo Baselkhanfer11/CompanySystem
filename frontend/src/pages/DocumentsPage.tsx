@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { documentsApi } from '../api/documents';
-import { projectsApi } from '../api/projects';
 import { useAuth } from '../auth/AuthContext';
 import { ROLES } from '../auth/roles';
 import { useNotifications } from '../data/NotificationsContext';
+import { documentsChanged, NONE, useDocuments, useProjects } from '../data/queries';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { CheckIcon, DownloadIcon, FileIcon, HistoryIcon, PlusIcon, TrashIcon, UndoIcon, UploadIcon } from '../components/icons';
 import { DocumentTimelineModal } from '../components/DocumentTimelineModal';
@@ -25,10 +25,9 @@ export function DocumentsPage() {
   const { user } = useAuth();
   const { refresh: refreshNotifs } = useNotifications();
 
-  const [docs, setDocs] = useState<ApprovalDocument[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useDocuments();
+  const docs: ApprovalDocument[] = data ?? NONE;
+  const projects: Project[] = useProjects().data ?? NONE; // for the upload form
 
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,16 +42,7 @@ export function DocumentsPage() {
   const [rejectBusy, setRejectBusy] = useState(false);
   const [tracing, setTracing] = useState<number | null>(null); // document id shown in the timeline
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    documentsApi.getAll().then(setDocs).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
-  useEffect(() => {
-    projectsApi.getAll().then(setProjects).catch(() => {});
-  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -74,7 +64,7 @@ export function DocumentsPage() {
       await documentsApi.upload(form);
       toast('success', t('doc.uploaded'));
       setModalOpen(false);
-      load();
+      documentsChanged();
       refreshNotifs();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
@@ -89,7 +79,7 @@ export function DocumentsPage() {
 
   const handleApprove = async (d: ApprovalDocument) => {
     setBusyId(d.id);
-    try { await documentsApi.approve(d.id); toast('success', t('docReview.approved')); load(); refreshNotifs(); }
+    try { await documentsApi.approve(d.id); toast('success', t('docReview.approved')); documentsChanged(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setBusyId(null); }
   };
@@ -97,7 +87,7 @@ export function DocumentsPage() {
   const handleReturn = async (note: string) => {
     if (!returning) return;
     setReturnBusy(true);
-    try { await documentsApi.returnToEngineer(returning.id, note); toast('success', t('docReview.returned')); setReturning(null); load(); refreshNotifs(); }
+    try { await documentsApi.returnToEngineer(returning.id, note); toast('success', t('docReview.returned')); setReturning(null); documentsChanged(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setReturnBusy(false); }
   };
@@ -105,7 +95,7 @@ export function DocumentsPage() {
   const handleResubmit = async (form: FormData) => {
     if (!resubmitting) return;
     setResubmitBusy(true);
-    try { await documentsApi.resubmit(resubmitting.id, form); toast('success', t('docReview.resubmitted')); setResubmitting(null); load(); refreshNotifs(); }
+    try { await documentsApi.resubmit(resubmitting.id, form); toast('success', t('docReview.resubmitted')); setResubmitting(null); documentsChanged(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setResubmitBusy(false); }
   };
@@ -113,7 +103,7 @@ export function DocumentsPage() {
   const handleReject = async () => {
     if (!rejecting) return;
     setRejectBusy(true);
-    try { await documentsApi.reject(rejecting.id); toast('success', t('docReview.rejected')); setRejecting(null); load(); refreshNotifs(); }
+    try { await documentsApi.reject(rejecting.id); toast('success', t('docReview.rejected')); setRejecting(null); documentsChanged(); refreshNotifs(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setRejectBusy(false); }
   };
@@ -161,7 +151,7 @@ export function DocumentsPage() {
             </div>
             <h4>{t('doc.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
-import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -10,6 +9,7 @@ import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
+import { itemsChanged, NONE, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { LOW_STOCK, isOutOfStock } from '../lib/stock';
 import { formatPrice } from '../lib/units';
@@ -24,17 +24,15 @@ export function StorePage() {
   const manage = canProcure(user?.role); // managers + the Procurement Officer
 
   // Items come from the shared cache (also feeds the notifications bell).
-  const { items, shortages, loading, error: loadError, refresh } = useItems();
+  const { items, shortages, loading, error: loadError, refresh, revalidate } = useItems();
   const shortByItem = useMemo(() => new Map(shortages.filter((s) => s.toBuy > 0).map((s) => [s.itemId, s])), [shortages]);
 
-  // Stale-while-revalidate: show the cached items instantly, then quietly
-  // re-check the server on each visit so the list is always up to date
-  // (e.g. if another user changed stock) — without a loading flash.
-  useEffect(() => { refresh(); }, [refresh]);
+  // Show the cached items instantly; re-check the server if the copy is getting
+  // old (e.g. another user changed stock) — without a loading flash.
+  useEffect(() => { revalidate(); }, [revalidate]);
 
   // What's out on project sites (the card's quantity is what's in the warehouse).
-  const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
-  useEffect(() => { stockApi.onSite().then(setSiteStock).catch(() => {}); }, []);
+  const siteStock: SiteStock[] = useSiteStock().data ?? NONE;
   const sitesByItem = useMemo(() => {
     const map = new Map<number, SiteStock[]>();
     for (const s of siteStock) map.set(s.itemId, [...(map.get(s.itemId) ?? []), s]);
@@ -63,7 +61,7 @@ export function StorePage() {
       if (editing) { await itemsApi.update(editing.id, data); toast('success', t('store.updated')); }
       else { await itemsApi.create(data); toast('success', t('store.added')); }
       setModalOpen(false);
-      await refresh();
+      itemsChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -75,7 +73,7 @@ export function StorePage() {
       await itemsApi.remove(deleting.id);
       toast('success', t('store.removed'));
       setDeleting(null);
-      await refresh();
+      itemsChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };

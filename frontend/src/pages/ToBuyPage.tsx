@@ -27,8 +27,8 @@ export function ToBuyPage() {
   const manage = canProcure(user?.role); // managers + the Procurement Officer
 
   // The shortages list lives in the shared items cache (the bell uses it too).
-  const { shortages, loading, error, refresh } = useItems();
-  useEffect(() => { refresh(); }, [refresh]); // always show the latest on each visit
+  const { shortages, loading, error, refresh, revalidate } = useItems();
+  useEffect(() => { revalidate(); }, [revalidate]); // re-check if the copy is getting old
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

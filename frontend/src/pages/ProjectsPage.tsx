@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
-import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canManage, canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -11,6 +10,7 @@ import { ProjectPlanModal } from '../components/ProjectPlanModal';
 import { SiteStockModal } from '../components/SiteStockModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
+import { NONE, projectsChanged, useProjects, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
@@ -24,9 +24,8 @@ export function ProjectsPage() {
   const { user } = useAuth();
   const manage = canManage(user?.role);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useProjects();
+  const projects: Project[] = data ?? NONE;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -35,19 +34,12 @@ export function ProjectsPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   // What's on each site right now.
-  const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
+  const siteStock: SiteStock[] = useSiteStock().data ?? NONE;
   const [viewingSite, setViewingSite] = useState<Project | null>(null);
   const [planning, setPlanning] = useState<Project | null>(null);
   const { items, refresh: refreshItems } = useItems();
   const siteRows = (projectId: number) => siteStock.filter((s) => s.projectId === projectId);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    projectsApi.getAll().then(setProjects).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-    stockApi.onSite().then(setSiteStock).catch(() => {});
-  };
-  useEffect(load, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -66,7 +58,7 @@ export function ProjectsPage() {
       if (editing) { await projectsApi.update(editing.id, data); toast('success', t('project.updated')); }
       else { await projectsApi.create(data); toast('success', t('project.added')); }
       setModalOpen(false);
-      load();
+      projectsChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -78,7 +70,7 @@ export function ProjectsPage() {
       await projectsApi.remove(deleting.id);
       toast('success', t('project.removed'));
       setDeleting(null);
-      load();
+      projectsChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -128,7 +120,7 @@ export function ProjectsPage() {
             </div>
             <h4>{t('project.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 

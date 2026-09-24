@@ -74,7 +74,7 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
     public async Task<ActionResult<IEnumerable<ShortageDto>>> Shortages()
     {
         // Completed projects don't need anything more.
-        var plans = await db.ProjectMaterials
+        var plans = await db.ProjectMaterials.AsNoTracking()
             .Include(m => m.Project)
             .Include(m => m.Item)
             .Where(m => m.Project!.Status != ProjectStatuses.Completed)
@@ -113,10 +113,10 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
 
     private async Task<ProjectPlanDto?> LoadPlan(int projectId)
     {
-        var project = await db.Projects.FindAsync(projectId);
+        var project = await db.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == projectId);
         if (project is null) return null;
 
-        var plan = await db.ProjectMaterials
+        var plan = await db.ProjectMaterials.AsNoTracking()
             .Where(m => m.ProjectId == projectId)
             .Include(m => m.UpdatedBy)
             .ToListAsync();
@@ -124,7 +124,7 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
 
         // Planned items, plus anything on the site that isn't in the plan.
         var itemIds = plan.Select(m => m.ItemId).Concat(onSite.Where(b => b.Value.Quantity != 0).Select(b => b.Key)).Distinct().ToList();
-        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+        var items = await db.Items.AsNoTracking().Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
         var planned = plan.ToDictionary(m => m.ItemId, m => m.PlannedQuantity);
 
         var lines = itemIds

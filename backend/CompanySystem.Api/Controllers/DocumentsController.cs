@@ -25,7 +25,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DocumentDto>>> GetAll()
     {
-        var docs = await db.Documents
+        var docs = await db.Documents.AsNoTracking()
             .Include(d => d.Project)
             .Include(d => d.UploadedBy)
             .OrderByDescending(d => d.Id)
@@ -37,13 +37,13 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     [HttpGet("{id:int}")]
     public async Task<ActionResult<DocumentDetailDto>> GetDetail(int id)
     {
-        var doc = await db.Documents
+        var doc = await db.Documents.AsNoTracking()
             .Include(d => d.Project)
             .Include(d => d.UploadedBy)
             .FirstOrDefaultAsync(d => d.Id == id);
         if (doc is null) return NotFound();
 
-        var events = await db.DocumentEvents
+        var events = await db.DocumentEvents.AsNoTracking()
             .Where(e => e.DocumentId == id)
             .Include(e => e.Actor)
             .OrderBy(e => e.Id)

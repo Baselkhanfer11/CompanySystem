@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { projectsApi } from '../api/projects';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
@@ -11,6 +10,7 @@ import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
+import { movementsChanged, NONE, useMovements, useProjects, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -22,13 +22,12 @@ export function StockMovementsPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
-  const { items, refresh: refreshItems } = useItems();
+  const { items, revalidate } = useItems();
 
-  const [movements, setMovements] = useState<StockMovementListItem[]>([]);
-  const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useMovements();
+  const movements: StockMovementListItem[] = data ?? NONE;
+  const siteStock: SiteStock[] = useSiteStock().data ?? NONE;
+  const projects: Project[] = useProjects().data ?? NONE;
 
   const [modalType, setModalType] = useState<MovementType | null>(null); // null = closed
   const [saving, setSaving] = useState(false);
@@ -36,21 +35,11 @@ export function StockMovementsPage() {
   const [undoing, setUndoing] = useState<StockMovementListItem | null>(null);
   const [undoBusy, setUndoBusy] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    stockApi.movements().then(setMovements).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  const loadSiteStock = () => { stockApi.onSite().then(setSiteStock).catch(() => {}); };
-  useEffect(load, []);
-  useEffect(() => {
-    loadSiteStock();
-    projectsApi.getAll().then(setProjects).catch(() => {});
-    refreshItems(); // make sure warehouse quantities are current
-  }, [refreshItems]);
+  // The form checks quantities against the warehouse, so make sure they're current.
+  useEffect(() => { revalidate(); }, [revalidate]);
 
   // Stock changed — refresh everything that shows it (incl. the store & bell alerts).
-  const afterChange = () => { load(); loadSiteStock(); refreshItems(); };
+  const afterChange = movementsChanged;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -129,7 +118,7 @@ export function StockMovementsPage() {
             </div>
             <h4>{t('stock.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 
