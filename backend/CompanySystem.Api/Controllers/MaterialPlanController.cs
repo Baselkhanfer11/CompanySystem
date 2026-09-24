@@ -141,10 +141,7 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
             .ThenBy(l => l.Name)
             .ToList();
 
-        // Progress = share of the planned material (by value) that's already on site.
-        var budget = lines.Sum(l => l.Planned * l.Price);
-        var covered = lines.Sum(l => Math.Min(l.OnSite, l.Planned) * l.Price);
-        var progress = budget > 0 ? (int)Math.Round(covered / budget * 100) : 0;
+        var (budget, stillToSpend, progress) = PlanMath.Summarize(lines.Select(l => new PlanPoint(l.Planned, l.OnSite, l.Price)));
 
         var last = plan.OrderByDescending(m => m.UpdatedAt).FirstOrDefault();
         return new ProjectPlanDto(
@@ -152,7 +149,7 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
             lines,
             budget,
             onSite.Values.Sum(b => b.Value),
-            lines.Sum(l => l.StillToSpend),
+            stillToSpend,
             progress,
             last?.UpdatedBy?.FullName,
             last?.UpdatedAt);

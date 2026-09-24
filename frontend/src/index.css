@@ -883,3 +883,55 @@ tr.total-row td { border-top: 1px solid var(--border-strong); font-weight: 700; 
 /* "Down town · 159 pcs" chips on the to-buy list. */
 .need-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .need-chip { font-size: 12px; padding: 2px 9px; border-radius: 20px; background: var(--surface-2, rgba(124,108,255,0.08)); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
+
+/* ---- Home dashboard ---- */
+.dash-cols { display: grid; gap: 18px; }
+.dash-row-gap { margin-bottom: 18px; }
+.dash-list { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.dash-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; color: inherit; text-decoration: none; transition: background 0.15s; }
+a.dash-item:hover, a.dash-item:focus-visible { background: var(--surface-2); outline: none; }
+a.dash-item:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.dash-item .grow { flex: 1; min-width: 0; }
+.dash-item .name { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-item .code { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
+.dash-item .meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.dash-item .meta strong { color: var(--text); font-weight: 600; }
+.dash-item-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dash-bar { height: 6px; margin-top: 8px; }
+.dash-sentence { font-size: 13.5px; line-height: 1.45; }
+.dash-amount { font-weight: 600; font-size: 13px; white-space: nowrap; }
+.dash-amount.crit { color: var(--rose); }
+.dash-amount.warn { color: var(--amber); }
+.dash-empty { display: flex; align-items: center; gap: 10px; padding: 18px 12px; color: var(--text-muted); font-size: 13.5px; }
+.dash-more { align-self: flex-start; margin: 6px 12px 4px; font-size: 13px; font-weight: 600; color: var(--accent-2); text-decoration: none; }
+.dash-more:hover { text-decoration: underline; }
+/* Small tinted icon square (activity kinds, alerts). */
+.act-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.act-ic svg { width: 17px; height: 17px; }
+.act-ic.ok { background: rgba(52,211,153,0.12); color: var(--emerald); }
+.act-ic.info { background: rgba(56,189,248,0.12); color: #38bdf8; }
+.act-ic.warn { background: rgba(251,191,36,0.12); color: var(--amber); }
+.act-ic.crit { background: rgba(251,113,133,0.12); color: var(--rose); }
+
+/* ---- To-buy urgency levels (colour + a text label, never colour alone) ---- */
+tr.tobuy-row td:first-child { border-inline-start: 3px solid transparent; }
+tr.tobuy-row.urgent td { background: rgba(251,113,133,0.06); }
+tr.tobuy-row.urgent td:first-child { border-inline-start-color: var(--rose); }
+tr.tobuy-row.partial td:first-child { border-inline-start-color: var(--amber); }
+tr.tobuy-row.covered td:first-child { border-inline-start-color: var(--emerald); }
+tr.tobuy-row.covered td { opacity: 0.7; }
+.tobuy-qty { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+/* How much of the need the warehouse covers. */
+.cover { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 5px; min-width: 130px; }
+.cover-text { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+.cover-track { width: 100%; height: 5px; border-radius: 5px; background: var(--border); overflow: hidden; display: flex; } /* fills from the line start (flips in RTL) */
+.cover-track span { display: block; height: 100%; border-radius: 5px; }
+tr.urgent .cover-track span { background: var(--rose); }
+tr.partial .cover-track span { background: var(--amber); }
+tr.covered .cover-track span { background: var(--emerald); }
+.level-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); }
+.level-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.level-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.level-legend i.urgent { background: var(--rose); }
+.level-legend i.partial { background: var(--amber); }
+.level-legend i.covered { background: var(--emerald); }
