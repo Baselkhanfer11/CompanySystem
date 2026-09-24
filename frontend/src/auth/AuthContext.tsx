@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authApi } from '../api/auth';
 import { getToken, setToken } from '../api/http';
+import { clearCache } from '../lib/cache';
 import type { User } from '../types';
 
 interface AuthContextValue {
@@ -36,18 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // If any request hits 401, the http layer fires this event → log out.
   useEffect(() => {
-    const handler = () => setUser(null);
+    const handler = () => { clearCache(); setUser(null); };
     window.addEventListener('auth:logout', handler);
     return () => window.removeEventListener('auth:logout', handler);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await authApi.login(username, password);
+    clearCache(); // never show the previous user's cached data
     setToken(res.token);
     setUser(res.user);
   }, []);
 
   const logout = useCallback(() => {
+    clearCache();
     setToken(null);
     setUser(null);
   }, []);

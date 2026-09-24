@@ -17,7 +17,7 @@ public class ProjectsController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Project>>> GetAll()
     {
-        var projects = await db.Projects.OrderByDescending(p => p.Id).ToListAsync();
+        var projects = await db.Projects.AsNoTracking().OrderByDescending(p => p.Id).ToListAsync();
         return Ok(projects);
     }
 

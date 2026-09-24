@@ -1,53 +1,45 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { itemsApi } from '../api/items';
 import { plansApi } from '../api/plans';
+import { fetchCached, useCached } from '../lib/cache';
 import type { Item, Shortage } from '../types';
+import { KEYS } from './queries';
 
 interface ItemsValue {
   items: Item[];
   shortages: Shortage[]; // what open projects still need vs. the warehouse
   loading: boolean; // true only during the first load (for skeletons)
   error: string;
-  refresh: () => Promise<void>; // silent background refetch (no skeleton flash)
+  refresh: () => Promise<void>; // re-fetch now (after a change)
+  revalidate: () => void; // re-fetch only if the copy is getting old (on a page visit)
 }
 
 const ItemsContext = createContext<ItemsValue | null>(null);
 
+// Items and shortages always change together, so they're one cache entry.
+const fetchStock = async () => {
+  const [items, shortages] = await Promise.all([itemsApi.getAll(), plansApi.shortages()]);
+  return { items, shortages };
+};
+const EMPTY = { items: [] as Item[], shortages: [] as Shortage[] };
+
 /**
  * Owns the single copy of the store items (and the material shortages built
- * on them) that the Store page and the notifications bell both read from — so
- * they share ONE request instead of each fetching their own. Any stock or plan
- * change calls refresh() to update every place (and the bell badge) at once.
+ * on them) that the Store page, the dashboard and the notifications bell all
+ * read from — ONE request shared by all of them (see lib/cache.ts).
  */
 export function ItemsProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<Item[]>([]);
-  const [shortages, setShortages] = useState<Shortage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data, loading, error, refresh } = useCached(KEYS.stock, fetchStock);
+  const revalidate = useCallback(() => { void fetchCached(KEYS.stock, fetchStock); }, []);
 
-  const refresh = useCallback(async () => {
-    try {
-      const [nextItems, nextShortages] = await Promise.all([itemsApi.getAll(), plansApi.shortages()]);
-      setItems(nextItems);
-      setShortages(nextShortages);
-      setError('');
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  // Fetch once when the authenticated area mounts.
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      await refresh();
-      if (active) setLoading(false);
-    })();
-    return () => { active = false; };
-  }, [refresh]);
-
-  const value = useMemo<ItemsValue>(() => ({ items, shortages, loading, error, refresh }), [items, shortages, loading, error, refresh]);
+  const value = useMemo<ItemsValue>(() => ({
+    items: (data ?? EMPTY).items,
+    shortages: (data ?? EMPTY).shortages,
+    loading,
+    error,
+    refresh,
+    revalidate,
+  }), [data, loading, error, refresh, revalidate]);
 
   return <ItemsContext.Provider value={value}>{children}</ItemsContext.Provider>;
 }

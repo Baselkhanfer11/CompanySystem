@@ -21,7 +21,7 @@ public class UsersController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetAll()
     {
-        var users = await db.Users.OrderBy(u => u.Id).ToListAsync();
+        var users = await db.Users.AsNoTracking().OrderBy(u => u.Id).ToListAsync();
         return Ok(users.Select(UserDto.From));
     }
 

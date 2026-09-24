@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboardApi } from '../api/dashboard';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar } from '../components/Avatar';
 import {
@@ -8,11 +6,12 @@ import {
 } from '../components/icons';
 import { StatCard } from '../components/StatCard';
 import { useItems } from '../data/ItemsContext';
+import { useDashboard } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
 import { isLowStock, isOutOfStock } from '../lib/stock';
-import type { Activity, Dashboard } from '../types';
+import type { Activity } from '../types';
 
 const ATTENTION_ROWS = 5;
 
@@ -26,18 +25,7 @@ export function DashboardPage() {
   // One request for the dashboard; stock and shortages come from the shared
   // cache the bell already keeps up to date — no extra requests for those.
   const { items, shortages } = useItems();
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    dashboardApi.get()
-      .then((d) => { if (active) setData(d); })
-      .catch((e) => { if (active) setError((e as Error).message); });
-    return () => { active = false; };
-  }, []);
-
-  const loading = !data && !error;
+  const { data, loading, error } = useDashboard();
   const seesCosts = data?.costThisMonth != null; // the server leaves money out for non-managers
 
   // ---- tiles ----

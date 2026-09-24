@@ -17,7 +17,7 @@ public class SuppliersController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Supplier>>> GetAll()
     {
-        var suppliers = await db.Suppliers.OrderByDescending(s => s.Id).ToListAsync();
+        var suppliers = await db.Suppliers.AsNoTracking().OrderByDescending(s => s.Id).ToListAsync();
         return Ok(suppliers);
     }
 

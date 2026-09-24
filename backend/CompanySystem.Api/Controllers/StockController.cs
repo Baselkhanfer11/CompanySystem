@@ -30,8 +30,14 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
 
         var itemIds = balances.Select(b => b.ItemId).Distinct().ToList();
         var projectIds = balances.Select(b => b.ProjectId).Distinct().ToList();
-        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
-        var projects = await db.Projects.Where(p => projectIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
+        var items = await db.Items.AsNoTracking()
+            .Where(i => itemIds.Contains(i.Id))
+            .Select(i => new { i.Id, i.Name, i.Code, i.Unit })
+            .ToDictionaryAsync(i => i.Id);
+        var projects = await db.Projects.AsNoTracking()
+            .Where(p => projectIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.Name, p.Code })
+            .ToDictionaryAsync(p => p.Id);
 
         var rows = balances
             .Select(b => new SiteStockDto(
@@ -47,11 +53,15 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
     [HttpGet("movements")]
     public async Task<ActionResult<IEnumerable<StockMovementListDto>>> GetMovements([FromQuery] int? projectId)
     {
-        var q = WithDetails();
+        // Read-only, and the rows are built by SQL (see StockMovementListDto.Projection).
+        var q = db.StockMovements.AsNoTracking();
         if (projectId is int pid) q = q.Where(m => m.ProjectId == pid);
 
-        var movements = await q.OrderByDescending(m => m.Date).ThenByDescending(m => m.Id).ToListAsync();
-        return Ok(movements.Select(StockMovementListDto.From));
+        var movements = await q
+            .OrderByDescending(m => m.Date).ThenByDescending(m => m.Id)
+            .Select(StockMovementListDto.Projection)
+            .ToListAsync();
+        return Ok(movements.Select(m => m.WithUniqueItemNames()));
     }
 
     // GET /api/stock/movements/5  → one movement with its lines
@@ -159,14 +169,13 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
 
     // --- helpers ---
 
-    private IQueryable<StockMovement> WithDetails() => db.StockMovements
-        .Include(m => m.Project)
-        .Include(m => m.CreatedBy)
-        .Include(m => m.Lines).ThenInclude(l => l.Item);
-
     private async Task<StockMovementDetailDto?> LoadDetail(int id)
     {
-        var m = await WithDetails().FirstOrDefaultAsync(x => x.Id == id);
+        var m = await db.StockMovements.AsNoTracking()
+            .Include(x => x.Project)
+            .Include(x => x.CreatedBy)
+            .Include(x => x.Lines).ThenInclude(l => l.Item)
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (m is null) return null;
 
         var lines = m.Lines.OrderBy(l => l.Id).Select(l => new StockMovementLineDto(

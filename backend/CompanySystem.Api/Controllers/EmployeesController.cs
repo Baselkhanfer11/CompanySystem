@@ -17,7 +17,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll()
     {
-        var employees = await db.Employees
+        var employees = await db.Employees.AsNoTracking()
             .Include(e => e.User)
             .OrderBy(e => e.Id)
             .ToListAsync();
@@ -28,7 +28,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EmployeeDto>> GetById(int id)
     {
-        var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
+        var employee = await db.Employees.AsNoTracking().Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
         return Ok(EmployeeDto.From(employee));
     }

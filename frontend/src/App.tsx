@@ -1,18 +1,23 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { AppLayout } from './layouts/AppLayout';
-import { DashboardPage } from './pages/DashboardPage';
-import { EmployeesPage } from './pages/EmployeesPage';
-import { DocumentsPage } from './pages/DocumentsPage';
 import { LoginPage } from './pages/LoginPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { CostsPage } from './pages/CostsPage';
-import { PurchasesPage } from './pages/PurchasesPage';
-import { StockMovementsPage } from './pages/StockMovementsPage';
-import { StorePage } from './pages/StorePage';
-import { SuppliersPage } from './pages/SuppliersPage';
-import { ToBuyPage } from './pages/ToBuyPage';
-import { UsersPage } from './pages/UsersPage';
+
+// Each page is its own download, fetched the first time it's opened — so the
+// login screen doesn't pay for the whole app. (The login page itself is small
+// and is the first thing most people see, so it stays in the main bundle.)
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const EmployeesPage = lazy(() => import('./pages/EmployeesPage').then((m) => ({ default: m.EmployeesPage })));
+const StorePage = lazy(() => import('./pages/StorePage').then((m) => ({ default: m.StorePage })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })));
+const DocumentsPage = lazy(() => import('./pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage').then((m) => ({ default: m.SuppliersPage })));
+const PurchasesPage = lazy(() => import('./pages/PurchasesPage').then((m) => ({ default: m.PurchasesPage })));
+const StockMovementsPage = lazy(() => import('./pages/StockMovementsPage').then((m) => ({ default: m.StockMovementsPage })));
+const ToBuyPage = lazy(() => import('./pages/ToBuyPage').then((m) => ({ default: m.ToBuyPage })));
+const CostsPage = lazy(() => import('./pages/CostsPage').then((m) => ({ default: m.CostsPage })));
+const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })));
 
 export default function App() {
   return (

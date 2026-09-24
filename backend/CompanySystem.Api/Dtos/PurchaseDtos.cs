@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using CompanySystem.Api.Models;
 
 namespace CompanySystem.Api.Dtos;
@@ -33,18 +34,19 @@ public record PurchaseListDto(
     string CreatedByName,
     DateTime CreatedAt)
 {
-    // Maps a purchase (loaded with Supplier, Project, CreatedBy and Items) to a list row.
-    public static PurchaseListDto From(Purchase p) => new(
+    // Builds a list row inside the database query (use with .Select(...)):
+    // SQL counts the lines and adds up the total, so no line rows are loaded.
+    public static readonly Expression<Func<Purchase, PurchaseListDto>> Projection = p => new PurchaseListDto(
         p.Id,
         p.SupplierId,
-        p.Supplier?.Name ?? "",
+        p.Supplier!.Name,
         p.ProjectId,
-        p.Project?.Name,
+        p.Project != null ? p.Project.Name : null,
         p.InvoiceNumber,
         p.Date,
         p.Items.Count,
         p.Items.Sum(li => li.Quantity * li.UnitPrice),
-        p.CreatedBy?.FullName ?? "",
+        p.CreatedBy!.FullName,
         p.CreatedAt);
 }
 

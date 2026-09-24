@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { usersApi } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ShieldIcon, TrashIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { useToast } from '../components/toast';
+import { NONE, peopleChanged, useUsers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -19,18 +20,11 @@ export function UsersPage() {
   const { t } = useI18n();
   const { user: me } = useAuth();
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useUsers();
+  const users: User[] = data ?? NONE;
   const [deleting, setDeleting] = useState<User | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    usersApi.getAll().then(setUsers).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -55,7 +49,7 @@ export function UsersPage() {
       await usersApi.remove(deleting.id);
       toast('success', t('users.loginRemoved'));
       setDeleting(null);
-      load();
+      peopleChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -94,7 +88,7 @@ export function UsersPage() {
             </div>
             <h4>{t('users.couldntLoad')}</h4>
             <p>{loadError}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 

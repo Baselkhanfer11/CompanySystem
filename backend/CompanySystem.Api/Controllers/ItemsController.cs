@@ -17,7 +17,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Item>>> GetAll()
     {
-        var items = await db.Items.OrderBy(i => i.Name).ToListAsync();
+        var items = await db.Items.AsNoTracking().OrderBy(i => i.Name).ToListAsync();
         return Ok(items);
     }
 

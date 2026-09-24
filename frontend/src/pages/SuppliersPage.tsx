@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, TrashIcon, TruckIcon } from '../components/icons';
 import { SupplierModal } from '../components/SupplierModal';
 import { useToast } from '../components/toast';
+import { NONE, suppliersChanged, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { SUPPLIER_STATUS_BADGE } from '../lib/suppliers';
@@ -20,9 +21,8 @@ export function SuppliersPage() {
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useSuppliers();
+  const suppliers: Supplier[] = data ?? NONE;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
@@ -30,12 +30,6 @@ export function SuppliersPage() {
   const [deleting, setDeleting] = useState<Supplier | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    suppliersApi.getAll().then(setSuppliers).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -54,7 +48,7 @@ export function SuppliersPage() {
       if (editing) { await suppliersApi.update(editing.id, data); toast('success', t('supplier.updated')); }
       else { await suppliersApi.create(data); toast('success', t('supplier.added')); }
       setModalOpen(false);
-      load();
+      suppliersChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -66,7 +60,7 @@ export function SuppliersPage() {
       await suppliersApi.remove(deleting.id);
       toast('success', t('supplier.removed'));
       setDeleting(null);
-      load();
+      suppliersChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -116,7 +110,7 @@ export function SuppliersPage() {
             </div>
             <h4>{t('supplier.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
@@ -52,7 +52,10 @@ export function AppLayout() {
             placeholder={searchPlaceholder}
           />
           <div className="page-scroll">
-            <Outlet context={{ search } satisfies LayoutContext} />
+            {/* Pages load on demand (see App.tsx) — the sidebar and top bar stay put meanwhile. */}
+            <Suspense fallback={<div className="page-loading"><span className="spinner" /></div>}>
+              <Outlet context={{ search } satisfies LayoutContext} />
+            </Suspense>
           </div>
         </div>
       </div>

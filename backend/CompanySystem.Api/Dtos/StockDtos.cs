@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using CompanySystem.Api.Models;
 
 namespace CompanySystem.Api.Dtos;
@@ -31,20 +32,26 @@ public record StockMovementListDto(
     string CreatedByName,
     DateTime CreatedAt)
 {
-    // Maps a movement (loaded with Project, CreatedBy and Lines → Item) to a list row.
-    public static StockMovementListDto From(StockMovement m) => new(
+    // Builds a list row inside the database query (use with .Select(...)):
+    // only the columns shown are read — no full line or item rows.
+    // Item names come back in line order, repeats included; call
+    // WithUniqueItemNames() on the results to drop repeats (SQL's DISTINCT
+    // would lose the order).
+    public static readonly Expression<Func<StockMovement, StockMovementListDto>> Projection = m => new StockMovementListDto(
         m.Id,
         m.Type,
         m.ProjectId,
-        m.Project?.Name ?? "",
-        m.Project?.Code ?? "",
+        m.Project!.Name,
+        m.Project.Code,
         m.Date,
         m.Notes,
         m.Lines.Count,
-        m.Lines.Select(l => l.Item?.Name ?? "").Distinct().ToList(),
+        m.Lines.OrderBy(l => l.Id).Select(l => l.Item!.Name).ToList(),
         m.Lines.Sum(l => l.Quantity * l.UnitCost),
-        m.CreatedBy?.FullName ?? "",
+        m.CreatedBy!.FullName,
         m.CreatedAt);
+
+    public StockMovementListDto WithUniqueItemNames() => this with { ItemNames = ItemNames.Distinct().ToList() };
 }
 
 public record StockMovementLineDto(

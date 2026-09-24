@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { projectsApi } from '../api/projects';
 import { purchasesApi } from '../api/purchases';
-import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -11,6 +9,7 @@ import { PurchaseDetailModal } from '../components/PurchaseDetailModal';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
+import { NONE, purchasesChanged, useProjects, usePurchases, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -22,13 +21,13 @@ export function PurchasesPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
-  const { items, refresh: refreshItems } = useItems();
+  const { items } = useItems();
 
-  const [purchases, setPurchases] = useState<PurchaseListItem[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = usePurchases();
+  const purchases: PurchaseListItem[] = data ?? NONE;
+  // Reference data for the purchase form (items come from the shared items cache).
+  const suppliers: Supplier[] = useSuppliers().data ?? NONE;
+  const projects: Project[] = useProjects().data ?? NONE;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PurchaseDetail | null>(null); // null = recording a new one
@@ -38,18 +37,7 @@ export function PurchasesPage() {
   const [deleting, setDeleting] = useState<PurchaseListItem | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    purchasesApi.getAll().then(setPurchases).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
-  // Reference data for the create modal (suppliers + projects; items come from context).
-  useEffect(() => {
-    suppliersApi.getAll().then(setSuppliers).catch(() => {});
-    projectsApi.getAll().then(setProjects).catch(() => {});
-  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -76,8 +64,7 @@ export function PurchasesPage() {
       else { await purchasesApi.create(data); toast('success', t('purchase.recorded')); }
       setModalOpen(false);
       setEditing(null);
-      load();
-      refreshItems(); // stock changed — update the store & bell alerts
+      purchasesChanged(); // the list, and the stock it moved (store, sites, bell alerts)
     } catch (e) { toast('error', (e as Error).message); } // e.g. "not enough stock" — the modal stays open
     finally { setSaving(false); }
   };
@@ -89,8 +76,7 @@ export function PurchasesPage() {
       await purchasesApi.remove(deleting.id);
       toast('success', t('purchase.removed'));
       setDeleting(null);
-      load();
-      refreshItems(); // stock reversed — update the store & bell alerts
+      purchasesChanged(); // the list, and the stock it moved back
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -140,7 +126,7 @@ export function PurchasesPage() {
             </div>
             <h4>{t('purchase.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 

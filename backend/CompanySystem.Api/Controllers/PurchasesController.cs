@@ -29,17 +29,14 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PurchaseListDto>>> GetAll()
     {
-        // Load with related data, then map in memory (EF can't translate ToDto).
-        var purchases = await db.Purchases
-            .Include(p => p.Supplier)
-            .Include(p => p.Project)
-            .Include(p => p.CreatedBy)
-            .Include(p => p.Items)
+        // Read-only, and the rows are built by SQL (see PurchaseListDto.Projection).
+        var purchases = await db.Purchases.AsNoTracking()
             .OrderByDescending(p => p.Date)
             .ThenByDescending(p => p.Id)
+            .Select(PurchaseListDto.Projection)
             .ToListAsync();
 
-        return Ok(purchases.Select(PurchaseListDto.From));
+        return Ok(purchases);
     }
 
     // GET /api/purchases/5  → one purchase with all its lines and its edit history
@@ -259,7 +256,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     // Loads one purchase and shapes it into the detail DTO (null if not found).
     private async Task<PurchaseDetailDto?> LoadDetail(int id)
     {
-        var p = await db.Purchases
+        var p = await db.Purchases.AsNoTracking()
             .Include(x => x.Supplier)
             .Include(x => x.Project)
             .Include(x => x.CreatedBy)
@@ -277,7 +274,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
             li.UnitPrice,
             li.Quantity * li.UnitPrice)).ToList();
 
-        var events = await db.PurchaseEvents
+        var events = await db.PurchaseEvents.AsNoTracking()
             .Where(e => e.PurchaseId == id)
             .Include(e => e.Actor)
             .OrderBy(e => e.Id)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { employeesApi } from '../api/employees';
 import { useAuth } from '../auth/AuthContext';
@@ -10,6 +10,7 @@ import { EmployeeModal } from '../components/EmployeeModal';
 import { EditIcon, KeyIcon, PlusIcon, TrashIcon, UsersIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { useToast } from '../components/toast';
+import { NONE, peopleChanged, useEmployees } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -23,9 +24,8 @@ export function EmployeesPage() {
   const manage = canManage(user?.role); // add/edit/delete employees
   const admin = isAdmin(user?.role);     // manage login access
 
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { data, loading, error: loadError, refresh } = useEmployees();
+  const employees: Employee[] = data ?? NONE;
 
   // Employee add/edit
   const [modalOpen, setModalOpen] = useState(false);
@@ -43,12 +43,6 @@ export function EmployeesPage() {
   const [revoking, setRevoking] = useState<Employee | null>(null);
   const [revokeBusy, setRevokeBusy] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError('');
-    employeesApi.getAll().then(setEmployees).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
-  };
-  useEffect(load, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -67,7 +61,7 @@ export function EmployeesPage() {
       if (editing) { await employeesApi.update(editing.id, data); toast('success', t('emp.updated')); }
       else { await employeesApi.create(data); toast('success', t('emp.added')); }
       setModalOpen(false);
-      load();
+      peopleChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
   };
@@ -79,7 +73,7 @@ export function EmployeesPage() {
       await employeesApi.remove(deleting.id);
       toast('success', t('emp.removed'));
       setDeleting(null);
-      load();
+      peopleChanged();
     } catch (e) { toast('error', (e as Error).message); }
     finally { setDeleteBusy(false); }
   };
@@ -88,14 +82,14 @@ export function EmployeesPage() {
 
   const handleGrant = async (employeeId: number, data: GrantAccessInput) => {
     setAccessSaving(true);
-    try { await employeesApi.grantAccess(employeeId, data); toast('success', t('access.granted')); setAccessOpen(false); load(); }
+    try { await employeesApi.grantAccess(employeeId, data); toast('success', t('access.granted')); setAccessOpen(false); peopleChanged(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setAccessSaving(false); }
   };
 
   const handleUpdateAccess = async (employeeId: number, data: UpdateAccessInput) => {
     setAccessSaving(true);
-    try { await employeesApi.updateAccess(employeeId, data); toast('success', t('access.updated')); setAccessOpen(false); load(); }
+    try { await employeesApi.updateAccess(employeeId, data); toast('success', t('access.updated')); setAccessOpen(false); peopleChanged(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setAccessSaving(false); }
   };
@@ -103,7 +97,7 @@ export function EmployeesPage() {
   const confirmRevoke = async () => {
     if (!revoking) return;
     setRevokeBusy(true);
-    try { await employeesApi.revokeAccess(revoking.id); toast('success', t('access.revoked')); setRevoking(null); load(); }
+    try { await employeesApi.revokeAccess(revoking.id); toast('success', t('access.revoked')); setRevoking(null); peopleChanged(); }
     catch (e) { toast('error', (e as Error).message); }
     finally { setRevokeBusy(false); }
   };
@@ -153,7 +147,7 @@ export function EmployeesPage() {
             </div>
             <h4>{t('emp.couldntLoad')}</h4>
             <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={load}>{t('common.tryAgain')}</button>
+            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
           </div>
         )}
 
