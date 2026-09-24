@@ -12,7 +12,7 @@ namespace CompanySystem.Api.Controllers;
 
 /// <summary>
 /// Where material is (warehouse vs. project sites) and moving it between them.
-/// Anyone logged in can look; only managers can move stock.
+/// Anyone logged in can look; managers and the Procurement Officer can move stock.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -63,8 +63,8 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
         return Ok(detail);
     }
 
-    // POST /api/stock/movements  → send material to a site, or return it (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // POST /api/stock/movements  → send material to a site, or return it (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPost("movements")]
     public async Task<ActionResult<StockMovementDetailDto>> Create(StockMovementInputDto input)
     {
@@ -129,9 +129,9 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
         return CreatedAtAction(nameof(GetMovement), new { id = movement.Id }, detail);
     }
 
-    // DELETE /api/stock/movements/5  → undo a movement (managers only).
+    // DELETE /api/stock/movements/5  → undo a movement (managers + procurement).
     // Blocked if the material has moved on since (e.g. already returned or re-sent).
-    [Authorize(Roles = Roles.Managers)]
+    [Authorize(Roles = Roles.Procurement)]
     [HttpDelete("movements/{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

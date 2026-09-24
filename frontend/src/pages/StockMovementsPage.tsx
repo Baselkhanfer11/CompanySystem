@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
 import { MovementBadge } from '../components/MovementBadge';
@@ -21,7 +21,7 @@ export function StockMovementsPage() {
   const toast = useToast();
   const { t } = useI18n();
   const { user } = useAuth();
-  const manage = canManage(user?.role);
+  const manage = canProcure(user?.role); // managers + the Procurement Officer
   const { items, refresh: refreshItems } = useItems();
 
   const [movements, setMovements] = useState<StockMovementListItem[]>([]);

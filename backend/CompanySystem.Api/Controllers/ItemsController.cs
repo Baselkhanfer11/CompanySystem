@@ -30,8 +30,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
         return Ok(item);
     }
 
-    // POST /api/items  → create (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // POST /api/items  → create (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPost]
     public async Task<ActionResult<Item>> Create(ItemInputDto input)
     {
@@ -51,8 +51,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
-    // PUT /api/items/5  → update (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // PUT /api/items/5  → update (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, ItemInputDto input)
     {
@@ -72,8 +72,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
-    // DELETE /api/items/5  → delete (managers only)
-    [Authorize(Roles = Roles.Managers)]
+    // DELETE /api/items/5  → delete (managers + procurement)
+    [Authorize(Roles = Roles.Procurement)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

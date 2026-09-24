@@ -75,6 +75,7 @@ const en: Dict = {
   // Roles
   'role.Administrator': 'Administrator',
   'role.WarehouseManager': 'Warehouse Manager',
+  'role.ProcurementOfficer': 'Procurement Officer',
   'role.Employee': 'Employee',
 
   // Search placeholders
@@ -725,6 +726,7 @@ const ar: Dict = {
   // Roles
   'role.Administrator': 'مدير النظام',
   'role.WarehouseManager': 'مدير المخزن',
+  'role.ProcurementOfficer': 'مسؤول المشتريات',
   'role.Employee': 'موظف',
 
   // Search placeholders

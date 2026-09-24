@@ -4,7 +4,7 @@ import { projectsApi } from '../api/projects';
 import { purchasesApi } from '../api/purchases';
 import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
-import { canManage } from '../auth/roles';
+import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
 import { PurchaseDetailModal } from '../components/PurchaseDetailModal';
@@ -21,7 +21,7 @@ export function PurchasesPage() {
   const toast = useToast();
   const { t } = useI18n();
   const { user } = useAuth();
-  const manage = canManage(user?.role);
+  const manage = canProcure(user?.role); // managers + the Procurement Officer
   const { items, refresh: refreshItems } = useItems();
 
   const [purchases, setPurchases] = useState<PurchaseListItem[]>([]);
