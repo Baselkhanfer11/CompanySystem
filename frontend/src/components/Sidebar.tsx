@@ -106,7 +106,7 @@ export function Sidebar({ open }: { open: boolean }) {
             <div className="name">{user?.fullName || 'User'}</div>
             <div className="role">{user?.role ? t(`role.${user.role}`) : ''}</div>
           </div>
-          <button className="act-btn" onClick={logout} aria-label={t('nav.signOut')} title={t('nav.signOut')}>
+          <button className="act-btn" onClick={logout} aria-label={t('nav.signOut')} data-tip={t('nav.signOut')}>
             <LogoutIcon />
           </button>
         </div>

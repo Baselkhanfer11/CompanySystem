@@ -18,7 +18,7 @@ export function ItemLocationsModal({ item, sites, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{item.name}</h3>
             <p>{t('stock.where')} · {item.code}</p>
@@ -32,17 +32,17 @@ export function ItemLocationsModal({ item, sites, onClose }: Props) {
               <tbody>
                 <tr>
                   <td><div className="name">{t('stock.warehouse')}</div></td>
-                  <td style={{ textAlign: 'end' }}>{item.quantity} {item.unit}</td>
+                  <td className="num">{item.quantity} {item.unit}</td>
                 </tr>
                 {sites.map((s) => (
                   <tr key={s.projectId}>
                     <td><div className="name">{t('stock.siteOf', { name: s.projectName })}</div><div className="email">{s.projectCode}</div></td>
-                    <td style={{ textAlign: 'end' }}>{s.quantity} {item.unit}</td>
+                    <td className="num">{s.quantity} {item.unit}</td>
                   </tr>
                 ))}
                 <tr className="total-row">
                   <td>{t('stock.total')}</td>
-                  <td style={{ textAlign: 'end' }}>{total} {item.unit}</td>
+                  <td className="num">{total} {item.unit}</td>
                 </tr>
               </tbody>
             </table>

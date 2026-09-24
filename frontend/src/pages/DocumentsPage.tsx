@@ -10,6 +10,7 @@ import { CheckIcon, DownloadIcon, FileIcon, HistoryIcon, PlusIcon, TrashIcon, Un
 import { DocumentTimelineModal } from '../components/DocumentTimelineModal';
 import { ResubmitDocumentModal } from '../components/ResubmitDocumentModal';
 import { ReturnDocumentModal } from '../components/ReturnDocumentModal';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { UploadDocumentModal } from '../components/UploadDocumentModal';
 import { useI18n } from '../i18n/LanguageContext';
@@ -133,26 +134,11 @@ export function DocumentsPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <FileIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('doc.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<FileIcon />} title={t('doc.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -174,7 +160,7 @@ export function DocumentsPage() {
                   <th>{t('doc.colStatus')}</th>
                   <th>{t('doc.colUploadedBy')}</th>
                   <th>{t('doc.colDate')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('doc.colActions')}</th>
+                  <th className="num">{t('doc.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,18 +187,18 @@ export function DocumentsPage() {
                       <div className="row-actions">
                         {canReview(d) && (
                           <>
-                            <button className="act-btn success" onClick={() => handleApprove(d)} disabled={busyId === d.id} aria-label={t('docReview.approve')} title={t('docReview.approve')}>
+                            <button className="act-btn success" onClick={() => handleApprove(d)} disabled={busyId === d.id} aria-label={t('docReview.approve')} data-tip={t('docReview.approve')}>
                               {busyId === d.id ? <span className="spinner" /> : <CheckIcon />}
                             </button>
-                            <button className="act-btn" onClick={() => setReturning(d)} aria-label={t('docReview.returnAction')} title={t('docReview.returnAction')}><UndoIcon /></button>
-                            <button className="act-btn danger" onClick={() => setRejecting(d)} aria-label={t('docReview.reject')} title={t('docReview.reject')}><TrashIcon /></button>
+                            <button className="act-btn" onClick={() => setReturning(d)} aria-label={t('docReview.returnAction')} data-tip={t('docReview.returnAction')}><UndoIcon /></button>
+                            <button className="act-btn danger" onClick={() => setRejecting(d)} aria-label={t('docReview.reject')} data-tip={t('docReview.reject')}><TrashIcon /></button>
                           </>
                         )}
                         {canResubmit(d) && (
-                          <button className="act-btn success" onClick={() => setResubmitting(d)} aria-label={t('docReview.resubmitAction')} title={t('docReview.resubmitAction')}><UploadIcon /></button>
+                          <button className="act-btn success" onClick={() => setResubmitting(d)} aria-label={t('docReview.resubmitAction')} data-tip={t('docReview.resubmitAction')}><UploadIcon /></button>
                         )}
-                        <button className="act-btn" onClick={() => setTracing(d.id)} aria-label={t('docTimeline.view')} title={t('docTimeline.view')}><HistoryIcon /></button>
-                        <button className="act-btn" onClick={() => handleDownload(d)} disabled={downloadingId === d.id} aria-label={t('doc.download')} title={t('doc.download')}>
+                        <button className="act-btn" onClick={() => setTracing(d.id)} aria-label={t('docTimeline.view')} data-tip={t('docTimeline.view')}><HistoryIcon /></button>
+                        <button className="act-btn" onClick={() => handleDownload(d)} disabled={downloadingId === d.id} aria-label={t('doc.download')} data-tip={t('doc.download')}>
                           {downloadingId === d.id ? <span className="spinner" /> : <DownloadIcon />}
                         </button>
                       </div>

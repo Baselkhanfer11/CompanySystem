@@ -8,6 +8,7 @@ import { ClipboardIcon, EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../c
 import { ProjectModal } from '../components/ProjectModal';
 import { ProjectPlanModal } from '../components/ProjectPlanModal';
 import { SiteStockModal } from '../components/SiteStockModal';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { NONE, projectsChanged, useProjects, useSiteStock } from '../data/queries';
@@ -102,26 +103,11 @@ export function ProjectsPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <ProjectsIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('project.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<ProjectsIcon />} title={t('project.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -143,7 +129,7 @@ export function ProjectsPage() {
                   <th>{t('project.colStatus')}</th>
                   <th>{t('project.colOnSite')}</th>
                   <th>{t('project.colCreated')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('project.colActions')}</th>
+                  <th className="num">{t('project.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +141,7 @@ export function ProjectsPage() {
                         {p.description && <div className="email">{p.description}</div>}
                       </div>
                     </td>
-                    <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{p.code}</span></td>
+                    <td><span className="cell-code">{p.code}</span></td>
                     <td>
                       <span className={`badge ${STATUS_BADGE_CLASS[p.status] ?? 'inactive'}`}>
                         <span className="dot" />{t(`project.status.${p.status}`)}
@@ -176,11 +162,11 @@ export function ProjectsPage() {
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.createdAt)}</td>
                     <td>
                       <div className="row-actions">
-                        <button className="act-btn" onClick={() => setPlanning(p)} aria-label={t('project.plan')} title={t('project.plan')}><ClipboardIcon /></button>
+                        <button className="act-btn" onClick={() => setPlanning(p)} aria-label={t('project.plan')} data-tip={t('project.plan')}><ClipboardIcon /></button>
                         {manage && (
                           <>
-                            <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
-                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                            <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')} data-tip={t('common.edit')}><EditIcon /></button>
+                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} data-tip={t('common.delete')}><TrashIcon /></button>
                           </>
                         )}
                       </div>

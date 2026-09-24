@@ -8,6 +8,7 @@ import { SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
 import { MovementBadge } from '../components/MovementBadge';
 import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { movementsChanged, NONE, useMovements, useProjects, useSiteStock } from '../data/queries';
@@ -100,26 +101,11 @@ export function StockMovementsPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <SwapIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('stock.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<SwapIcon />} title={t('stock.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -140,8 +126,8 @@ export function StockMovementsPage() {
                   <th>{t('stock.colType')}</th>
                   <th>{t('stock.colSite')}</th>
                   <th>{t('stock.colItems')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('stock.colValue')}</th>
-                  <th style={{ textAlign: 'end' }}>{t('stock.colActions')}</th>
+                  <th className="num">{t('stock.colValue')}</th>
+                  <th className="num">{t('stock.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -151,12 +137,12 @@ export function StockMovementsPage() {
                     <td><MovementBadge type={m.type} /></td>
                     <td><div className="name">{m.projectName}</div><div className="email">{m.createdByName}</div></td>
                     <td className="cell-clip" title={m.itemNames.join(', ')}>{m.itemNames.join(', ')}</td>
-                    <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatMoney(m.total)}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>{formatMoney(m.total)}</td>
                     <td>
                       <div className="row-actions">
-                        <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} title={t('stock.view')}><SearchIcon /></button>
+                        <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} data-tip={t('stock.view')}><SearchIcon /></button>
                         {manage && (
-                          <button className="act-btn danger" onClick={() => setUndoing(m)} aria-label={t('stock.undo')} title={t('stock.undo')}><UndoIcon /></button>
+                          <button className="act-btn danger" onClick={() => setUndoing(m)} aria-label={t('stock.undo')} data-tip={t('stock.undo')}><UndoIcon /></button>
                         )}
                       </div>
                     </td>

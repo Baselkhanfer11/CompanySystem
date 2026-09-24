@@ -107,7 +107,7 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('project.plan')} · {project.name}</h3>
             <p>{t('plan.sub')}</p>
@@ -117,7 +117,7 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
 
         <div className="modal-body">
           {loading && <div className="notif-empty">{t('common.loading')}</div>}
-          {!loading && error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {!loading && error && <div className="form-error" role="alert">{error}</div>}
 
           {!loading && plan && (
             <>
@@ -147,10 +147,10 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
                     <thead>
                       <tr>
                         <th>{t('plan.colItem')}</th>
-                        <th style={{ textAlign: 'end' }}>{t('plan.colPlanned')}</th>
-                        <th style={{ textAlign: 'end' }}>{t('plan.colOnSite')}</th>
-                        <th style={{ textAlign: 'end' }}>{t('plan.colStill')}</th>
-                        <th style={{ textAlign: 'end' }}>{t('plan.colCost')}</th>
+                        <th className="num">{t('plan.colPlanned')}</th>
+                        <th className="num">{t('plan.colOnSite')}</th>
+                        <th className="num">{t('plan.colStill')}</th>
+                        <th className="num">{t('plan.colCost')}</th>
                         {canEdit && <th />}
                       </tr>
                     </thead>
@@ -160,7 +160,7 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
                         return (
                           <tr key={r.itemId}>
                             <td><div className="name">{r.name}</div><div className="email">{r.code}</div></td>
-                            <td style={{ textAlign: 'end' }}>
+                            <td className="num">
                               {canEdit ? (
                                 <input
                                   className="input plan-qty"
@@ -172,8 +172,8 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
                                 />
                               ) : r.inPlan ? `${r.planned} ${r.unit}` : '—'}
                             </td>
-                            <td style={{ textAlign: 'end' }}>{r.onSite} {r.unit}</td>
-                            <td style={{ textAlign: 'end' }}>
+                            <td className="num">{r.onSite} {r.unit}</td>
+                            <td className="num">
                               {!r.inPlan || r.planned === 0 ? (
                                 <span style={{ color: 'var(--text-dim)' }}>{t('plan.notPlanned')}</span>
                               ) : left > 0 ? (
@@ -182,11 +182,11 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
                                 <span className="badge active"><span className="dot" />{t('plan.done')}{r.onSite > r.planned ? ` · ${t('plan.over', { n: r.onSite - r.planned })}` : ''}</span>
                               )}
                             </td>
-                            <td style={{ textAlign: 'end', fontWeight: 600 }}>{left > 0 ? formatUsd(left * r.price) : '—'}</td>
+                            <td className="num" style={{ fontWeight: 600 }}>{left > 0 ? formatUsd(left * r.price) : '—'}</td>
                             {canEdit && (
                               <td>
                                 {r.inPlan && (
-                                  <button className="act-btn danger" onClick={() => remove(r.itemId)} aria-label={t('plan.remove')} title={t('plan.remove')}><TrashIcon /></button>
+                                  <button className="act-btn danger" onClick={() => remove(r.itemId)} aria-label={t('plan.remove')} data-tip={t('plan.remove')}><TrashIcon /></button>
                                 )}
                               </td>
                             )}

@@ -105,7 +105,7 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{isIssue ? t('movementModal.sendTitle') : t('movementModal.returnTitle')}</h3>
             <p>{isIssue ? t('movementModal.sendSub') : t('movementModal.returnSub')}</p>
@@ -172,7 +172,7 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
                         </div>
                         <div className="line-total">{formatMoney(lineValue(l))}</div>
                         <div className="line-remove">
-                          <button className="act-btn danger" onClick={() => removeLine(l.key)} disabled={lines.length === 1} aria-label={t('movementModal.removeLine')} title={t('movementModal.removeLine')}>
+                          <button className="act-btn danger" onClick={() => removeLine(l.key)} disabled={lines.length === 1} aria-label={t('movementModal.removeLine')} data-tip={t('movementModal.removeLine')}>
                             <TrashIcon />
                           </button>
                         </div>
@@ -181,12 +181,12 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
                   })}
                 </div>
 
-                <button className="btn btn-ghost btn-sm" onClick={addLine} style={{ marginTop: 10 }}>
+                <button className="btn btn-ghost btn-sm" onClick={addLine} style={{ marginTop: 12 }}>
                   <PlusIcon /> {t('movementModal.addLine')}
                 </button>
               </>
             )}
-            <div className="field-hint" style={{ marginTop: 10 }}>{t('movementModal.costHint')}</div>
+            <div className="field-hint" style={{ marginTop: 12 }}>{t('movementModal.costHint')}</div>
           </div>
 
           <div className="field">
@@ -194,7 +194,7 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
             <textarea className="input" rows={2} placeholder={t('movementModal.notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot" style={{ justifyContent: 'space-between' }}>
@@ -202,7 +202,7 @@ export function MovementModal({ open, initialType, projects, items, siteStock, s
             <span>{t('movementModal.value')}</span>
             <strong>{formatMoney(total)}</strong>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button className="btn btn-primary" onClick={submit} disabled={saving || nothingToReturn}>
               {saving && <span className="spinner" />}

@@ -71,21 +71,21 @@ export function DashboardPage() {
       <div
         className="card rise"
         style={{
-          padding: '28px 30px', marginBottom: 26, position: 'relative', overflow: 'hidden',
+          padding: '28px 32px', marginBottom: 24, position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(120deg, rgba(124,108,255,0.18), rgba(176,108,255,0.06) 60%, transparent)',
         }}
       >
         <div style={{ position: 'absolute', insetInlineEnd: -30, top: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)', filter: 'blur(20px)' }} />
-        <div style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent-2)', fontWeight: 600 }}>
+        <div className="eyebrow">
           {firstName ? t('dash.welcomeName', { name: firstName }) : t('dash.welcome')}
         </div>
-        <h1 style={{ fontSize: 28, marginTop: 8 }}>{t('dash.overview')}</h1>
+        <h1 style={{ fontSize: 'var(--fs-2xl)', marginTop: 8 }}>{t('dash.overview')}</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 6, maxWidth: 520 }}>{t('dash.overviewSub2')}</p>
       </div>
 
       {error && (
-        <div className="panel" style={{ marginBottom: 18 }}>
-          <div className="empty-state" style={{ padding: 30 }}>
+        <div className="panel" style={{ marginBottom: 20 }}>
+          <div className="empty-state" style={{ padding: 32 }}>
             <h4>{t('dash.couldntLoad')}</h4>
             <p>{error}. {t('common.backendHint')}</p>
           </div>

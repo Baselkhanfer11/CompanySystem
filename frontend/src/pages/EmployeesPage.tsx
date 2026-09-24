@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmployeeModal } from '../components/EmployeeModal';
 import { EditIcon, KeyIcon, PlusIcon, TrashIcon, UsersIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
+import { LoadError, TableSkeleton } from '../components/States';
 import { useToast } from '../components/toast';
 import { NONE, peopleChanged, useEmployees } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
@@ -129,26 +130,11 @@ export function EmployeesPage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11 }} />
-                <div className="skeleton" style={{ height: 14, flex: 1, maxWidth: 220 }} />
-                <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
-              </div>
-            ))}
-          </div>
+          <TableSkeleton />
         )}
 
         {!loading && loadError && (
-          <div className="empty-state">
-            <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-              <UsersIcon style={{ color: 'var(--rose)' }} />
-            </div>
-            <h4>{t('emp.couldntLoad')}</h4>
-            <p>{loadError}. {t('common.backendHint')}</p>
-            <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-          </div>
+          <LoadError icon={<UsersIcon />} title={t('emp.couldntLoad')} error={loadError} onRetry={refresh} />
         )}
 
         {!loading && !loadError && filtered.length === 0 && (
@@ -170,7 +156,7 @@ export function EmployeesPage() {
                   <th>{t('emp.colStatus')}</th>
                   {admin && <th>{t('emp.colAccess')}</th>}
                   <th>{t('emp.colHired')}</th>
-                  {manage && <th style={{ textAlign: 'end' }}>{t('emp.colActions')}</th>}
+                  {manage && <th className="num">{t('emp.colActions')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -208,8 +194,8 @@ export function EmployeesPage() {
                     {manage && (
                       <td>
                         <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(e)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                          <button className="act-btn" onClick={() => openEdit(e)} aria-label={t('common.edit')} data-tip={t('common.edit')}><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label={t('common.delete')} data-tip={t('common.delete')}><TrashIcon /></button>
                         </div>
                       </td>
                     )}

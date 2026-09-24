@@ -25,7 +25,7 @@ export function Avatar({ name, size = 38 }: { name: string; size?: number }) {
   return (
     <div
       className="avatar"
-      style={{ background: pick(name), width: size, height: size, fontSize: size * 0.37 }}
+      style={{ background: pick(name), width: size, height: size, fontSize: Math.round(size * 0.37) }}
     >
       {initials(name)}
     </div>

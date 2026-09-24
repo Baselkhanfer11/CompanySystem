@@ -56,7 +56,7 @@ export function ProjectModal({ open, initial, saving, onClose, onSave }: Props) 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('projectModal.editTitle') : t('projectModal.newTitle')}</h3>
             <p>{initial ? t('projectModal.editSub') : t('projectModal.newSub')}</p>
@@ -88,7 +88,7 @@ export function ProjectModal({ open, initial, saving, onClose, onSave }: Props) 
             <textarea className="input" rows={3} placeholder={t('projectModal.descriptionPlaceholder')} value={form.description} onChange={(e) => set('description', e.target.value)} />
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot">

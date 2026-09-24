@@ -30,7 +30,7 @@ export function ReturnDocumentModal({ open, doc, saving, onClose, onSave }: Prop
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('docReview.returnTitle')}</h3>
             <p>{t('docReview.returnSub', { title: doc?.title ?? '' })}</p>
@@ -44,7 +44,7 @@ export function ReturnDocumentModal({ open, doc, saving, onClose, onSave }: Prop
             <textarea className="input" rows={4} autoFocus placeholder={t('docReview.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="field-hint">{t('docReview.noteHint')}</div>
           </div>
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot">

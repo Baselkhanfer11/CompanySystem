@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
+import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { itemsChanged, NONE, useSiteStock } from '../data/queries';
@@ -92,8 +93,8 @@ export function StorePage() {
         <div className="item-grid">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="item-card">
-              <div className="skeleton" style={{ height: 120, borderRadius: 14 }} />
-              <div className="skeleton" style={{ height: 14, width: '70%', marginTop: 14 }} />
+              <div className="skeleton" style={{ height: 120, borderRadius: 'var(--radius-md)' }} />
+              <div className="skeleton" style={{ height: 14, width: '70%', marginTop: 12 }} />
               <div className="skeleton" style={{ height: 12, width: '40%', marginTop: 8 }} />
             </div>
           ))}
@@ -101,14 +102,7 @@ export function StorePage() {
       )}
 
       {!loading && loadError && (
-        <div className="panel"><div className="empty-state">
-          <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-            <BoxesIcon style={{ color: 'var(--rose)' }} />
-          </div>
-          <h4>{t('store.couldntLoad')}</h4>
-          <p>{loadError}. {t('common.backendHint')}</p>
-          <button className="btn btn-ghost" onClick={refresh}>{t('common.tryAgain')}</button>
-        </div></div>
+        <div className="panel"><LoadError icon={<BoxesIcon />} title={t('store.couldntLoad')} error={loadError} onRetry={refresh} /></div>
       )}
 
       {!loading && !loadError && filtered.length === 0 && (
@@ -133,8 +127,8 @@ export function StorePage() {
                   {i.imageUrl ? <img src={i.imageUrl} alt={i.name} /> : <BoxesIcon />}
                   {manage && (
                     <div className="item-actions">
-                      <button className="act-btn" onClick={() => openEdit(i)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
-                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
+                      <button className="act-btn" onClick={() => openEdit(i)} aria-label={t('common.edit')} data-tip={t('common.edit')}><EditIcon /></button>
+                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label={t('common.delete')} data-tip={t('common.delete')}><TrashIcon /></button>
                     </div>
                   )}
                 </div>

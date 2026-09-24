@@ -19,12 +19,12 @@ export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm,
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-label={title}>
-        <div className="modal-body" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 30 }}>
-          <div className="empty-illus confirm-illus">
+        <div className="modal-body" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 32 }}>
+          <div className="empty-illus danger confirm-illus">
             {icon ?? <TrashIcon />}
           </div>
           <div>
-            <h3 style={{ fontSize: 18, marginBottom: 6 }}>{title}</h3>
+            <h3 style={{ fontSize: 'var(--fs-xl)', marginBottom: 8 }}>{title}</h3>
             <p style={{ color: 'var(--text-muted)' }}>{message}</p>
           </div>
         </div>

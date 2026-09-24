@@ -127,7 +127,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('purchaseModal.editTitle') : t('purchaseModal.title')}</h3>
             <p>{initial ? t('purchaseModal.editSub') : t('purchaseModal.sub')}</p>
@@ -200,7 +200,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
                   </div>
                   <div className="line-total">{formatMoney(lineTotal(l))}</div>
                   <div className="line-remove">
-                    <button className="act-btn danger" onClick={() => removeLine(l.key)} disabled={lines.length === 1} aria-label={t('purchaseModal.removeLine')} title={t('purchaseModal.removeLine')}>
+                    <button className="act-btn danger" onClick={() => removeLine(l.key)} disabled={lines.length === 1} aria-label={t('purchaseModal.removeLine')} data-tip={t('purchaseModal.removeLine')}>
                       <TrashIcon />
                     </button>
                   </div>
@@ -208,7 +208,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
               ))}
             </div>
 
-            <button className="btn btn-ghost btn-sm" onClick={addLine} style={{ marginTop: 10 }}>
+            <button className="btn btn-ghost btn-sm" onClick={addLine} style={{ marginTop: 12 }}>
               <PlusIcon /> {t('purchaseModal.addLine')}
             </button>
           </div>
@@ -218,7 +218,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
             <textarea className="input" rows={2} placeholder={t('purchaseModal.notesPlaceholder')} value={form.notes} onChange={(e) => setField('notes', e.target.value)} />
           </div>
 
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot" style={{ justifyContent: 'space-between' }}>
@@ -226,7 +226,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
             <span>{t('purchaseModal.total')}</span>
             <strong>{formatMoney(total)}</strong>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button className="btn btn-primary" onClick={submit} disabled={saving}>
               {saving && <span className="spinner" />}

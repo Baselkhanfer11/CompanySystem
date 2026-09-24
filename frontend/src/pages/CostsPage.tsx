@@ -8,6 +8,7 @@ import { MonthlyChart } from '../components/charts/MonthlyChart';
 import { BoxesIcon, ProjectsIcon, ReceiptIcon, ShieldIcon, SwapIcon, WalletIcon } from '../components/icons';
 import { ProjectCostModal } from '../components/ProjectCostModal';
 import { StatCard } from '../components/StatCard';
+import { LoadError } from '../components/States';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatUsd, formatUsdShort } from '../lib/format';
 import { PERIODS, periodRange, type Period } from '../lib/reports';
@@ -119,7 +120,7 @@ export function CostsPage() {
         <div className="stat-grid">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="stat-card">
-              <div className="skeleton" style={{ width: 42, height: 42, borderRadius: 12, marginBottom: 16 }} />
+              <div className="skeleton" style={{ width: 42, height: 42, borderRadius: 'var(--radius-md)', marginBottom: 16 }} />
               <div className="skeleton" style={{ height: 26, width: '60%', marginBottom: 10 }} />
               <div className="skeleton" style={{ height: 12, width: '40%' }} />
             </div>
@@ -128,14 +129,7 @@ export function CostsPage() {
       )}
 
       {!loading && !report && error && (
-        <div className="empty-state">
-          <div className="empty-illus" style={{ background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-            <WalletIcon style={{ color: 'var(--rose)' }} />
-          </div>
-          <h4>{t('costs.couldntLoad')}</h4>
-          <p>{error}. {t('common.backendHint')}</p>
-          <button className="btn btn-ghost" onClick={() => setReloadKey((k) => k + 1)}>{t('common.tryAgain')}</button>
-        </div>
+        <LoadError icon={<WalletIcon />} title={t('costs.couldntLoad')} error={error} onRetry={() => setReloadKey((k) => k + 1)} />
       )}
 
       {report && (
@@ -184,7 +178,7 @@ export function CostsPage() {
                     <div className="sub">{periodLabel}</div>
                   </div>
                 </div>
-                <div style={{ padding: '14px 18px 16px' }}>
+                <div style={{ padding: '16px 20px' }}>
                   <MonthlyChart data={report.monthly} />
                 </div>
               </div>

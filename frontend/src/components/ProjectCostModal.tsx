@@ -45,7 +45,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{title}</h3>
             <p>{[isWarehouse ? t('costs.generalHint') : row.code, periodLabel].filter(Boolean).join(' · ')}</p>
@@ -55,7 +55,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
 
         <div className="modal-body">
           {loading && <div className="notif-empty">{t('common.loading')}</div>}
-          {!loading && error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {!loading && error && <div className="form-error" role="alert">{error}</div>}
 
           {!loading && !error && detail && (
             <>
@@ -95,16 +95,16 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                         <thead>
                           <tr>
                             <th>{t('purchaseDetail.item')}</th>
-                            <th style={{ textAlign: 'end' }}>{t('purchaseDetail.qty')}</th>
-                            <th style={{ textAlign: 'end' }}>{t('costDetail.spent')}</th>
+                            <th className="num">{t('purchaseDetail.qty')}</th>
+                            <th className="num">{t('costDetail.spent')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {detail.byItem.map((i) => (
                             <tr key={i.itemId}>
                               <td><div className="name">{i.name}</div><div className="email">{i.code}</div></td>
-                              <td style={{ textAlign: 'end' }}>{i.quantity} {i.unit}</td>
-                              <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatUsd(i.total)}</td>
+                              <td className="num">{i.quantity} {i.unit}</td>
+                              <td className="num" style={{ fontWeight: 600 }}>{formatUsd(i.total)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -122,7 +122,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                               <th>{t('purchase.colDate')}</th>
                               <th>{t('purchase.colSupplier')}</th>
                               <th>{t('purchase.colInvoice')}</th>
-                              <th style={{ textAlign: 'end' }}>{t('purchase.colTotal')}</th>
+                              <th className="num">{t('purchase.colTotal')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -130,8 +130,8 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                               <tr key={p.id}>
                                 <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
                                 <td>{p.supplierName}</td>
-                                <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)' }}>{p.invoiceNumber ?? '—'}</span></td>
-                                <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatUsd(p.total)}</td>
+                                <td><span className="cell-code">{p.invoiceNumber ?? '—'}</span></td>
+                                <td className="num" style={{ fontWeight: 600 }}>{formatUsd(p.total)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -150,7 +150,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                               <th>{t('stock.colDate')}</th>
                               <th>{t('stock.colType')}</th>
                               <th>{t('stock.colItems')}</th>
-                              <th style={{ textAlign: 'end' }}>{t('stock.colValue')}</th>
+                              <th className="num">{t('stock.colValue')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -159,7 +159,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                                 <td style={{ color: 'var(--text-muted)' }}>{formatDate(m.date)}</td>
                                 <td><MovementBadge type={m.type} /></td>
                                 <td>{m.itemNames.join(', ')}</td>
-                                <td style={{ textAlign: 'end', fontWeight: 600 }}>{m.type === 'Return' ? '−' : ''}{formatUsd(m.total)}</td>
+                                <td className="num" style={{ fontWeight: 600 }}>{m.type === 'Return' ? '−' : ''}{formatUsd(m.total)}</td>
                               </tr>
                             ))}
                           </tbody>

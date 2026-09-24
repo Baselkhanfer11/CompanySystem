@@ -41,7 +41,7 @@ export function ResubmitDocumentModal({ open, doc, saving, onClose, onSave }: Pr
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="modal-head with-close">
           <div>
             <h3>{t('docReview.resubmitTitle')}</h3>
             <p>{t('docReview.resubmitSub', { title: doc?.title ?? '' })}</p>
@@ -67,7 +67,7 @@ export function ResubmitDocumentModal({ open, doc, saving, onClose, onSave }: Pr
             </button>
             <div className="field-hint">{t('docModal.fileHint')}</div>
           </div>
-          {error && <div style={{ color: 'var(--rose)', fontSize: 13 }}>{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
         </div>
 
         <div className="modal-foot">
