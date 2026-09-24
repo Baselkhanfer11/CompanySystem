@@ -998,6 +998,34 @@ tr.just-sent td { background: rgba(52,211,153,0.07); animation: just-sent 2.4s e
 .best-price span:first-child { color: var(--emerald); font-weight: 600; }
 :root[data-theme="light"] .best-price span:first-child { color: #047857; }
 /* A partial send ("35 of 111"): amber, like "Partly covered" — the rest is on the shopping list. */
+/* To buy → a shared item: split between the sites that need it */
+tr.table-group td { padding-block: var(--sp-2); font-size: var(--fs-xs); font-weight: 600; color: var(--amber); background: rgba(251,191,36,0.05); }
+tr.table-group td svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: var(--sp-1); }
+:root[data-theme="light"] tr.table-group td { color: #b45309; }
+.split-have { margin-top: var(--sp-1); font-size: var(--fs-xs); color: var(--text-muted); }
+.split-tools { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.split-qty { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.split-qty .input { width: 88px; text-align: end; }
+.split-covered { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--emerald); font-weight: 600; }
+.split-covered svg { width: 14px; height: 14px; }
+.split-short-sm { display: none; }
+.mini-stats .v .unit { font-size: var(--fs-sm); font-weight: 500; color: var(--text-muted); }
+@media (max-width: 560px) {
+  /* Phones: "Still short" moves under the site name, so the quantity boxes fit without scrolling. */
+  .split-table .split-short { display: none; }
+  .split-short-sm { display: block; }
+  table.data.split-table :is(th, td) { padding-inline: var(--sp-2); }
+  table.data.split-table .email { white-space: nowrap; }
+  .split-qty .input { width: 72px; }
+  .mini-stats { gap: var(--sp-2); }
+  .mini-stats > div { padding: var(--sp-3); }
+  .mini-stats .v { font-size: var(--fs-lg); }
+  /* A footer with a total: the total on its own line, the buttons below it. */
+  .modal-foot:has(.grand-total) { flex-wrap: wrap; }
+  .modal-foot .grand-total { flex-basis: 100%; }
+  .modal-foot .grand-total + div { margin-inline-start: auto; }
+}
+:root[data-theme="light"] .split-covered { color: #059669; }
 .need-chip.part { color: var(--amber); border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.08); }
 :root[data-theme="light"] .need-chip.part { color: #b45309; }
 .tobuy-none svg { width: 18px; height: 18px; color: var(--emerald); flex-shrink: 0; }

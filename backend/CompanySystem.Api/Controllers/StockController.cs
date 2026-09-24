@@ -78,65 +78,115 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
     [HttpPost("movements")]
     public async Task<ActionResult<StockMovementDetailDto>> Create(StockMovementInputDto input)
     {
-        if (!StockMovementTypes.IsValid(input.Type))
-            return BadRequest(new { message = $"Type '{input.Type}' is not valid." });
-        if (!await db.Projects.AnyAsync(p => p.Id == input.ProjectId))
-            return BadRequest(new { message = "Project not found." });
-        if (input.Items is null || input.Items.Count == 0)
-            return BadRequest(new { message = "At least one item is required." });
-        if (input.Items.Any(l => l.Quantity <= 0))
-            return BadRequest(new { message = "Every line must have a quantity greater than zero." });
+        var (error, saved) = await Record([input]);
+        if (error is not null) return error;
 
-        var itemIds = input.Items.Select(l => l.ItemId).Distinct().ToList();
+        var detail = await LoadDetail(saved[0].Id);
+        return CreatedAtAction(nameof(GetMovement), new { id = saved[0].Id }, detail);
+    }
+
+    // POST /api/stock/movements/batch  → several movements booked together
+    // (e.g. one item split between sites). Either all of them happen or none do.
+    [Authorize(Roles = Roles.Procurement)]
+    [HttpPost("movements/batch")]
+    public async Task<ActionResult<IEnumerable<StockMovementDetailDto>>> CreateMany(List<StockMovementInputDto> inputs)
+    {
+        if (inputs is null || inputs.Count == 0)
+            return BadRequest(new { message = "At least one movement is required." });
+        if (inputs.Count > MaxBatch)
+            return BadRequest(new { message = $"At most {MaxBatch} movements at a time." });
+
+        var (error, saved) = await Record(inputs);
+        if (error is not null) return error;
+
+        var details = new List<StockMovementDetailDto>();
+        foreach (var m in saved) details.Add((await LoadDetail(m.Id))!);
+        return Ok(details);
+    }
+
+    private const int MaxBatch = 50;
+
+    // Checks the movements, moves the stock and saves them with ONE SaveChanges,
+    // so either every movement is booked or none is.
+    // Returns the error to send back, or the saved movements.
+    private async Task<(ActionResult? Error, List<StockMovement> Saved)> Record(IReadOnlyList<StockMovementInputDto> inputs)
+    {
+        static (ActionResult?, List<StockMovement>) Fail(ActionResult error) => (error, []);
+
+        foreach (var input in inputs)
+        {
+            if (!StockMovementTypes.IsValid(input.Type))
+                return Fail(BadRequest(new { message = $"Type '{input.Type}' is not valid." }));
+            if (input.Items is null || input.Items.Count == 0)
+                return Fail(BadRequest(new { message = "At least one item is required." }));
+            if (input.Items.Any(l => l.Quantity <= 0))
+                return Fail(BadRequest(new { message = "Every line must have a quantity greater than zero." }));
+        }
+
+        var projectIds = inputs.Select(i => i.ProjectId).Distinct().ToList();
+        if (await db.Projects.CountAsync(p => projectIds.Contains(p.Id)) != projectIds.Count)
+            return Fail(BadRequest(new { message = "Project not found." }));
+
+        var itemIds = inputs.SelectMany(i => i.Items).Select(l => l.ItemId).Distinct().ToList();
         var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
         if (items.Count != itemIds.Count)
-            return BadRequest(new { message = "One or more items were not found." });
+            return Fail(BadRequest(new { message = "One or more items were not found." }));
 
-        var isIssue = input.Type == StockMovementTypes.Issue;
-
-        // What each unit costs the project:
-        //   Issue  → the item's price today.
-        //   Return → the average cost of that item on the site, so returning
-        //            everything takes exactly its cost back off the project.
-        var unitCost = items.Values.ToDictionary(i => i.Id, i => i.Price);
-        if (!isIssue)
-        {
-            var onSite = await stock.SiteBalances(input.ProjectId, itemIds);
-            foreach (var b in onSite.Where(b => b.Quantity > 0))
-                unitCost[b.ItemId] = Math.Round(b.Value / b.Quantity, 4);
-        }
-
-        // Issue: warehouse → site. Return: site → warehouse.
+        // Every movement goes into ONE delta, so two sends of the same item are
+        // checked against the warehouse together (not each against the full stock).
         var delta = new Dictionary<StockKey, int>();
-        foreach (var l in input.Items)
+        var movements = new List<StockMovement>();
+        foreach (var input in inputs)
         {
+            var isIssue = input.Type == StockMovementTypes.Issue;
+
+            // What each unit costs the project:
+            //   Issue  → the item's price today.
+            //   Return → the average cost of that item on the site, so returning
+            //            everything takes exactly its cost back off the project.
+            var unitCost = items.Values.ToDictionary(i => i.Id, i => i.Price);
+            if (!isIssue)
+            {
+                var onSite = await stock.SiteBalances(input.ProjectId, input.Items.Select(l => l.ItemId).Distinct().ToList());
+                foreach (var b in onSite.Where(b => b.Quantity > 0))
+                    unitCost[b.ItemId] = Math.Round(b.Value / b.Quantity, 4);
+            }
+
+            // Issue: warehouse → site. Return: site → warehouse.
             var sign = isIssue ? 1 : -1;
-            StockService.Add(delta, input.ProjectId, l.ItemId, sign * l.Quantity);
-            StockService.Add(delta, null, l.ItemId, -sign * l.Quantity);
+            foreach (var l in input.Items)
+            {
+                StockService.Add(delta, input.ProjectId, l.ItemId, sign * l.Quantity);
+                StockService.Add(delta, null, l.ItemId, -sign * l.Quantity);
+            }
+
+            movements.Add(new StockMovement
+            {
+                Type = input.Type,
+                ProjectId = input.ProjectId,
+                Date = input.Date,
+                Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
+                CreatedById = CurrentUserId,
+                Lines = input.Items.Select(l => new StockMovementLine
+                {
+                    ItemId = l.ItemId,
+                    Quantity = l.Quantity,
+                    UnitCost = unitCost[l.ItemId],
+                }).ToList(),
+            });
         }
+
         var shortfall = await stock.Apply(delta);
         if (shortfall is not null)
-            return Conflict(new { message = $"{(isIssue ? "Can't send" : "Can't return")} — not enough stock. {shortfall}" });
-
-        var movement = new StockMovement
         {
-            Type = input.Type,
-            ProjectId = input.ProjectId,
-            Date = input.Date,
-            Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
-            CreatedById = CurrentUserId,
-            Lines = input.Items.Select(l => new StockMovementLine
-            {
-                ItemId = l.ItemId,
-                Quantity = l.Quantity,
-                UnitCost = unitCost[l.ItemId],
-            }).ToList(),
-        };
-        db.StockMovements.Add(movement);
-        await db.SaveChangesAsync();
+            var verb = inputs.All(i => i.Type == StockMovementTypes.Issue) ? "Can't send"
+                : inputs.All(i => i.Type == StockMovementTypes.Return) ? "Can't return" : "Can't move";
+            return Fail(Conflict(new { message = $"{verb} — not enough stock. {shortfall}" }));
+        }
 
-        var detail = await LoadDetail(movement.Id);
-        return CreatedAtAction(nameof(GetMovement), new { id = movement.Id }, detail);
+        db.StockMovements.AddRange(movements);
+        await db.SaveChangesAsync();
+        return (null, movements);
     }
 
     // DELETE /api/stock/movements/5  → undo a movement (managers + procurement).
