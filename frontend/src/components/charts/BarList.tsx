@@ -14,6 +14,7 @@ interface Props {
   rows: BarRow[];
   format: (n: number) => string;
   total?: number; // when given, each row shows its share of this total
+  scaleMax?: number; // bar length scale — pass the same value to lists that should line up
 }
 
 // "37%", "<1%" for tiny non-zero shares, "0%" for nothing.
@@ -29,14 +30,15 @@ const shareLabel = (value: number, total: number) => {
  * Each row prints its own label, exact value and share, so the list doubles as
  * the table view: nothing is only visible on hover.
  */
-export function BarList({ rows, format, total }: Props) {
-  const max = Math.max(0, ...rows.map((r) => r.value));
+export function BarList({ rows, format, total, scaleMax }: Props) {
+  const max = scaleMax ?? Math.max(0, ...rows.map((r) => r.value));
 
   return (
     <div className="barlist">
       {rows.map((r) => {
         const width = max > 0 ? (r.value / max) * 100 : 0;
-        const details = [total && total > 0 ? shareLabel(r.value, total) : null, r.meta].filter(Boolean).join(' · ');
+        // A negative row (e.g. more returned than sent) has no meaningful share.
+        const details = [total && total > 0 && r.value >= 0 ? shareLabel(r.value, total) : null, r.meta].filter(Boolean).join(' · ');
 
         const inner: ReactNode = (
           <>

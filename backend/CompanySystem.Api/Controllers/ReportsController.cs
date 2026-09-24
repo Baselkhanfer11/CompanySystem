@@ -9,20 +9,26 @@ using Microsoft.EntityFrameworkCore;
 namespace CompanySystem.Api.Controllers;
 
 /// <summary>
-/// Read-only spending reports built from purchases. This is financial data,
-/// so only managers (CEO + head manager) can see it.
+/// Read-only cost reports built from purchases and stock movements. This is
+/// financial data, so only managers (CEO + head manager) can see it.
+/// See ReportDtos.cs for how a project's cost is worked out.
 /// </summary>
 [ApiController]
 [Authorize(Roles = Roles.Managers)]
 [Route("api/reports")] // → /api/reports/...
 public class ReportsController(AppDbContext db) : ControllerBase
 {
-    // The id used in the URL for the "General" bucket (purchases with no project).
-    // Real project ids start at 1, so 0 never clashes.
-    private const int GeneralId = 0;
+    // The id used in the URL for the Warehouse bucket (purchases delivered to
+    // the warehouse). Real project ids start at 1, so 0 never clashes.
+    private const int WarehouseId = 0;
 
     private const int TopItems = 10;
     private const int RecentCount = 5;
+
+    // One pre-summed slice of cost: which bucket (project id, or WarehouseId),
+    // where it came from (a supplier, or null = sent from the warehouse), which
+    // item and month. Returns are negative.
+    private record Entry(int Bucket, int? SupplierId, int ItemId, int Year, int Month, int Qty, decimal Value);
 
     // GET /api/reports/project-costs?from=2026-01-01&to=2026-09-24
     // Both dates are optional and inclusive (whole days). No dates = all time.
@@ -31,49 +37,50 @@ public class ReportsController(AppDbContext db) : ControllerBase
     {
         if (from > to) return BadRequest(new { message = "'from' must be on or before 'to'." });
 
-        // Spend per project (null = General), summed in the database.
-        var spend = await Lines(from, to)
-            .GroupBy(li => li.Purchase!.ProjectId)
-            .Select(g => new { ProjectId = g.Key, Total = g.Sum(li => li.Quantity * li.UnitPrice) })
-            .ToListAsync();
+        var entries = await Entries(from, to);
 
-        // How many purchases each project has, and the most recent one.
-        var counts = await Purchases(from, to)
+        var purchaseCounts = await Purchases(from, to)
             .GroupBy(p => p.ProjectId)
-            .Select(g => new { ProjectId = g.Key, Count = g.Count(), Last = g.Max(p => p.Date) })
-            .ToListAsync();
-
-        var spendById = spend.ToDictionary(s => s.ProjectId ?? GeneralId, s => s.Total);
-        var countById = counts.ToDictionary(c => c.ProjectId ?? GeneralId);
+            .Select(g => new { ProjectId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ProjectId ?? WarehouseId, x => x.Count);
+        var movementCounts = await Movements(from, to)
+            .GroupBy(m => m.ProjectId)
+            .Select(g => new { ProjectId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ProjectId, x => x.Count);
 
         ProjectCostRowDto Row(int? id, string name, string? code, string? status)
         {
-            var key = id ?? GeneralId;
-            var c = countById.GetValueOrDefault(key);
-            return new(id, name, code, status, spendById.GetValueOrDefault(key), c?.Count ?? 0, c?.Last);
+            var bucket = id ?? WarehouseId;
+            var mine = entries.Where(e => e.Bucket == bucket).ToList();
+            var delivered = mine.Where(e => e.SupplierId is not null).Sum(e => e.Value);
+            var fromWarehouse = mine.Where(e => e.SupplierId is null).Sum(e => e.Value);
+            return new(id, name, code, status, delivered + fromWarehouse, delivered, fromWarehouse,
+                purchaseCounts.GetValueOrDefault(bucket), movementCounts.GetValueOrDefault(bucket));
         }
 
-        // Every project is listed (even with zero spend), biggest spender first.
+        // Every project is listed (even at zero), most expensive first.
         var projects = await db.Projects.ToListAsync();
         var rows = projects
             .Select(p => Row(p.Id, p.Name, p.Code, p.Status))
             .OrderByDescending(r => r.Total)
             .ThenBy(r => r.Name)
             .ToList();
-        var general = Row(null, "General", null, null);
+        var warehouse = Row(null, "Warehouse", null, null);
 
-        var projectSpend = rows.Sum(r => r.Total);
+        var projectEntries = entries.Where(e => e.Bucket != WarehouseId).ToList();
         return Ok(new ProjectCostsReportDto(
-            projectSpend + general.Total,
-            projectSpend,
-            general.Total,
-            counts.Sum(c => c.Count),
+            rows.Sum(r => r.Total),
+            entries.Where(e => e.SupplierId is not null).Sum(e => e.Value),
+            warehouse.Total,
+            entries.Where(e => e.SupplierId is null).Sum(e => e.Value),
+            purchaseCounts.Values.Sum(),
+            movementCounts.Values.Sum(),
             rows,
-            general,
-            await Monthly(Lines(from, to), from, to)));
+            warehouse,
+            Monthly(projectEntries, from, to)));
     }
 
-    // GET /api/reports/project-costs/5?from=...&to=...   (use 0 for General)
+    // GET /api/reports/project-costs/5?from=...&to=...   (use 0 for the Warehouse)
     // Drill-down: where one project's money went.
     [HttpGet("project-costs/{projectId:int}")]
     public async Task<ActionResult<ProjectCostDetailDto>> ProjectCostDetail(int projectId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -81,58 +88,49 @@ public class ReportsController(AppDbContext db) : ControllerBase
         if (from > to) return BadRequest(new { message = "'from' must be on or before 'to'." });
 
         Project? project = null;
-        if (projectId != GeneralId)
+        if (projectId != WarehouseId)
         {
             project = await db.Projects.FindAsync(projectId);
             if (project is null) return NotFound();
         }
 
-        // Narrow everything to this project (or to purchases with no project).
-        IQueryable<PurchaseItem> lines;
-        IQueryable<Purchase> purchases;
-        if (project is null)
-        {
-            lines = Lines(from, to).Where(li => li.Purchase!.ProjectId == null);
-            purchases = Purchases(from, to).Where(p => p.ProjectId == null);
-        }
-        else
-        {
-            var pid = project.Id;
-            lines = Lines(from, to).Where(li => li.Purchase!.ProjectId == pid);
-            purchases = Purchases(from, to).Where(p => p.ProjectId == pid);
-        }
+        var entries = (await Entries(from, to)).Where(e => e.Bucket == projectId).ToList();
 
-        // Spend by supplier.
-        var supplierSpend = await lines
-            .GroupBy(li => new { li.Purchase!.SupplierId, li.Purchase.Supplier!.Name })
-            .Select(g => new { g.Key.SupplierId, g.Key.Name, Total = g.Sum(li => li.Quantity * li.UnitPrice) })
-            .ToListAsync();
+        // This bucket's purchases (to the site, or to the warehouse) and movements.
+        int? pid = project?.Id;
+        var purchases = Purchases(from, to).Where(p => p.ProjectId == pid);
+        var movements = Movements(from, to).Where(m => m.ProjectId == projectId);
+
+        // Where the money came from: each supplier, plus the warehouse.
         var supplierCounts = await purchases
             .GroupBy(p => p.SupplierId)
             .Select(g => new { SupplierId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.SupplierId, x => x.Count);
-        var bySupplier = supplierSpend
-            .Select(s => new SupplierSpendDto(s.SupplierId, s.Name, s.Total, supplierCounts.GetValueOrDefault(s.SupplierId)))
+        var movementCount = await movements.CountAsync();
+        var supplierIds = entries.Where(e => e.SupplierId is not null).Select(e => e.SupplierId!.Value).Distinct().ToList();
+        var supplierNames = await db.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, s => s.Name);
+        var bySource = entries
+            .GroupBy(e => e.SupplierId)
+            .Select(g => new CostSourceDto(
+                g.Key,
+                g.Key is int sid ? supplierNames.GetValueOrDefault(sid, "") : "Warehouse",
+                g.Sum(e => e.Value),
+                g.Key is int s ? supplierCounts.GetValueOrDefault(s) : movementCount))
             .OrderByDescending(s => s.Total)
             .ToList();
 
-        // The items that cost the most.
-        var itemSpend = await lines
-            .GroupBy(li => new { li.ItemId, li.Item!.Name, li.Item.Code, li.Item.Unit })
-            .Select(g => new
-            {
-                g.Key.ItemId, g.Key.Name, g.Key.Code, g.Key.Unit,
-                Quantity = g.Sum(li => li.Quantity),
-                Total = g.Sum(li => li.Quantity * li.UnitPrice),
-            })
-            .ToListAsync();
-        var byItem = itemSpend
+        // The items that cost the most (net of returns).
+        var itemIds = entries.Select(e => e.ItemId).Distinct().ToList();
+        var items = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+        var byItem = entries
+            .GroupBy(e => e.ItemId)
+            .Select(g => new ItemSpendDto(g.Key, items[g.Key].Name, items[g.Key].Code, items[g.Key].Unit, g.Sum(e => e.Qty), g.Sum(e => e.Value)))
+            .Where(i => i.Quantity != 0 || i.Total != 0)
             .OrderByDescending(i => i.Total)
             .Take(TopItems)
-            .Select(i => new ItemSpendDto(i.ItemId, i.Name, i.Code, i.Unit, i.Quantity, i.Total))
             .ToList();
 
-        // The latest few purchases.
+        // The latest few purchases and movements.
         var recentPurchases = await purchases
             .Include(p => p.Supplier)
             .Include(p => p.Project)
@@ -142,21 +140,66 @@ public class ReportsController(AppDbContext db) : ControllerBase
             .ThenByDescending(p => p.Id)
             .Take(RecentCount)
             .ToListAsync();
+        var recentMovements = await movements
+            .Include(m => m.Project)
+            .Include(m => m.CreatedBy)
+            .Include(m => m.Lines).ThenInclude(l => l.Item)
+            .OrderByDescending(m => m.Date)
+            .ThenByDescending(m => m.Id)
+            .Take(RecentCount)
+            .ToListAsync();
 
         return Ok(new ProjectCostDetailDto(
             project?.Id,
-            project?.Name ?? "General",
+            project?.Name ?? "Warehouse",
             project?.Code,
             project?.Status,
-            supplierSpend.Sum(s => s.Total),
+            entries.Sum(e => e.Value),
             supplierCounts.Values.Sum(),
-            bySupplier,
+            movementCount,
+            bySource,
             byItem,
-            await Monthly(lines, from, to),
-            recentPurchases.Select(PurchaseListDto.From).ToList()));
+            Monthly(entries, from, to),
+            recentPurchases.Select(PurchaseListDto.From).ToList(),
+            recentMovements.Select(StockMovementListDto.From).ToList()));
     }
 
     // --- helpers ---
+
+    // Every cost in the period, summed by the database per bucket, source, item
+    // and month (so only a small number of rows come back).
+    private async Task<List<Entry>> Entries(DateTime? from, DateTime? to)
+    {
+        var bought = await Lines(from, to)
+            .GroupBy(li => new { li.Purchase!.ProjectId, li.Purchase.SupplierId, li.ItemId, li.Purchase.Date.Year, li.Purchase.Date.Month })
+            .Select(g => new
+            {
+                g.Key.ProjectId, g.Key.SupplierId, g.Key.ItemId, g.Key.Year, g.Key.Month,
+                Qty = g.Sum(li => li.Quantity),
+                Value = g.Sum(li => li.Quantity * li.UnitPrice),
+            })
+            .ToListAsync();
+
+        var moved = await MovementLines(from, to)
+            .GroupBy(l => new { l.StockMovement!.ProjectId, l.StockMovement.Type, l.ItemId, l.StockMovement.Date.Year, l.StockMovement.Date.Month })
+            .Select(g => new
+            {
+                g.Key.ProjectId, g.Key.Type, g.Key.ItemId, g.Key.Year, g.Key.Month,
+                Qty = g.Sum(l => l.Quantity),
+                Value = g.Sum(l => l.Quantity * l.UnitCost),
+            })
+            .ToListAsync();
+
+        var entries = bought
+            .Select(b => new Entry(b.ProjectId ?? WarehouseId, b.SupplierId, b.ItemId, b.Year, b.Month, b.Qty, b.Value))
+            .ToList();
+        foreach (var m in moved)
+        {
+            var sign = m.Type == StockMovementTypes.Return ? -1 : 1; // returns credit the project
+            entries.Add(new Entry(m.ProjectId, null, m.ItemId, m.Year, m.Month, sign * m.Qty, sign * m.Value));
+        }
+        return entries;
+    }
 
     // Purchases whose date falls inside [from, to] (both optional, whole days).
     private IQueryable<Purchase> Purchases(DateTime? from, DateTime? to)
@@ -176,23 +219,39 @@ public class ReportsController(AppDbContext db) : ControllerBase
         return q;
     }
 
-    // Sums spend per calendar month, then fills in empty months with 0 so the
-    // trend chart never silently skips a month.
-    private static async Task<List<MonthlySpendDto>> Monthly(IQueryable<PurchaseItem> lines, DateTime? from, DateTime? to)
+    // Stock movements whose date falls inside [from, to].
+    private IQueryable<StockMovement> Movements(DateTime? from, DateTime? to)
     {
-        var sums = await lines
-            .GroupBy(li => new { li.Purchase!.Date.Year, li.Purchase.Date.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(li => li.Quantity * li.UnitPrice) })
-            .ToListAsync();
-        var byMonth = sums.ToDictionary(s => (s.Year, s.Month), s => s.Total);
+        var q = db.StockMovements.AsQueryable();
+        if (from is DateTime f) { var start = f.Date; q = q.Where(m => m.Date >= start); }
+        if (to is DateTime t) { var end = t.Date.AddDays(1); q = q.Where(m => m.Date < end); }
+        return q;
+    }
 
-        // "All time" with no purchases: nothing to chart.
+    // Movement lines whose movement falls inside [from, to].
+    private IQueryable<StockMovementLine> MovementLines(DateTime? from, DateTime? to)
+    {
+        var q = db.StockMovementLines.AsQueryable();
+        if (from is DateTime f) { var start = f.Date; q = q.Where(l => l.StockMovement!.Date >= start); }
+        if (to is DateTime t) { var end = t.Date.AddDays(1); q = q.Where(l => l.StockMovement!.Date < end); }
+        return q;
+    }
+
+    // Sums cost per calendar month, then fills in empty months with 0 so the
+    // trend chart never silently skips a month.
+    private static List<MonthlySpendDto> Monthly(IEnumerable<Entry> entries, DateTime? from, DateTime? to)
+    {
+        var byMonth = entries
+            .GroupBy(e => (e.Year, e.Month))
+            .ToDictionary(g => g.Key, g => g.Sum(e => e.Value));
+
+        // "All time" with nothing recorded: nothing to chart.
         if (byMonth.Count == 0 && from is null) return [];
 
         var months = byMonth.Keys.Select(k => new DateTime(k.Year, k.Month, 1)).ToList();
         var start = MonthStart(from ?? months.Min());
         var end = MonthStart(to ?? DateTime.UtcNow);
-        if (months.Count > 0 && months.Max() > end) end = months.Max(); // purchases dated in the future
+        if (months.Count > 0 && months.Max() > end) end = months.Max(); // records dated in the future
 
         var result = new List<MonthlySpendDto>();
         for (var m = start; m <= end; m = m.AddMonths(1))

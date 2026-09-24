@@ -247,17 +247,85 @@ export interface PurchaseInput {
   items: PurchaseLineInput[];
 }
 
-// ---- Cost reports ----
+// ---- Stock by location ----
 
-// Spend for one project, or the General bucket (projectId = null).
+// Warehouse stock is Item.quantity; this is what's on one site.
+export interface SiteStock {
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  itemId: number;
+  itemName: string;
+  itemCode: string;
+  unit: string;
+  quantity: number;
+  value: number; // what this material cost the project
+}
+
+export type MovementType = 'Issue' | 'Return'; // warehouse → site | site → warehouse
+
+export interface StockMovementListItem {
+  id: number;
+  type: MovementType;
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  date: string;
+  notes?: string | null;
+  lineCount: number;
+  itemNames: string[];
+  total: number;
+  createdByName: string;
+  createdAt: string;
+}
+
+export interface StockMovementLine {
+  id: number;
+  itemId: number;
+  itemName: string;
+  itemCode: string;
+  unit: string;
+  quantity: number;
+  unitCost: number;
+  lineTotal: number;
+}
+
+export interface StockMovementDetail {
+  id: number;
+  type: MovementType;
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  date: string;
+  notes?: string | null;
+  createdByName: string;
+  createdAt: string;
+  total: number;
+  lines: StockMovementLine[];
+}
+
+export interface StockMovementInput {
+  type: MovementType;
+  projectId: number;
+  date: string;
+  notes?: string | null;
+  items: { itemId: number; quantity: number }[];
+}
+
+// ---- Cost reports ----
+// A project's cost = delivered straight to its site + sent from the warehouse − returns.
+
+// One project, or the Warehouse bucket (projectId = null) = purchases delivered to the warehouse.
 export interface ProjectCostRow {
   projectId: number | null;
   name: string;
   code?: string | null;
   status?: string | null;
   total: number;
+  delivered: number;
+  fromWarehouse: number;
   purchaseCount: number;
-  lastPurchaseDate?: string | null;
+  movementCount: number;
 }
 
 export interface MonthlySpend {
@@ -267,20 +335,23 @@ export interface MonthlySpend {
 }
 
 export interface ProjectCostsReport {
-  totalSpend: number;
-  projectSpend: number;
-  generalSpend: number;
+  projectCost: number;
+  purchaseTotal: number;
+  warehousePurchases: number;
+  sentFromWarehouse: number;
   purchaseCount: number;
+  movementCount: number;
   projects: ProjectCostRow[];
-  general: ProjectCostRow;
+  warehouse: ProjectCostRow;
   monthly: MonthlySpend[];
 }
 
-export interface SupplierSpend {
-  supplierId: number;
+// Where the money came from: a supplier, or the warehouse (supplierId = null).
+export interface CostSource {
+  supplierId: number | null;
   name: string;
   total: number;
-  purchaseCount: number;
+  count: number;
 }
 
 export interface ItemSpend {
@@ -299,8 +370,10 @@ export interface ProjectCostDetail {
   status?: string | null;
   total: number;
   purchaseCount: number;
-  bySupplier: SupplierSpend[];
+  movementCount: number;
+  bySource: CostSource[];
   byItem: ItemSpend[];
   monthly: MonthlySpend[];
-  recent: PurchaseListItem[];
+  recentPurchases: PurchaseListItem[];
+  recentMovements: StockMovementListItem[];
 }

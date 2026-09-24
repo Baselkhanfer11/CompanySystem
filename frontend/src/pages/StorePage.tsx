@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
+import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { BoxesIcon, EditIcon, PlusIcon, TrashIcon } from '../components/icons';
+import { BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
+import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
@@ -12,7 +14,7 @@ import { useI18n } from '../i18n/LanguageContext';
 import { LOW_STOCK } from '../lib/stock';
 import { formatPrice } from '../lib/units';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { Item, ItemInput } from '../types';
+import type { Item, ItemInput, SiteStock } from '../types';
 
 export function StorePage() {
   const { search } = useOutletContext<LayoutContext>();
@@ -28,6 +30,16 @@ export function StorePage() {
   // re-check the server on each visit so the list is always up to date
   // (e.g. if another user changed stock) — without a loading flash.
   useEffect(() => { refresh(); }, [refresh]);
+
+  // What's out on project sites (the card's quantity is what's in the warehouse).
+  const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
+  useEffect(() => { stockApi.onSite().then(setSiteStock).catch(() => {}); }, []);
+  const sitesByItem = useMemo(() => {
+    const map = new Map<number, SiteStock[]>();
+    for (const s of siteStock) map.set(s.itemId, [...(map.get(s.itemId) ?? []), s]);
+    return map;
+  }, [siteStock]);
+  const [locating, setLocating] = useState<Item | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
@@ -113,6 +125,7 @@ export function StorePage() {
         <div className="item-grid">
           {filtered.map((i) => {
             const low = i.quantity <= LOW_STOCK;
+            const onSites = (sitesByItem.get(i.id) ?? []).reduce((sum, s) => sum + s.quantity, 0);
             return (
               <div key={i.id} className="item-card rise">
                 <div className="item-logo">
@@ -132,11 +145,18 @@ export function StorePage() {
                   </span>
                   <span className="item-price">{formatPrice(i.price)}</span>
                 </div>
+                {onSites > 0 && (
+                  <button type="button" className="item-sites" onClick={() => setLocating(i)} title={t('stock.where')}>
+                    <MapPinIcon /> {t('stock.onSitesQty', { n: `${onSites} ${i.unit}` })}
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
       )}
+
+      <ItemLocationsModal item={locating} sites={locating ? sitesByItem.get(locating.id) ?? [] : []} onClose={() => setLocating(null)} />
 
       <ItemModal open={modalOpen} initial={editing} saving={saving} onClose={() => setModalOpen(false)} onSave={handleSave} />
 

@@ -4,7 +4,7 @@ import { canManage, isAdmin } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import {
   BoxesIcon, CartIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
-  ProjectsIcon, ShieldIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
+  ProjectsIcon, ShieldIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
 
@@ -71,6 +71,10 @@ export function Sidebar({ open }: { open: boolean }) {
       <NavLink to="/purchases" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <CartIcon />
         <span>{t('nav.purchases')}</span>
+      </NavLink>
+      <NavLink to="/movements" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <SwapIcon />
+        <span>{t('nav.movements')}</span>
       </NavLink>
       {/* Spending reports — managers only (CEO + head manager) */}
       {canManage(user?.role) && (
