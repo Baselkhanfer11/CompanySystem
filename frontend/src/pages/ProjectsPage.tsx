@@ -77,7 +77,7 @@ export function ProjectsPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('project.title')}</h1>
           <p>{t('project.sub')}</p>
@@ -179,8 +179,8 @@ export function ProjectsPage() {
                         <button className="act-btn" onClick={() => setPlanning(p)} aria-label={t('project.plan')} title={t('project.plan')}><ClipboardIcon /></button>
                         {manage && (
                           <>
-                            <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')}><EditIcon /></button>
-                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')}><TrashIcon /></button>
+                            <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
+                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
                           </>
                         )}
                       </div>

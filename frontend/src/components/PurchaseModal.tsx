@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
-import type { Item, Project, PurchaseDetail, PurchaseInput, Supplier } from '../types';
+import type { Item, Project, PurchaseDetail, PurchaseDraft, PurchaseInput, Supplier } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
 
 interface Props {
   open: boolean;
   initial: PurchaseDetail | null; // null = record a new purchase; otherwise edit this one
+  draft?: PurchaseDraft | null; // a new purchase that starts pre-filled (e.g. from the to-buy list)
   suppliers: Supplier[];
   projects: Project[];
   items: Item[];
@@ -39,7 +40,7 @@ const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1', 
 
 const emptyForm: FormState = { supplierId: '', projectId: '', invoiceNumber: '', date: today(), notes: '' };
 
-export function PurchaseModal({ open, initial, suppliers, projects, items, saving, onClose, onSave }: Props) {
+export function PurchaseModal({ open, initial, draft, suppliers, projects, items, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [lines, setLines] = useState<LineState[]>([blankLine()]);
@@ -64,11 +65,15 @@ export function PurchaseModal({ open, initial, suppliers, projects, items, savin
         quantity: String(li.quantity),
         unitPrice: String(li.unitPrice),
       })));
+    } else if (draft) {
+      // New, pre-filled: the supplier is still the user's choice.
+      setForm({ ...emptyForm, date: today(), projectId: draft.projectId ? String(draft.projectId) : '' });
+      setLines(draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity), unitPrice: String(l.unitPrice) })));
     } else {
       setForm({ ...emptyForm, date: today() });
       setLines([blankLine()]);
     }
-  }, [open, initial]);
+  }, [open, initial, draft]);
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -132,6 +137,7 @@ export function PurchaseModal({ open, initial, suppliers, projects, items, savin
 
         <div className="modal-body">
           {initial && <div className="field-hint">{t('purchaseModal.editHint')}</div>}
+          {!initial && draft && <div className="field-hint" style={{ color: 'var(--accent-2)' }}>{t('purchaseModal.draftHint')}</div>}
           {(noSuppliers || noItems) && (
             <div className="field-hint" style={{ color: 'var(--amber)' }}>
               {noSuppliers ? t('purchaseModal.needSupplier') : t('purchaseModal.needItem')}

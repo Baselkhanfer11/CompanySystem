@@ -159,6 +159,8 @@ export function UsersPage() {
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
+        confirmLabel={t('users.removeLogin')}
+        icon={<ShieldIcon />}
       />
     </div>
   );

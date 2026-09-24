@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { TrashIcon } from './icons';
 
@@ -8,17 +9,19 @@ interface Props {
   busy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmLabel?: string; // what the button does, e.g. "Undo movement" (default: "Delete")
+  icon?: ReactNode; // matches the action (default: a bin)
 }
 
-export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm }: Props) {
+export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm, confirmLabel, icon }: Props) {
   const { t } = useI18n();
   if (!open) return null;
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-label={title}>
         <div className="modal-body" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 30 }}>
-          <div className="empty-illus" style={{ margin: 0, background: 'rgba(251,113,133,0.1)', borderColor: 'rgba(251,113,133,0.25)' }}>
-            <TrashIcon style={{ color: 'var(--rose)' }} />
+          <div className="empty-illus confirm-illus">
+            {icon ?? <TrashIcon />}
           </div>
           <div>
             <h3 style={{ fontSize: 18, marginBottom: 6 }}>{title}</h3>
@@ -26,10 +29,10 @@ export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm 
           </div>
         </div>
         <div className="modal-foot" style={{ justifyContent: 'center' }}>
-          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>{t('common.cancel')}</button>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={busy} autoFocus>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={onConfirm} disabled={busy}>
             {busy && <span className="spinner" style={{ borderTopColor: 'var(--rose)' }} />}
-            {t('common.delete')}
+            {confirmLabel ?? t('common.delete')}
           </button>
         </div>
       </div>

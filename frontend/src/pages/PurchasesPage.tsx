@@ -83,7 +83,7 @@ export function PurchasesPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('purchase.title')}</h1>
           <p>{t('purchase.sub')}</p>

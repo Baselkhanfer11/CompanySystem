@@ -67,7 +67,7 @@ export function SuppliersPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('supplier.title')}</h1>
           <p>{t('supplier.sub')}</p>
@@ -161,8 +161,8 @@ export function SuppliersPage() {
                     {manage && (
                       <td>
                         <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(s)} aria-label={t('common.edit')}><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(s)} aria-label={t('common.delete')}><TrashIcon /></button>
+                          <button className="act-btn" onClick={() => openEdit(s)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(s)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
                         </div>
                       </td>
                     )}

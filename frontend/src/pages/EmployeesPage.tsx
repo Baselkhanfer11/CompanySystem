@@ -104,7 +104,7 @@ export function EmployeesPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('emp.title')}</h1>
           <p>{t('emp.sub')}</p>
@@ -208,8 +208,8 @@ export function EmployeesPage() {
                     {manage && (
                       <td>
                         <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(e)} aria-label={t('common.edit')}><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label={t('common.delete')}><TrashIcon /></button>
+                          <button className="act-btn" onClick={() => openEdit(e)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
+                          <button className="act-btn danger" onClick={() => setDeleting(e)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
                         </div>
                       </td>
                     )}
@@ -258,6 +258,8 @@ export function EmployeesPage() {
         busy={revokeBusy}
         onCancel={() => setRevoking(null)}
         onConfirm={confirmRevoke}
+        confirmLabel={t('emp.revokeConfirm')}
+        icon={<KeyIcon />}
       />
     </div>
   );

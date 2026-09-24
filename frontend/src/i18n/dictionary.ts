@@ -693,6 +693,16 @@ const en: Dict = {
   'dash.act.Return': '{actor} returned {items} from {site}',
   'dash.andMore': '{list} +{n} more',
   'dash.couldntLoad': 'Couldn’t load the dashboard',
+
+  // Button polish & buy-it
+  'stock.undoConfirm': 'Undo movement',
+  'emp.revokeConfirm': 'Revoke access',
+  'toBuy.buy': 'Buy',
+  'toBuy.buyAll': 'Buy all ({n})',
+  'toBuy.buyAllHint': 'Opens one purchase with everything that\'s short, delivered to the warehouse',
+  'toBuy.buyToSite': 'Opens a purchase of {n}, delivered straight to the {site} site',
+  'toBuy.buyToWarehouse': 'Opens a purchase of {n}, delivered to the warehouse',
+  'purchaseModal.draftHint': 'Filled in from the to-buy list — choose the supplier and check the prices before saving.',
 };
 
 const ar: Dict = {
@@ -1374,6 +1384,16 @@ const ar: Dict = {
   'dash.act.Return': '{actor} أعاد {items} من {site}',
   'dash.andMore': '{list} +{n} أخرى',
   'dash.couldntLoad': 'تعذّر تحميل لوحة التحكم',
+
+  // Button polish & buy-it
+  'stock.undoConfirm': 'التراجع عن الحركة',
+  'emp.revokeConfirm': 'إلغاء الصلاحية',
+  'toBuy.buy': 'شراء',
+  'toBuy.buyAll': 'شراء الكل ({n})',
+  'toBuy.buyAllHint': 'يفتح مشترى واحداً بكل الأصناف الناقصة، يُسلَّم إلى المستودع',
+  'toBuy.buyToSite': 'يفتح مشترى {n} يُسلَّم مباشرة إلى موقع {site}',
+  'toBuy.buyToWarehouse': 'يفتح مشترى {n} يُسلَّم إلى المستودع',
+  'purchaseModal.draftHint': 'تمت التعبئة من قائمة الشراء — اختر المورّد وتحقق من الأسعار قبل الحفظ.',
 };
 
 export const translations: Record<Lang, Dict> = { en, ar };
