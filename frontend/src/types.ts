@@ -377,3 +377,47 @@ export interface ProjectCostDetail {
   recentPurchases: PurchaseListItem[];
   recentMovements: StockMovementListItem[];
 }
+
+// ---- Material plans ----
+
+// One item on a project's plan: planned vs. what's already on the site.
+export interface PlanLine {
+  itemId: number;
+  name: string;
+  code: string;
+  unit: string;
+  price: number;
+  planned: number;
+  onSite: number;
+  stillNeeded: number;
+  stillToSpend: number; // still needed × price
+  inPlan: boolean; // false = on the site but not planned
+}
+
+export interface ProjectPlan {
+  projectId: number;
+  name: string;
+  code: string;
+  status: string;
+  lines: PlanLine[];
+  estimatedBudget: number;
+  spentSoFar: number;
+  stillToSpend: number;
+  progress: number; // 0-100
+  updatedByName?: string | null;
+  updatedAt?: string | null;
+}
+
+// One item across every open project: needed vs. warehouse → what to buy.
+export interface Shortage {
+  itemId: number;
+  name: string;
+  code: string;
+  unit: string;
+  price: number;
+  needed: number;
+  inWarehouse: number;
+  toBuy: number;
+  estimatedCost: number;
+  projects: { projectId: number; projectName: string; stillNeeded: number }[];
+}

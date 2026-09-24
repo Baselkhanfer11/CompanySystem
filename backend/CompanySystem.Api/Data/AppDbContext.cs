@@ -48,6 +48,9 @@ public class AppDbContext : DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockMovementLine> StockMovementLines => Set<StockMovementLine>();
 
+    // The "ProjectMaterials" table (each project's material plan).
+    public DbSet<ProjectMaterial> ProjectMaterials => Set<ProjectMaterial>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -216,5 +219,26 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<StockMovementLine>()
             .Property(l => l.UnitCost)
             .HasPrecision(18, 4);
+
+        // A material plan has at most one line per item. The plan goes with its
+        // project (Cascade); an item that's planned can't be deleted (Restrict).
+        modelBuilder.Entity<ProjectMaterial>()
+            .HasIndex(m => new { m.ProjectId, m.ItemId })
+            .IsUnique();
+        modelBuilder.Entity<ProjectMaterial>()
+            .HasOne(m => m.Project)
+            .WithMany()
+            .HasForeignKey(m => m.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ProjectMaterial>()
+            .HasOne(m => m.Item)
+            .WithMany()
+            .HasForeignKey(m => m.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProjectMaterial>()
+            .HasOne(m => m.UpdatedBy)
+            .WithMany()
+            .HasForeignKey(m => m.UpdatedById)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

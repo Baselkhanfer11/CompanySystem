@@ -20,6 +20,7 @@ const SEARCH_KEY_BY_PATH: Record<string, string> = {
   '/suppliers': 'search.suppliers',
   '/purchases': 'search.purchases',
   '/movements': 'search.movements',
+  '/to-buy': 'search.toBuy',
   '/users': 'search.users',
 };
 

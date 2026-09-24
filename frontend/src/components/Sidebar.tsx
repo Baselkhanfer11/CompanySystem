@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { canManage, isAdmin } from '../auth/roles';
+import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import {
-  BoxesIcon, CartIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
+  BoxesIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
   ProjectsIcon, ShieldIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
@@ -20,6 +21,8 @@ const soon = [
 export function Sidebar({ open }: { open: boolean }) {
   const { user, logout } = useAuth();
   const { t } = useI18n();
+  // How many items open projects are short of — shown next to "To buy".
+  const toBuyCount = useItems().shortages.filter((s) => s.toBuy > 0).length;
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand">
@@ -75,6 +78,11 @@ export function Sidebar({ open }: { open: boolean }) {
       <NavLink to="/movements" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <SwapIcon />
         <span>{t('nav.movements')}</span>
+      </NavLink>
+      <NavLink to="/to-buy" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <ClipboardIcon />
+        <span>{t('nav.toBuy')}</span>
+        {toBuyCount > 0 && <span className="nav-count">{toBuyCount}</span>}
       </NavLink>
       {/* Spending reports — managers only (CEO + head manager) */}
       {canManage(user?.role) && (

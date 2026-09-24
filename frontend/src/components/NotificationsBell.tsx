@@ -7,7 +7,7 @@ import { useI18n } from '../i18n/LanguageContext';
 import { formatDateTime, formatTimeAgo } from '../lib/format';
 import { isLowStock, isOutOfStock } from '../lib/stock';
 import type { AppNotification } from '../types';
-import { BellIcon, BoxesIcon, CheckIcon, FileIcon, TrashIcon, UndoIcon } from './icons';
+import { BellIcon, BoxesIcon, CheckIcon, ClipboardIcon, FileIcon, TrashIcon, UndoIcon } from './icons';
 
 // Icon + colour tone per notification type.
 const TYPE_META: Record<string, { icon: React.ReactNode; tone: string }> = {
@@ -20,7 +20,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; tone: string }> = {
 export function NotificationsBell() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { items, refresh: refreshItems } = useItems();
+  const { items, shortages, refresh: refreshItems } = useItems();
   const { notifications, unreadCount, markAllRead } = useNotifications();
 
   const [open, setOpen] = useState(false);
@@ -32,10 +32,21 @@ export function NotificationsBell() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
 
-  // Low-stock alerts (worst first), same as before.
+  // Items projects are short of (the warehouse can't cover their plans) —
+  // these say what's needed and for whom, so they replace the plain low alert.
+  const shortByItem = new Map(shortages.filter((s) => s.toBuy > 0).map((s) => [s.itemId, s]));
+  const shortLabel = (itemId: number, unit: string) => {
+    const s = shortByItem.get(itemId)!;
+    const n = `${s.toBuy} ${unit}`;
+    return s.projects.length === 1
+      ? t('notif.shortFor', { n, project: s.projects[0].projectName })
+      : t('notif.shortForMany', { n, count: s.projects.length });
+  };
+
+  // Stock alerts: short for projects first, then out of / low stock (worst first).
   const stockAlerts = items
-    .filter((i) => isOutOfStock(i.quantity) || isLowStock(i.quantity))
-    .sort((a, b) => a.quantity - b.quantity);
+    .filter((i) => shortByItem.has(i.id) || isOutOfStock(i.quantity) || isLowStock(i.quantity))
+    .sort((a, b) => Number(shortByItem.has(b.id)) - Number(shortByItem.has(a.id)) || a.quantity - b.quantity);
 
   // The bell badge = unread document notifications + stock items needing attention.
   const badge = unreadCount + stockAlerts.length;
@@ -67,6 +78,7 @@ export function NotificationsBell() {
 
   const openDocuments = () => { setOpen(false); navigate('/documents'); };
   const goToStore = () => { setOpen(false); navigate('/store'); };
+  const goToBuy = () => { setOpen(false); navigate('/to-buy'); };
 
   const typeLabel = (n: AppNotification) => {
     switch (n.type) {
@@ -119,16 +131,18 @@ export function NotificationsBell() {
                   );
                 })}
 
-                {/* Low-stock alerts */}
+                {/* Stock alerts: short for projects, out of stock, low */}
                 {stockAlerts.map((i) => {
+                  const short = shortByItem.has(i.id);
                   const out = isOutOfStock(i.quantity);
+                  const tone = short || out ? 'crit' : 'warn';
                   return (
-                    <button key={`s-${i.id}`} className="notif-item" onClick={goToStore}>
-                      <span className={`notif-ic ${out ? 'crit' : 'warn'}`}><BoxesIcon /></span>
+                    <button key={`s-${i.id}`} className="notif-item" onClick={short ? goToBuy : goToStore}>
+                      <span className={`notif-ic ${tone}`}>{short ? <ClipboardIcon /> : <BoxesIcon />}</span>
                       <span className="notif-body">
                         <span className="notif-name">{i.name}</span>
-                        <span className={`notif-sub ${out ? 'crit' : 'warn'}`}>
-                          {out ? t('notif.outOfStock') : t('notif.onlyLeft', { n: i.quantity, unit: i.unit })}
+                        <span className={`notif-sub ${tone}`}>
+                          {short ? shortLabel(i.id, i.unit) : out ? t('notif.outOfStock') : t('notif.onlyLeft', { n: i.quantity, unit: i.unit })}
                         </span>
                       </span>
                       <span className="notif-code">{i.code}</span>

@@ -11,6 +11,7 @@ import { PurchasesPage } from './pages/PurchasesPage';
 import { StockMovementsPage } from './pages/StockMovementsPage';
 import { StorePage } from './pages/StorePage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { ToBuyPage } from './pages/ToBuyPage';
 import { UsersPage } from './pages/UsersPage';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
           <Route path="/movements" element={<StockMovementsPage />} />
+          <Route path="/to-buy" element={<ToBuyPage />} />
           <Route path="/costs" element={<CostsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

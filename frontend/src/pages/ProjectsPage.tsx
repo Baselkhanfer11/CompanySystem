@@ -5,10 +5,12 @@ import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../components/icons';
+import { ClipboardIcon, EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../components/icons';
 import { ProjectModal } from '../components/ProjectModal';
+import { ProjectPlanModal } from '../components/ProjectPlanModal';
 import { SiteStockModal } from '../components/SiteStockModal';
 import { useToast } from '../components/toast';
+import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
@@ -35,6 +37,8 @@ export function ProjectsPage() {
   // What's on each site right now.
   const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
   const [viewingSite, setViewingSite] = useState<Project | null>(null);
+  const [planning, setPlanning] = useState<Project | null>(null);
+  const { items, refresh: refreshItems } = useItems();
   const siteRows = (projectId: number) => siteStock.filter((s) => s.projectId === projectId);
 
   const load = () => {
@@ -147,7 +151,7 @@ export function ProjectsPage() {
                   <th>{t('project.colStatus')}</th>
                   <th>{t('project.colOnSite')}</th>
                   <th>{t('project.colCreated')}</th>
-                  {manage && <th style={{ textAlign: 'end' }}>{t('project.colActions')}</th>}
+                  <th style={{ textAlign: 'end' }}>{t('project.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -178,14 +182,17 @@ export function ProjectsPage() {
                       })()}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.createdAt)}</td>
-                    {manage && (
-                      <td>
-                        <div className="row-actions">
-                          <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')}><EditIcon /></button>
-                          <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')}><TrashIcon /></button>
-                        </div>
-                      </td>
-                    )}
+                    <td>
+                      <div className="row-actions">
+                        <button className="act-btn" onClick={() => setPlanning(p)} aria-label={t('project.plan')} title={t('project.plan')}><ClipboardIcon /></button>
+                        {manage && (
+                          <>
+                            <button className="act-btn" onClick={() => openEdit(p)} aria-label={t('common.edit')}><EditIcon /></button>
+                            <button className="act-btn danger" onClick={() => setDeleting(p)} aria-label={t('common.delete')}><TrashIcon /></button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -201,6 +208,8 @@ export function ProjectsPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
+
+      <ProjectPlanModal project={planning} canEdit={manage} items={items} onClose={() => setPlanning(null)} onSaved={refreshItems} />
 
       <SiteStockModal project={viewingSite} rows={viewingSite ? siteRows(viewingSite.id) : []} onClose={() => setViewingSite(null)} />
 

@@ -80,9 +80,11 @@ public class ItemsController(AppDbContext db) : ControllerBase
         var item = await db.Items.FindAsync(id);
         if (item is null) return NotFound();
 
-        // Keep history intact: an item that appears on purchases or movements stays.
+        // Keep history intact: an item that appears on purchases, movements or plans stays.
         if (await db.PurchaseItems.AnyAsync(li => li.ItemId == id) || await db.StockMovementLines.AnyAsync(l => l.ItemId == id))
             return Conflict(new { message = "Can't delete — this item is used on purchases or stock movements." });
+        if (await db.ProjectMaterials.AnyAsync(m => m.ItemId == id))
+            return Conflict(new { message = "Can't delete — this item is in a project's material plan. Remove it from the plan first." });
 
         db.Items.Remove(item);
         await db.SaveChangesAsync();
