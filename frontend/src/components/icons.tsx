@@ -113,6 +113,9 @@ export const WalletIcon = (p: P) => (
 export const SwapIcon = (p: P) => (
   <svg {...base} {...p}><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
 );
+export const SplitIcon = (p: P) => (
+  <svg {...base} {...p}><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3"/><path d="m15 9 6-6"/></svg>
+);
 export const MapPinIcon = (p: P) => (
   <svg {...base} {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
 );

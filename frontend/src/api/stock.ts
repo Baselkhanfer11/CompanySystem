@@ -9,5 +9,7 @@ export const stockApi = {
   movements: () => api.get<StockMovementListItem[]>(`${BASE}/movements`),
   getMovement: (id: number) => api.get<StockMovementDetail>(`${BASE}/movements/${id}`),
   createMovement: (data: StockMovementInput) => api.post<StockMovementDetail>(`${BASE}/movements`, data),
+  // Several at once (e.g. one item split between sites): all are booked, or none.
+  createMovements: (data: StockMovementInput[]) => api.post<StockMovementDetail[]>(`${BASE}/movements/batch`, data),
   removeMovement: (id: number) => api.del<void>(`${BASE}/movements/${id}`),
 };

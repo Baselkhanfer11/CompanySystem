@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { purchasesApi } from '../api/purchases';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SearchIcon, TruckIcon, UndoIcon, WalletIcon } from '../components/icons';
+import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SearchIcon, SplitIcon, TruckIcon, UndoIcon, WalletIcon } from '../components/icons';
 import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
 import { PurchaseModal } from '../components/PurchaseModal';
+import { SplitModal } from '../components/SplitModal';
 import { StatCard } from '../components/StatCard';
 import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
@@ -42,7 +43,8 @@ interface SiteSend {
 // What the warehouse can send without taking stock another site is counting on:
 //  - covered items: every site's full need (there's enough for all of them)
 //  - partly covered items that only ONE site needs: all the warehouse has (the rest is bought)
-// A partly covered item several sites need is left out: how to split it is the user's call.
+// A partly covered item several sites need is "shared": how to split it is the
+// user's call, so it gets its own row with a Split button.
 // "Recently sent" = sends recorded in the last 7 days (the newest few).
 const RECENT_DAYS = 7;
 const RECENT_MAX = 8;
@@ -58,6 +60,7 @@ function mergeLines(lines: StockMovementListItem['lines']) {
 }
 
 const canSend = (s: Shortage) => s.toBuy === 0 || (s.inWarehouse > 0 && s.projects.length === 1);
+const isShared = (s: Shortage) => s.toBuy > 0 && s.inWarehouse > 0 && s.projects.length > 1;
 
 function groupBySite(shortages: Shortage[]): SiteSend[] {
   const sites = new Map<number, SiteSend>();
@@ -101,9 +104,14 @@ export function ToBuyPage() {
     [matches],
   );
   const ready = useMemo(() => groupBySite(matches), [matches]);
+  // The biggest value in the warehouse first.
+  const shared = useMemo(
+    () => matches.filter(isShared).sort((a, b) => b.inWarehouse * b.price - a.inWarehouse * a.price),
+    [matches],
+  );
 
   const toBuy = shortages.filter((s) => s.toBuy > 0);
-  const readyCount = shortages.filter(canSend).length;
+  const readyCount = shortages.filter((s) => canSend(s) || isShared(s)).length;
   const totalCost = toBuy.reduce((sum, s) => sum + s.estimatedCost, 0);
   const projectsWaiting = new Set(shortages.flatMap((s) => s.projects.map((p) => p.projectId))).size;
   const urgentCount = toBuy.filter((s) => levelOf(s) === 'urgent').length;
@@ -167,9 +175,32 @@ export function ToBuyPage() {
       const sent = await stockApi.createMovement(data);
       toast('success', t('stock.sent'), { label: t('stock.view'), onClick: () => setViewing(sent.id) });
       setSending(null);
-      setJustSent(sent.id); // highlighted in "Recently sent" below
+      setJustSent([sent.id]); // highlighted in "Recently sent" below
       movementsChanged(); // the site now has it, so its row leaves "Ready to send"
     } catch (e) { toast('error', (e as Error).message); }
+    finally { setSaving(false); }
+  };
+
+  // ---- "Split": one item several sites need, when there isn't enough for all ----
+  const [splitting, setSplitting] = useState<Shortage | null>(null);
+  const sentPanel = useRef<HTMLDivElement>(null);
+
+  const handleSplit = async (data: StockMovementInput[]) => {
+    if (!splitting) return;
+    setSaving(true);
+    try {
+      const sent = await stockApi.createMovements(data); // all sites together, or none
+      toast(
+        'success',
+        sent.length === 1 ? t('stock.sent') : t('toBuy.splitSent', { item: splitting.name, n: sent.length }),
+        sent.length === 1
+          ? { label: t('stock.view'), onClick: () => setViewing(sent[0].id) }
+          : { label: t('toBuy.seeSent'), onClick: () => sentPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) },
+      );
+      setSplitting(null);
+      setJustSent(sent.map((m) => m.id));
+      movementsChanged();
+    } catch (e) { toast('error', (e as Error).message); } // the split stays open
     finally { setSaving(false); }
   };
 
@@ -184,7 +215,7 @@ export function ToBuyPage() {
       .sort((a, b) => (b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : b.id - a.id))
       .slice(0, RECENT_MAX);
   }, [movements, search, since]);
-  const [justSent, setJustSent] = useState<number | null>(null);
+  const [justSent, setJustSent] = useState<number[]>([]);
   const [viewing, setViewing] = useState<number | null>(null);
   const [undoing, setUndoing] = useState<StockMovementListItem | null>(null);
   const [undoBusy, setUndoBusy] = useState(false);
@@ -334,7 +365,7 @@ export function ToBuyPage() {
       </div>
 
       {/* ---- What the warehouse already has: just send it ---- */}
-      {ok && ready.length > 0 && (
+      {ok && (ready.length > 0 || shared.length > 0) && (
         <div className="panel rise tobuy-ready" style={{ animationDelay: '80ms' }}>
           <div className="panel-head">
             <div>
@@ -377,6 +408,37 @@ export function ToBuyPage() {
                     )}
                   </tr>
                 ))}
+
+                {/* Several sites need it and there isn't enough for all: the user splits it. */}
+                {shared.length > 0 && (
+                  <tr className="table-group">
+                    <td colSpan={manage ? 4 : 3}><SplitIcon /> {t('toBuy.sharedGroup')}</td>
+                  </tr>
+                )}
+                {shared.map((s) => (
+                  <tr key={`split-${s.itemId}`} className="tobuy-row partial">
+                    <td>
+                      <div className="name">{s.name}</div>
+                      <div className="email">{t('toBuy.sharedBy', { n: s.projects.length })}</div>
+                    </td>
+                    <td>
+                      <div className="need-chips">
+                        {s.projects.map((p) => (
+                          <span key={p.projectId} className="need-chip">{p.projectName} · {p.stillNeeded} {s.unit}</span>
+                        ))}
+                      </div>
+                      <div className="split-have">{t('toBuy.haveForAll', { n: `${s.inWarehouse} ${s.unit}` })}</div>
+                    </td>
+                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.inWarehouse * s.price)}</td>
+                    {manage && (
+                      <td className="num">
+                        <button className="btn btn-sm btn-ghost" onClick={() => setSplitting(s)} title={t('toBuy.splitHint', { n: `${s.inWarehouse} ${s.unit}` })}>
+                          <SplitIcon /> {t('toBuy.split')}
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -385,7 +447,7 @@ export function ToBuyPage() {
 
       {/* ---- What already went out: so you can see it was sent ---- */}
       {ok && recentSent.length > 0 && (
-        <div className="panel rise tobuy-sent" style={{ animationDelay: '160ms' }}>
+        <div className="panel rise tobuy-sent" ref={sentPanel} style={{ animationDelay: '160ms' }}>
           <div className="panel-head">
             <div>
               <h3>{t('toBuy.sentTitle')}</h3>
@@ -405,9 +467,9 @@ export function ToBuyPage() {
               </thead>
               <tbody>
                 {recentSent.map((m) => (
-                  <tr key={m.id} className={`tobuy-row ${m.id === justSent ? 'just-sent' : ''}`}>
+                  <tr key={m.id} className={`tobuy-row ${justSent.includes(m.id) ? 'just-sent' : ''}`}>
                     <td title={formatDateTime(m.createdAt)} style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {m.id === justSent
+                      {justSent.includes(m.id)
                         ? <span className="badge active"><span className="dot" />{t('toBuy.justSent')}</span>
                         : formatTimeAgo(m.createdAt, t)}
                     </td>
@@ -459,6 +521,8 @@ export function ToBuyPage() {
         onClose={() => setSending(null)}
         onSave={handleSend}
       />
+
+      <SplitModal shortage={splitting} saving={saving} onClose={() => setSplitting(null)} onSave={handleSplit} />
 
       <MovementDetailModal open={viewing !== null} movementId={viewing} onClose={() => setViewing(null)} />
 
