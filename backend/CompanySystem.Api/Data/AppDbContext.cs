@@ -34,6 +34,13 @@ public class AppDbContext : DbContext
     // The "Notifications" table (per-user bell alerts; outlives the document).
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    // The "Suppliers" table (vendors we buy from).
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+
+    // The "Purchases" table (supplier invoices) and their line items.
+    public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -108,5 +115,54 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(n => n.RecipientId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Supplier codes must be unique.
+        modelBuilder.Entity<Supplier>()
+            .HasIndex(s => s.Code)
+            .IsUnique();
+
+        // A purchase is bought from a supplier. Don't allow deleting a supplier
+        // that still has purchases (Restrict), so cost history stays intact.
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.Supplier)
+            .WithMany()
+            .HasForeignKey(p => p.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // A purchase may be charged to a project (optional). If the project is
+        // deleted, keep the purchase but clear the link (SetNull).
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.Project)
+            .WithMany()
+            .HasForeignKey(p => p.ProjectId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Track who recorded the purchase, but keep the purchase if that user is removed.
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.CreatedBy)
+            .WithMany()
+            .HasForeignKey(p => p.CreatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // A purchase's line items are part of the invoice — deleting the purchase
+        // removes its lines (Cascade).
+        modelBuilder.Entity<PurchaseItem>()
+            .HasOne(li => li.Purchase)
+            .WithMany(p => p.Items)
+            .HasForeignKey(li => li.PurchaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Each line refers to a warehouse item. Don't delete an item that is
+        // referenced by a purchase line (Restrict), so history stays accurate.
+        modelBuilder.Entity<PurchaseItem>()
+            .HasOne(li => li.Item)
+            .WithMany()
+            .HasForeignKey(li => li.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Store the paid unit price with 2 decimal places.
+        modelBuilder.Entity<PurchaseItem>()
+            .Property(li => li.UnitPrice)
+            .HasPrecision(18, 2);
     }
 }
