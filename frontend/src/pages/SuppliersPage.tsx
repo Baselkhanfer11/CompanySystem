@@ -7,8 +7,9 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, TrashIcon, TruckIcon } from '../components/icons';
 import { LoadError, TableSkeleton } from '../components/States';
 import { SupplierModal } from '../components/SupplierModal';
+import { SupplierPricesModal } from '../components/SupplierPricesModal';
 import { useToast } from '../components/toast';
-import { NONE, suppliersChanged, useSuppliers } from '../data/queries';
+import { NONE, suppliersChanged, usePrices, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { SUPPLIER_STATUS_BADGE } from '../lib/suppliers';
@@ -31,6 +32,14 @@ export function SuppliersPage() {
   const [deleting, setDeleting] = useState<Supplier | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
+  // How many different items we've bought from each supplier (opens their price list).
+  const prices = usePrices().data ?? NONE;
+  const itemsBought = useMemo(() => {
+    const count = new Map<number, number>();
+    for (const p of prices) count.set(p.supplierId, (count.get(p.supplierId) ?? 0) + 1);
+    return count;
+  }, [prices]);
+  const [pricing, setPricing] = useState<Supplier | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -118,6 +127,7 @@ export function SuppliersPage() {
                   <th>{t('supplier.colCode')}</th>
                   <th>{t('supplier.colContact')}</th>
                   <th>{t('supplier.colStatus')}</th>
+                  <th>{t('supplier.colBuys')}</th>
                   <th>{t('supplier.colCreated')}</th>
                   {manage && <th className="num">{t('supplier.colActions')}</th>}
                 </tr>
@@ -143,6 +153,11 @@ export function SuppliersPage() {
                         <span className="dot" />{t(`supplier.status.${s.status}`)}
                       </span>
                     </td>
+                    <td>
+                      {itemsBought.get(s.id)
+                        ? <button type="button" className="link-btn" onClick={() => setPricing(s)}>{itemsBought.get(s.id) === 1 ? t('prices.oneItem') : t('prices.itemsBought', { n: itemsBought.get(s.id)! })}</button>
+                        : <span style={{ color: 'var(--text-dim)' }}>—</span>}
+                    </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(s.createdAt)}</td>
                     {manage && (
                       <td>
@@ -167,6 +182,8 @@ export function SuppliersPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
+
+      <SupplierPricesModal supplier={pricing} onClose={() => setPricing(null)} />
 
       <ConfirmDialog
         open={!!deleting}

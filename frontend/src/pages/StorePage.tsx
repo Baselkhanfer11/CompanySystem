@@ -4,9 +4,10 @@ import { itemsApi } from '../api/items';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon } from '../components/icons';
+import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon, TrendingIcon } from '../components/icons';
 import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
+import { PriceHistoryModal } from '../components/PriceHistoryModal';
 import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
@@ -40,6 +41,7 @@ export function StorePage() {
     return map;
   }, [siteStock]);
   const [locating, setLocating] = useState<Item | null>(null);
+  const [pricing, setPricing] = useState<Item | null>(null); // price history
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
@@ -138,7 +140,9 @@ export function StorePage() {
                   <span className={`qty-badge ${out ? 'out' : low ? 'low' : ''}`}>
                     {out ? t('store.out') : `${i.quantity} ${i.unit}${low ? ' · ' + t('store.low') : ''}`}
                   </span>
-                  <span className="item-price">{formatPrice(i.price)}</span>
+                  <button type="button" className="item-price" onClick={() => setPricing(i)} title={t('prices.open')} aria-label={`${formatPrice(i.price)} · ${t('prices.open')}`}>
+                    <TrendingIcon /> {formatPrice(i.price)}
+                  </button>
                 </div>
                 {short && (
                   <Link to="/to-buy" className="item-short">
@@ -155,6 +159,8 @@ export function StorePage() {
           })}
         </div>
       )}
+
+      <PriceHistoryModal item={pricing} onClose={() => setPricing(null)} />
 
       <ItemLocationsModal item={locating} sites={locating ? sitesByItem.get(locating.id) ?? [] : []} onClose={() => setLocating(null)} />
 

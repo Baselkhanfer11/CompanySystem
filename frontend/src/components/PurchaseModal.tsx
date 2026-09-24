@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatMoney } from '../lib/format';
+import { formatDate, formatMoney, formatUsd } from '../lib/format';
+import { bestRecent, indexPrices, lastFrom, pctChange } from '../lib/prices';
 import type { Item, Project, PurchaseDetail, PurchaseDraft, PurchaseInput, Supplier } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
 
@@ -66,8 +68,13 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
         unitPrice: String(li.unitPrice),
       })));
     } else if (draft) {
-      // New, pre-filled: the supplier is still the user's choice.
-      setForm({ ...emptyForm, date: today(), projectId: draft.projectId ? String(draft.projectId) : '' });
+      // New, pre-filled — the supplier is a suggestion from the price history (or left to the user).
+      setForm({
+        ...emptyForm,
+        date: today(),
+        supplierId: draft.supplierId ? String(draft.supplierId) : '',
+        projectId: draft.projectId ? String(draft.projectId) : '',
+      });
       setLines(draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity), unitPrice: String(l.unitPrice) })));
     } else {
       setForm({ ...emptyForm, date: today() });
@@ -76,6 +83,10 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
   }, [open, initial, draft]);
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+
+  // What each supplier charged before — for the notes under each line.
+  const prices = usePrices();
+  const priceIdx = useMemo(() => indexPrices(prices.data ?? []), [prices.data]);
 
   const lineTotal = (l: LineState) => (parseFloat(l.quantity) || 0) * (parseFloat(l.unitPrice) || 0);
   const total = useMemo(() => lines.reduce((sum, l) => sum + lineTotal(l), 0), [lines]);
@@ -87,10 +98,42 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
   const setLine = (key: number, patch: Partial<LineState>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
-  // Picking an item pre-fills its list price (the user can still override).
+  // Picking an item pre-fills what this supplier charged last time, or else the
+  // item's list price (the user can still override).
   const pickItem = (key: number, itemId: string) => {
     const item = itemsById.get(Number(itemId));
-    setLine(key, { itemId, unitPrice: item ? String(item.price) : '' });
+    const last = item && form.supplierId && !initial ? lastFrom(priceIdx, item.id, Number(form.supplierId)) : null;
+    setLine(key, { itemId, unitPrice: last ? String(last.lastPrice) : item ? String(item.price) : '' });
+  };
+
+  // The note under a line of a NEW purchase: what this supplier charged last
+  // time, whether the price went up or down, and who's cheaper right now.
+  const priceNote = (l: LineState) => {
+    if (initial || !l.itemId) return null;
+    const itemId = Number(l.itemId);
+    const supplierId = form.supplierId ? Number(form.supplierId) : null;
+    const price = l.unitPrice === '' ? NaN : Number(l.unitPrice);
+    const best = bestRecent(priceIdx, itemId);
+    const parts: ReactNode[] = [];
+
+    if (supplierId) {
+      const last = lastFrom(priceIdx, itemId, supplierId);
+      if (last) {
+        parts.push(<span key="last">{t('purchaseModal.lastPaid', { price: formatUsd(last.lastPrice), date: formatDate(last.lastDate) })}</span>);
+        const change = Number.isFinite(price) ? pctChange(price, last.lastPrice) : 0;
+        if (change > 0) parts.push(<span key="chg" className="price-change up">{t('purchaseModal.up', { p: change })}</span>);
+        if (change < 0) parts.push(<span key="chg" className="price-change down">{t('purchaseModal.down', { p: -change })}</span>);
+      } else {
+        parts.push(<span key="last">{t('purchaseModal.firstTime')}</span>);
+      }
+      const paying = Number.isFinite(price) ? price : last?.lastPrice;
+      if (best && best.supplierId !== supplierId && paying !== undefined && best.lastPrice < paying) {
+        parts.push(<span key="best" className="price-change warn">{t('purchaseModal.cheaperAt', { supplier: best.supplierName, price: formatUsd(best.lastPrice) })}</span>);
+      }
+    } else if (best) {
+      parts.push(<span key="best">{t('purchaseModal.bestAt', { supplier: best.supplierName, price: formatUsd(best.lastPrice) })}</span>);
+    }
+    return parts.length ? <div className="line-note">{parts}</div> : null;
   };
 
   const addLine = () => setLines((ls) => [...ls, blankLine()]);
@@ -137,7 +180,11 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
 
         <div className="modal-body">
           {initial && <div className="field-hint">{t('purchaseModal.editHint')}</div>}
-          {!initial && draft && <div className="field-hint" style={{ color: 'var(--accent-2)' }}>{t('purchaseModal.draftHint')}</div>}
+          {!initial && draft && (
+            <div className="field-hint" style={{ color: 'var(--accent-2)' }}>
+              {draft.supplierId ? t('purchaseModal.draftHintSuggested') : t('purchaseModal.draftHint')}
+            </div>
+          )}
           {(noSuppliers || noItems) && (
             <div className="field-hint" style={{ color: 'var(--amber)' }}>
               {noSuppliers ? t('purchaseModal.needSupplier') : t('purchaseModal.needItem')}
@@ -204,6 +251,7 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
                       <TrashIcon />
                     </button>
                   </div>
+                  {priceNote(l)}
                 </div>
               ))}
             </div>

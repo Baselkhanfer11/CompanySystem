@@ -11,9 +11,10 @@ import { StatCard } from '../components/StatCard';
 import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
-import { movementsChanged, NONE, purchasesChanged, useProjects, useSiteStock, useSuppliers } from '../data/queries';
+import { movementsChanged, NONE, purchasesChanged, usePrices, useProjects, useSiteStock, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatUsd, formatUsdShort } from '../lib/format';
+import { bestRecent, indexPrices, lastFrom, suggestSupplier } from '../lib/prices';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { MovementDraft, Project, PurchaseDraft, PurchaseInput, Shortage, SiteStock, StockMovementInput, Supplier } from '../types';
 
@@ -89,14 +90,35 @@ export function ToBuyPage() {
 
   // ---- "Buy": open the purchase form already filled in ----
   const [draft, setDraft] = useState<PurchaseDraft | null>(null);
+  const prices = usePrices().data ?? NONE;
+  const priceIdx = useMemo(() => indexPrices(prices), [prices]);
 
   // One project needs it and the warehouse has none → deliver straight to that
   // site. Otherwise buy into the warehouse and send it on from there.
   const deliverTo = (s: Shortage) => (s.projects.length === 1 && s.inWarehouse <= 0 ? s.projects[0] : null);
-  const buyOne = (s: Shortage) =>
-    setDraft({ projectId: deliverTo(s)?.projectId ?? null, lines: [{ itemId: s.itemId, quantity: s.toBuy, unitPrice: s.price }] });
-  const buyAll = () =>
-    setDraft({ projectId: null, lines: toBuy.map((s) => ({ itemId: s.itemId, quantity: s.toBuy, unitPrice: s.price })) });
+  // The supplier is the cheapest recent one, at what they charged last time
+  // (the item's list price when we've never bought it from them).
+  const buyOne = (s: Shortage) => {
+    const best = bestRecent(priceIdx, s.itemId);
+    setDraft({
+      projectId: deliverTo(s)?.projectId ?? null,
+      supplierId: best?.supplierId ?? null,
+      lines: [{ itemId: s.itemId, quantity: s.toBuy, unitPrice: best?.lastPrice ?? s.price }],
+    });
+  };
+  // One purchase for everything: the supplier that makes the whole purchase cheapest.
+  const buyAll = () => {
+    const supplierId = suggestSupplier(priceIdx, toBuy.map((s) => ({ itemId: s.itemId, quantity: s.toBuy, listPrice: s.price })));
+    setDraft({
+      projectId: null,
+      supplierId,
+      lines: toBuy.map((s) => ({
+        itemId: s.itemId,
+        quantity: s.toBuy,
+        unitPrice: (supplierId && lastFrom(priceIdx, s.itemId, supplierId)?.lastPrice) || s.price,
+      })),
+    });
+  };
 
   const handleBuy = async (data: PurchaseInput) => {
     setSaving(true);
@@ -202,6 +224,7 @@ export function ToBuyPage() {
               <tbody>
                 {shopping.map((s) => {
                   const level = levelOf(s) as 'urgent' | 'partial';
+                  const best = bestRecent(priceIdx, s.itemId); // cheapest recent supplier
                   return (
                   <tr key={s.itemId} className={`tobuy-row ${level}`}>
                     <td><div className="name">{s.name}</div><div className="email">{s.code}</div></td>
@@ -224,7 +247,10 @@ export function ToBuyPage() {
                         <span className={`badge ${LEVEL_BADGE[level]}`}><span className="dot" />{t(`toBuy.${level}`)}</span>
                       </div>
                     </td>
-                    <td className="num" style={{ color: 'var(--text-muted)' }}>{formatUsd(s.price)}</td>
+                    <td className="num" style={{ color: 'var(--text-muted)' }}>
+                      {formatUsd(s.price)}
+                      {best && <div className="email">{t('toBuy.bestAt', { price: formatUsd(best.lastPrice), supplier: best.supplierName })}</div>}
+                    </td>
                     <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.estimatedCost)}</td>
                     {manage && (
                       <td className="num">
