@@ -61,7 +61,7 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
             .OrderByDescending(m => m.Date).ThenByDescending(m => m.Id)
             .Select(StockMovementListDto.Projection)
             .ToListAsync();
-        return Ok(movements.Select(m => m.WithUniqueItemNames()));
+        return Ok(movements);
     }
 
     // GET /api/stock/movements/5  → one movement with its lines

@@ -4,19 +4,23 @@ import { purchasesApi } from '../api/purchases';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
-import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, TruckIcon, WalletIcon } from '../components/icons';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SearchIcon, TruckIcon, UndoIcon, WalletIcon } from '../components/icons';
+import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { StatCard } from '../components/StatCard';
 import { LoadError } from '../components/States';
 import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
-import { movementsChanged, NONE, purchasesChanged, usePrices, useProjects, useSiteStock, useSuppliers } from '../data/queries';
+import { movementsChanged, NONE, purchasesChanged, useMovements, usePrices, useProjects, useSiteStock, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatUsd, formatUsdShort } from '../lib/format';
+import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
 import { bestRecent, indexPrices, lastFrom, suggestSupplier } from '../lib/prices';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { MovementDraft, Project, PurchaseDraft, PurchaseInput, Shortage, SiteStock, StockMovementInput, Supplier } from '../types';
+import type {
+  MovementDraft, Project, PurchaseDraft, PurchaseInput, Shortage, SiteStock, StockMovementInput, StockMovementListItem, Supplier,
+} from '../types';
 
 // How urgent a shortage is, from what the warehouse can cover:
 //   urgent  → nothing in the warehouse, the site waits until we buy
@@ -27,26 +31,47 @@ const levelOf = (s: Shortage): Level => (s.toBuy === 0 ? 'covered' : s.inWarehou
 const LEVEL_BADGE: Record<'urgent' | 'partial', string> = { urgent: 'reject', partial: 'onhold' };
 const coveredPct = (s: Shortage) => (s.needed > 0 ? Math.round((Math.min(s.inWarehouse, s.needed) / s.needed) * 100) : 100);
 
-// One site's share of the covered items — sent together, like one truck.
+// What one site can get from the warehouse right now — sent together, like one truck.
 interface SiteSend {
   projectId: number;
   projectName: string;
-  lines: { itemId: number; name: string; unit: string; quantity: number }[];
+  lines: { itemId: number; name: string; unit: string; quantity: number; needed: number }[]; // quantity < needed = partial
   value: number;
 }
 
-// Covered items only: the warehouse has enough for every site, so sending one
-// site's share never takes stock another site is counting on.
-function groupBySite(covered: Shortage[]): SiteSend[] {
+// What the warehouse can send without taking stock another site is counting on:
+//  - covered items: every site's full need (there's enough for all of them)
+//  - partly covered items that only ONE site needs: all the warehouse has (the rest is bought)
+// A partly covered item several sites need is left out: how to split it is the user's call.
+// "Recently sent" = sends recorded in the last 7 days (the newest few).
+const RECENT_DAYS = 7;
+const RECENT_MAX = 8;
+// One chip per item, even if it was on two lines of the same movement.
+function mergeLines(lines: StockMovementListItem['lines']) {
+  const byName = new Map<string, StockMovementListItem['lines'][number]>();
+  for (const l of lines) {
+    const seen = byName.get(l.itemName);
+    if (seen) seen.quantity += l.quantity;
+    else byName.set(l.itemName, { ...l });
+  }
+  return [...byName.values()];
+}
+
+const canSend = (s: Shortage) => s.toBuy === 0 || (s.inWarehouse > 0 && s.projects.length === 1);
+
+function groupBySite(shortages: Shortage[]): SiteSend[] {
   const sites = new Map<number, SiteSend>();
-  for (const s of covered) {
+  for (const s of shortages.filter(canSend)) {
     for (const p of s.projects) {
+      const quantity = Math.min(p.stillNeeded, s.inWarehouse);
       const site = sites.get(p.projectId) ?? { projectId: p.projectId, projectName: p.projectName, lines: [], value: 0 };
-      site.lines.push({ itemId: s.itemId, name: s.name, unit: s.unit, quantity: p.stillNeeded });
-      site.value += p.stillNeeded * s.price;
+      site.lines.push({ itemId: s.itemId, name: s.name, unit: s.unit, quantity, needed: p.stillNeeded });
+      site.value += quantity * s.price;
       sites.set(p.projectId, site);
     }
   }
+  // Full lines first, then partial ones; the biggest sends first.
+  for (const site of sites.values()) site.lines.sort((a, b) => Number(a.quantity < a.needed) - Number(b.quantity < b.needed));
   return [...sites.values()].sort((a, b) => b.value - a.value);
 }
 
@@ -75,10 +100,10 @@ export function ToBuyPage() {
       .sort((a, b) => Number(levelOf(b) === 'urgent') - Number(levelOf(a) === 'urgent') || b.estimatedCost - a.estimatedCost),
     [matches],
   );
-  const ready = useMemo(() => groupBySite(matches.filter((s) => s.toBuy === 0)), [matches]);
+  const ready = useMemo(() => groupBySite(matches), [matches]);
 
   const toBuy = shortages.filter((s) => s.toBuy > 0);
-  const readyCount = shortages.length - toBuy.length;
+  const readyCount = shortages.filter(canSend).length;
   const totalCost = toBuy.reduce((sum, s) => sum + s.estimatedCost, 0);
   const projectsWaiting = new Set(shortages.flatMap((s) => s.projects.map((p) => p.projectId))).size;
   const urgentCount = toBuy.filter((s) => levelOf(s) === 'urgent').length;
@@ -139,12 +164,41 @@ export function ToBuyPage() {
   const handleSend = async (data: StockMovementInput) => {
     setSaving(true);
     try {
-      await stockApi.createMovement(data);
-      toast('success', data.type === 'Issue' ? t('stock.sent') : t('stock.returned'));
+      const sent = await stockApi.createMovement(data);
+      toast('success', t('stock.sent'), { label: t('stock.view'), onClick: () => setViewing(sent.id) });
       setSending(null);
-      movementsChanged(); // the site now has it, so its row leaves the list
+      setJustSent(sent.id); // highlighted in "Recently sent" below
+      movementsChanged(); // the site now has it, so its row leaves "Ready to send"
     } catch (e) { toast('error', (e as Error).message); }
     finally { setSaving(false); }
+  };
+
+  // ---- "Recently sent": proof that it went, with View and Undo ----
+  const movements: StockMovementListItem[] = useMovements().data ?? NONE;
+  const [since] = useState(() => Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+  const recentSent = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return movements
+      .filter((m) => m.type === 'Issue' && new Date(m.createdAt).getTime() >= since)
+      .filter((m) => !q || [m.projectName, m.createdByName, ...m.itemNames].some((v) => v.toLowerCase().includes(q)))
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : b.id - a.id))
+      .slice(0, RECENT_MAX);
+  }, [movements, search, since]);
+  const [justSent, setJustSent] = useState<number | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
+  const [undoing, setUndoing] = useState<StockMovementListItem | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
+
+  const handleUndo = async () => {
+    if (!undoing) return;
+    setUndoBusy(true);
+    try {
+      await stockApi.removeMovement(undoing.id);
+      toast('success', t('stock.removed'));
+      setUndoing(null);
+      movementsChanged(); // the material is back in the warehouse, so it's "Ready to send" again
+    } catch (e) { toast('error', (e as Error).message); }
+    finally { setUndoBusy(false); }
   };
 
   const ok = !loading && !error;
@@ -249,7 +303,12 @@ export function ToBuyPage() {
                     </td>
                     <td className="num" style={{ color: 'var(--text-muted)' }}>
                       {formatUsd(s.price)}
-                      {best && <div className="email">{t('toBuy.bestAt', { price: formatUsd(best.lastPrice), supplier: best.supplierName })}</div>}
+                      {best && (
+                        <div className="best-price" title={t('toBuy.bestAt', { price: formatUsd(best.lastPrice), supplier: best.supplierName })}>
+                          <span>{t('toBuy.best', { price: formatUsd(best.lastPrice) })}</span>
+                          <span>{best.supplierName}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.estimatedCost)}</td>
                     {manage && (
@@ -300,7 +359,11 @@ export function ToBuyPage() {
                     <td>
                       <div className="need-chips">
                         {site.lines.map((l) => (
-                          <span key={l.itemId} className="need-chip">{l.name} · {l.quantity} {l.unit}</span>
+                          l.quantity < l.needed
+                            ? <span key={l.itemId} className="need-chip part" title={t('toBuy.partHint', { n: `${l.needed - l.quantity} ${l.unit}` })}>
+                                {l.name} · {t('toBuy.partOf', { n: l.quantity, of: l.needed, unit: l.unit })}
+                              </span>
+                            : <span key={l.itemId} className="need-chip">{l.name} · {l.quantity} {l.unit}</span>
                         ))}
                       </div>
                     </td>
@@ -312,6 +375,59 @@ export function ToBuyPage() {
                         </button>
                       </td>
                     )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ---- What already went out: so you can see it was sent ---- */}
+      {ok && recentSent.length > 0 && (
+        <div className="panel rise tobuy-sent" style={{ animationDelay: '160ms' }}>
+          <div className="panel-head">
+            <div>
+              <h3>{t('toBuy.sentTitle')}</h3>
+              <div className="sub">{t('toBuy.sentSub')}</div>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>{t('toBuy.colWhen')}</th>
+                  <th>{t('toBuy.colSite')}</th>
+                  <th>{t('toBuy.colSent')}</th>
+                  <th className="num">{t('toBuy.colValue')}</th>
+                  <th className="num">{t('stock.colActions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentSent.map((m) => (
+                  <tr key={m.id} className={`tobuy-row ${m.id === justSent ? 'just-sent' : ''}`}>
+                    <td title={formatDateTime(m.createdAt)} style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {m.id === justSent
+                        ? <span className="badge active"><span className="dot" />{t('toBuy.justSent')}</span>
+                        : formatTimeAgo(m.createdAt, t)}
+                    </td>
+                    <td><div className="name">{m.projectName}</div><div className="email">{m.createdByName}</div></td>
+                    <td>
+                      <div className="need-chips">
+                        {mergeLines(m.lines).map((l) => (
+                          <span key={l.itemName} className="need-chip">{l.itemName} · {l.quantity} {l.unit}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(m.total)}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} data-tip={t('stock.view')}><SearchIcon /></button>
+                        {manage && (
+                          <button className="act-btn danger" onClick={() => setUndoing(m)} aria-label={t('stock.undo')} data-tip={t('stock.undo')}><UndoIcon /></button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -342,6 +458,19 @@ export function ToBuyPage() {
         saving={saving}
         onClose={() => setSending(null)}
         onSave={handleSend}
+      />
+
+      <MovementDetailModal open={viewing !== null} movementId={viewing} onClose={() => setViewing(null)} />
+
+      <ConfirmDialog
+        open={!!undoing}
+        title={t('stock.deleteQ')}
+        message={t('stock.deleteMsg', { site: undoing?.projectName ?? '' })}
+        busy={undoBusy}
+        onCancel={() => setUndoing(null)}
+        onConfirm={handleUndo}
+        confirmLabel={t('stock.undoConfirm')}
+        icon={<UndoIcon />}
       />
     </div>
   );

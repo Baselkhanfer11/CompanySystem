@@ -158,7 +158,7 @@ public class ReportsController(AppDbContext db) : ControllerBase
             byItem,
             Monthly(entries, from, to),
             recentPurchases,
-            recentMovements.Select(m => m.WithUniqueItemNames()).ToList()));
+            recentMovements));
     }
 
     // --- helpers ---

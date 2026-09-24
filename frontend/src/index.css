@@ -451,6 +451,13 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .toast.error .ic { background: rgba(251,113,133,0.15); color: var(--rose); }
 .toast.info .ic { background: rgba(124,108,255,0.15); color: var(--accent); }
 .toast .msg { font-size: var(--fs-base); font-weight: 500; }
+.toast-action {
+  margin-inline-start: auto; flex-shrink: 0; padding: 4px 12px; border-radius: var(--radius-xs);
+  background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text);
+  font-size: var(--fs-md); font-weight: 600; outline: 2px solid transparent; outline-offset: 2px;
+}
+.toast-action:hover { background: var(--surface); }
+.toast-action:focus-visible { outline-color: var(--accent); }
 
 /* ============================================================
    Animations & utils
@@ -967,7 +974,7 @@ tr.tobuy-row.partial td:first-child { border-inline-start-color: var(--amber); }
 tr.tobuy-row.covered td:first-child { border-inline-start-color: var(--emerald); }
 .tobuy-qty { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 /* How much of the need the warehouse covers. */
-.cover { display: inline-flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1); min-width: 130px; }
+.cover { display: inline-flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1); min-width: 120px; }
 .cover-text { font-size: var(--fs-md); color: var(--text-muted); white-space: nowrap; }
 .cover-track { width: 100%; height: 5px; border-radius: 5px; background: var(--border); overflow: hidden; display: flex; } /* fills from the line start (flips in RTL) */
 .cover-track span { display: block; height: 100%; border-radius: 5px; }
@@ -979,8 +986,20 @@ tr.partial .cover-track span { background: var(--amber); }
 .level-legend i.urgent { background: var(--rose); }
 .level-legend i.partial { background: var(--amber); }
 /* "Ready to send" sits under the shopping list; "nothing to buy" line inside it. */
-.tobuy-ready { margin-top: var(--sp-5); }
+.tobuy-ready, .tobuy-sent { margin-top: var(--sp-5); }
+/* The send you just made: a green edge, and a glow that fades so your eye finds it. */
+tr.tobuy-row.just-sent td:first-child { border-inline-start-color: var(--emerald); }
+tr.just-sent td { background: rgba(52,211,153,0.07); animation: just-sent 2.4s ease-out; }
+@keyframes just-sent { from { background: rgba(52,211,153,0.28); } }
 .tobuy-none { padding: var(--sp-4) var(--sp-5); }
+/* "Best $8.10" + the supplier under a to-buy price: two short lines, never chopped up word by word. */
+.best-price { display: flex; flex-direction: column; align-items: flex-end; font-size: var(--fs-sm); color: var(--text-dim); }
+.best-price span { white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; } /* full text in the tooltip */
+.best-price span:first-child { color: var(--emerald); font-weight: 600; }
+:root[data-theme="light"] .best-price span:first-child { color: #047857; }
+/* A partial send ("35 of 111"): amber, like "Partly covered" — the rest is on the shopping list. */
+.need-chip.part { color: var(--amber); border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.08); }
+:root[data-theme="light"] .need-chip.part { color: #b45309; }
 .tobuy-none svg { width: 18px; height: 18px; color: var(--emerald); flex-shrink: 0; }
 
 /* Shown for the moment a page's code is downloading (first visit only). */

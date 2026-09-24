@@ -315,7 +315,8 @@ export interface StockMovementListItem {
   date: string;
   notes?: string | null;
   lineCount: number;
-  itemNames: string[];
+  lines: { itemName: string; unit: string; quantity: number }[]; // in line order
+  itemNames: string[]; // each item once
   total: number;
   createdByName: string;
   createdAt: string;
