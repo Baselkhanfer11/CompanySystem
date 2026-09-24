@@ -8,6 +8,20 @@ export const formatDate = (iso: string) =>
 export const formatMoney = (n: number) =>
   (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const usdCompact = new Intl.NumberFormat('en-US', {
+  style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1,
+});
+
+/** Exact US-dollar amount, e.g. "$1,250.00". */
+export const formatUsd = (n: number) => usd.format(n ?? 0);
+
+/** Short US-dollar amount for tiles and axes: "$129.00" below 10K, then "$12.3K", "$4.2M". */
+export const formatUsdShort = (n: number) => ((n ?? 0) < 10_000 ? formatUsd(n) : usdCompact.format(n));
+
+/** Axis-tick dollars with no cents: "$0", "$500", "$1.5K". */
+export const formatUsdTick = (n: number) => usdCompact.format(n ?? 0);
+
 /** Exact local date + time, e.g. "22 Sep 2026, 07:46 PM" — used for tooltips. */
 export const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-US', {

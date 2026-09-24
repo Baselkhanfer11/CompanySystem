@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { isAdmin } from '../auth/roles';
+import { canManage, isAdmin } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import {
   BoxesIcon, CartIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
-  ProjectsIcon, ShieldIcon, TrendingIcon, TruckIcon, UsersIcon,
+  ProjectsIcon, ShieldIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
 
@@ -72,6 +72,13 @@ export function Sidebar({ open }: { open: boolean }) {
         <CartIcon />
         <span>{t('nav.purchases')}</span>
       </NavLink>
+      {/* Spending reports — managers only (CEO + head manager) */}
+      {canManage(user?.role) && (
+        <NavLink to="/costs" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <WalletIcon />
+          <span>{t('nav.costs')}</span>
+        </NavLink>
+      )}
       {soon.map((item) => (
         <div key={item.labelKey} className="nav-item disabled">
           {item.icon}

@@ -1,3 +1,5 @@
+using CompanySystem.Api.Models;
+
 namespace CompanySystem.Api.Dtos;
 
 // ---- What the frontend sends ----
@@ -28,7 +30,22 @@ public record PurchaseListDto(
     int LineCount,
     decimal Total,
     string CreatedByName,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    // Maps a purchase (loaded with Supplier, Project, CreatedBy and Items) to a list row.
+    public static PurchaseListDto From(Purchase p) => new(
+        p.Id,
+        p.SupplierId,
+        p.Supplier?.Name ?? "",
+        p.ProjectId,
+        p.Project?.Name,
+        p.InvoiceNumber,
+        p.Date,
+        p.Items.Count,
+        p.Items.Sum(li => li.Quantity * li.UnitPrice),
+        p.CreatedBy?.FullName ?? "",
+        p.CreatedAt);
+}
 
 // A single line, expanded with item details, for the detail view.
 public record PurchaseItemDto(
