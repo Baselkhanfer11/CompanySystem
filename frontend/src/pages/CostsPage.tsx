@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { BarList, type BarRow } from '../components/charts/BarList';
 import { MonthlyChart } from '../components/charts/MonthlyChart';
-import { BoxesIcon, ProjectsIcon, ReceiptIcon, ShieldIcon, WalletIcon } from '../components/icons';
+import { BoxesIcon, ProjectsIcon, ReceiptIcon, ShieldIcon, SwapIcon, WalletIcon } from '../components/icons';
 import { ProjectCostModal } from '../components/ProjectCostModal';
 import { StatCard } from '../components/StatCard';
 import { useI18n } from '../i18n/LanguageContext';
@@ -53,31 +53,40 @@ export function CostsPage() {
 
   const periodLabel = t(`costs.period.${period}`);
   const purchasesLabel = (n: number) => (n === 1 ? t('purchase.countOne', { n }) : t('purchase.countMany', { n }));
-  const shareOfTotal = (part: number) =>
-    report && report.totalSpend > 0 ? t('costs.shareOfTotal', { p: Math.round((part / report.totalSpend) * 100) }) : undefined;
+  const movementsLabel = (n: number) => (n === 1 ? t('stock.countOne', { n }) : t('stock.countMany', { n }));
+  // "3 purchases · 2 movements" — only the parts that aren't zero.
+  const countsLabel = (r: ProjectCostRow) =>
+    [r.purchaseCount > 0 && purchasesLabel(r.purchaseCount), r.movementCount > 0 && movementsLabel(r.movementCount)]
+      .filter(Boolean).join(' · ') || undefined;
 
-  // Projects biggest-first (from the API), then the General bucket, grayed out.
+  // Projects, most expensive first (from the API).
   const rows: BarRow[] = report
     ? report.projects.map((p) => ({
-        key: p.projectId ?? 'general',
+        key: p.projectId ?? 'warehouse',
         label: p.name,
         sub: p.code ?? undefined,
         value: p.total,
-        meta: purchasesLabel(p.purchaseCount),
+        meta: countsLabel(p),
         onClick: () => setSelected(p),
       }))
     : [];
-  if (report && report.general.purchaseCount > 0) {
-    rows.push({
-      key: 'general',
-      label: t('purchase.general'),
-      sub: t('costs.generalHint'),
-      value: report.general.total,
-      meta: purchasesLabel(report.general.purchaseCount),
-      muted: true,
-      onClick: () => setSelected(report.general),
-    });
-  }
+
+  // The warehouse isn't a project cost, so it sits apart (grayed out) and
+  // isn't part of the project shares.
+  const warehouseRow: BarRow | null = report && report.warehouse.purchaseCount > 0
+    ? {
+        key: 'warehouse',
+        label: t('costs.viewWarehouse'),
+        sub: t('costs.generalHint'),
+        value: report.warehouse.total,
+        meta: purchasesLabel(report.warehouse.purchaseCount),
+        muted: true,
+        onClick: () => setSelected(report.warehouse),
+      }
+    : null;
+
+  // Both bar lists share one scale, so the warehouse bar is comparable.
+  const scaleMax = Math.max(0, ...rows.map((r) => r.value), warehouseRow?.value ?? 0);
 
   const money = (n: number) => <span title={formatUsd(n)}>{formatUsdShort(n)}</span>;
 
@@ -134,13 +143,13 @@ export function CostsPage() {
           {error && <div className="inline-error">{error}</div>}
 
           <div className="stat-grid">
-            <StatCard icon={<WalletIcon />} value={money(report.totalSpend)} label={t('costs.totalSpend')} color="#7c6cff" trend={periodLabel} delay={0} />
-            <StatCard icon={<ProjectsIcon />} value={money(report.projectSpend)} label={t('costs.projectSpend')} color="#34d399" trend={shareOfTotal(report.projectSpend)} delay={70} />
-            <StatCard icon={<BoxesIcon />} value={money(report.generalSpend)} label={t('costs.generalSpend')} color="#99a1b7" trend={shareOfTotal(report.generalSpend)} delay={140} />
-            <StatCard icon={<ReceiptIcon />} value={report.purchaseCount} label={t('costs.purchases')} color="#fbbf24" trend={periodLabel} delay={210} />
+            <StatCard icon={<ProjectsIcon />} value={money(report.projectCost)} label={t('costs.projectSpend')} color="#7c6cff" trend={periodLabel} delay={0} />
+            <StatCard icon={<ReceiptIcon />} value={money(report.purchaseTotal)} label={t('costs.totalSpend')} color="#34d399" trend={purchasesLabel(report.purchaseCount)} delay={70} />
+            <StatCard icon={<BoxesIcon />} value={money(report.warehousePurchases)} label={t('costs.generalSpend')} color="#99a1b7" trend={t('costs.generalHint')} delay={140} />
+            <StatCard icon={<SwapIcon />} value={money(report.sentFromWarehouse)} label={t('costs.sentFromWarehouse')} color="#fbbf24" trend={t('costs.netOfReturns')} delay={210} />
           </div>
 
-          {report.purchaseCount === 0 ? (
+          {report.purchaseCount === 0 && report.movementCount === 0 ? (
             <div className="panel rise">
               <div className="empty-state">
                 <div className="empty-illus"><WalletIcon /></div>
@@ -159,7 +168,12 @@ export function CostsPage() {
                   </div>
                 </div>
                 <div style={{ padding: 10 }}>
-                  <BarList rows={rows} format={formatUsd} total={report.totalSpend} />
+                  <BarList rows={rows} format={formatUsd} total={report.projectCost} scaleMax={scaleMax} />
+                  {warehouseRow && (
+                    <div className="barlist-apart">
+                      <BarList rows={[warehouseRow]} format={formatUsd} scaleMax={scaleMax} />
+                    </div>
+                  )}
                 </div>
               </div>
 

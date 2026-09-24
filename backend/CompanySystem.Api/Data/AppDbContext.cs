@@ -44,6 +44,10 @@ public class AppDbContext : DbContext
     // The "PurchaseEvents" table (a purchase's edit history).
     public DbSet<PurchaseEvent> PurchaseEvents => Set<PurchaseEvent>();
 
+    // The "StockMovements" table (warehouse ⇄ site transfers) and their lines.
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockMovementLine> StockMovementLines => Set<StockMovementLine>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -132,13 +136,14 @@ public class AppDbContext : DbContext
             .HasForeignKey(p => p.SupplierId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // A purchase may be charged to a project (optional). If the project is
-        // deleted, keep the purchase but clear the link (SetNull).
+        // A purchase may be delivered to a project's site (optional; null = the
+        // warehouse). Don't allow deleting a project that has purchases (Restrict)
+        // — clearing the link would silently move that material to the warehouse.
         modelBuilder.Entity<Purchase>()
             .HasOne(p => p.Project)
             .WithMany()
             .HasForeignKey(p => p.ProjectId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Track who recorded the purchase, but keep the purchase if that user is removed.
         modelBuilder.Entity<Purchase>()
@@ -180,5 +185,36 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(e => e.ActorId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // A movement belongs to a site. Keep the history: a project with
+        // movements can't be deleted, and neither can the user who recorded it.
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(m => m.Project)
+            .WithMany()
+            .HasForeignKey(m => m.ProjectId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(m => m.CreatedBy)
+            .WithMany()
+            .HasForeignKey(m => m.CreatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Lines are part of the movement (Cascade); an item used on a movement
+        // can't be deleted (Restrict).
+        modelBuilder.Entity<StockMovementLine>()
+            .HasOne(l => l.StockMovement)
+            .WithMany(m => m.Lines)
+            .HasForeignKey(l => l.StockMovementId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<StockMovementLine>()
+            .HasOne(l => l.Item)
+            .WithMany()
+            .HasForeignKey(l => l.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Return costs are averages, so keep 4 decimals to avoid rounding drift.
+        modelBuilder.Entity<StockMovementLine>()
+            .Property(l => l.UnitCost)
+            .HasPrecision(18, 4);
     }
 }

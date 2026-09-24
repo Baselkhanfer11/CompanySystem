@@ -6,10 +6,11 @@ import type { ProjectCostDetail, ProjectCostRow } from '../types';
 import { BarList } from './charts/BarList';
 import { MonthlyChart } from './charts/MonthlyChart';
 import { XIcon } from './icons';
+import { MovementBadge } from './MovementBadge';
 
 interface Props {
   open: boolean;
-  row: ProjectCostRow | null; // the project (or General bucket) that was clicked
+  row: ProjectCostRow | null; // the project (or the Warehouse bucket) that was clicked
   range: DateRange;
   periodLabel: string;
   onClose: () => void;
@@ -36,9 +37,10 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
 
   if (!open || !row) return null;
 
-  const isGeneral = row.projectId === null;
-  const title = isGeneral ? t('purchase.general') : row.name;
+  const isWarehouse = row.projectId === null;
+  const title = isWarehouse ? t('costs.viewWarehouse') : row.name;
   const purchasesLabel = (n: number) => (n === 1 ? t('purchase.countOne', { n }) : t('purchase.countMany', { n }));
+  const movementsLabel = (n: number) => (n === 1 ? t('stock.countOne', { n }) : t('stock.countMany', { n }));
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -46,7 +48,7 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
         <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h3>{title}</h3>
-            <p>{[isGeneral ? t('costs.generalHint') : row.code, periodLabel].filter(Boolean).join(' · ')}</p>
+            <p>{[isWarehouse ? t('costs.generalHint') : row.code, periodLabel].filter(Boolean).join(' · ')}</p>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}><XIcon /></button>
         </div>
@@ -60,10 +62,10 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
               <div className="mini-stats">
                 <div><span className="k">{t('costDetail.total')}</span><span className="v">{formatUsd(detail.total)}</span></div>
                 <div><span className="k">{t('costDetail.purchases')}</span><span className="v">{detail.purchaseCount}</span></div>
-                <div><span className="k">{t('costDetail.suppliers')}</span><span className="v">{detail.bySupplier.length}</span></div>
+                {!isWarehouse && <div><span className="k">{t('costDetail.suppliers')}</span><span className="v">{detail.movementCount}</span></div>}
               </div>
 
-              {detail.total === 0 ? (
+              {detail.purchaseCount === 0 && detail.movementCount === 0 ? (
                 <div className="chart-empty">{t('costs.noneInPeriod')}</div>
               ) : (
                 <>
@@ -75,11 +77,11 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                   <section>
                     <h4 className="cost-section-title">{t('costDetail.bySupplier')}</h4>
                     <BarList
-                      rows={detail.bySupplier.map((s) => ({
-                        key: s.supplierId,
-                        label: s.name,
+                      rows={detail.bySource.map((s) => ({
+                        key: s.supplierId ?? 'warehouse',
+                        label: s.supplierId === null ? t('costDetail.fromWarehouse') : s.name,
                         value: s.total,
-                        meta: purchasesLabel(s.purchaseCount),
+                        meta: s.supplierId === null ? movementsLabel(s.count) : purchasesLabel(s.count),
                       }))}
                       format={formatUsd}
                       total={detail.total}
@@ -110,31 +112,61 @@ export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Pro
                     </div>
                   </section>
 
-                  <section>
-                    <h4 className="cost-section-title">{t('costDetail.recent')}</h4>
-                    <div className="table-wrap">
-                      <table className="data num-cols">
-                        <thead>
-                          <tr>
-                            <th>{t('purchase.colDate')}</th>
-                            <th>{t('purchase.colSupplier')}</th>
-                            <th>{t('purchase.colInvoice')}</th>
-                            <th style={{ textAlign: 'end' }}>{t('purchase.colTotal')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detail.recent.map((p) => (
-                            <tr key={p.id}>
-                              <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
-                              <td>{p.supplierName}</td>
-                              <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)' }}>{p.invoiceNumber ?? '—'}</span></td>
-                              <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatUsd(p.total)}</td>
+                  {detail.recentPurchases.length > 0 && (
+                    <section>
+                      <h4 className="cost-section-title">{t('costDetail.recent')}</h4>
+                      <div className="table-wrap">
+                        <table className="data num-cols">
+                          <thead>
+                            <tr>
+                              <th>{t('purchase.colDate')}</th>
+                              <th>{t('purchase.colSupplier')}</th>
+                              <th>{t('purchase.colInvoice')}</th>
+                              <th style={{ textAlign: 'end' }}>{t('purchase.colTotal')}</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
+                          </thead>
+                          <tbody>
+                            {detail.recentPurchases.map((p) => (
+                              <tr key={p.id}>
+                                <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
+                                <td>{p.supplierName}</td>
+                                <td><span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)' }}>{p.invoiceNumber ?? '—'}</span></td>
+                                <td style={{ textAlign: 'end', fontWeight: 600 }}>{formatUsd(p.total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  )}
+
+                  {detail.recentMovements.length > 0 && (
+                    <section>
+                      <h4 className="cost-section-title">{t('costDetail.recentMovements')}</h4>
+                      <div className="table-wrap">
+                        <table className="data num-cols">
+                          <thead>
+                            <tr>
+                              <th>{t('stock.colDate')}</th>
+                              <th>{t('stock.colType')}</th>
+                              <th>{t('stock.colItems')}</th>
+                              <th style={{ textAlign: 'end' }}>{t('stock.colValue')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {detail.recentMovements.map((m) => (
+                              <tr key={m.id}>
+                                <td style={{ color: 'var(--text-muted)' }}>{formatDate(m.date)}</td>
+                                <td><MovementBadge type={m.type} /></td>
+                                <td>{m.itemNames.join(', ')}</td>
+                                <td style={{ textAlign: 'end', fontWeight: 600 }}>{m.type === 'Return' ? '−' : ''}{formatUsd(m.total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  )}
                 </>
               )}
             </>

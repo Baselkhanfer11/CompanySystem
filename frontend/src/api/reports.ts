@@ -17,11 +17,11 @@ const query = ({ from, to }: DateRange) => {
   return qs ? `?${qs}` : '';
 };
 
-// The id the API uses for the "General" bucket (purchases with no project).
-export const GENERAL_ID = 0;
+// The id the API uses for the Warehouse bucket (purchases delivered to the warehouse).
+export const WAREHOUSE_ID = 0;
 
 export const reportsApi = {
   projectCosts: (range: DateRange) => api.get<ProjectCostsReport>(`${BASE}${query(range)}`),
   projectCostDetail: (projectId: number | null, range: DateRange) =>
-    api.get<ProjectCostDetail>(`${BASE}/${projectId ?? GENERAL_ID}${query(range)}`),
+    api.get<ProjectCostDetail>(`${BASE}/${projectId ?? WAREHOUSE_ID}${query(range)}`),
 };

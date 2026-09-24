@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
+import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canManage } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../components/icons';
 import { ProjectModal } from '../components/ProjectModal';
+import { SiteStockModal } from '../components/SiteStockModal';
 import { useToast } from '../components/toast';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { Project, ProjectInput } from '../types';
+import type { Project, ProjectInput, SiteStock } from '../types';
 
 export function ProjectsPage() {
   const { search } = useOutletContext<LayoutContext>();
@@ -30,10 +32,16 @@ export function ProjectsPage() {
   const [deleting, setDeleting] = useState<Project | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
+  // What's on each site right now.
+  const [siteStock, setSiteStock] = useState<SiteStock[]>([]);
+  const [viewingSite, setViewingSite] = useState<Project | null>(null);
+  const siteRows = (projectId: number) => siteStock.filter((s) => s.projectId === projectId);
+
   const load = () => {
     setLoading(true);
     setLoadError('');
     projectsApi.getAll().then(setProjects).catch((e) => setLoadError(e.message)).finally(() => setLoading(false));
+    stockApi.onSite().then(setSiteStock).catch(() => {});
   };
   useEffect(load, []);
 
@@ -137,6 +145,7 @@ export function ProjectsPage() {
                   <th>{t('project.colName')}</th>
                   <th>{t('project.colCode')}</th>
                   <th>{t('project.colStatus')}</th>
+                  <th>{t('project.colOnSite')}</th>
                   <th>{t('project.colCreated')}</th>
                   {manage && <th style={{ textAlign: 'end' }}>{t('project.colActions')}</th>}
                 </tr>
@@ -155,6 +164,18 @@ export function ProjectsPage() {
                       <span className={`badge ${STATUS_BADGE_CLASS[p.status] ?? 'inactive'}`}>
                         <span className="dot" />{t(`project.status.${p.status}`)}
                       </span>
+                    </td>
+                    <td>
+                      {(() => {
+                        const n = siteRows(p.id).length;
+                        return n > 0 ? (
+                          <button type="button" className="link-btn" onClick={() => setViewingSite(p)}>
+                            {n === 1 ? t('project.itemsOne', { n }) : t('project.itemsMany', { n })}
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--text-dim)' }}>{t('project.nothingOnSite')}</span>
+                        );
+                      })()}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.createdAt)}</td>
                     {manage && (
@@ -180,6 +201,8 @@ export function ProjectsPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
+
+      <SiteStockModal project={viewingSite} rows={viewingSite ? siteRows(viewingSite.id) : []} onClose={() => setViewingSite(null)} />
 
       <ConfirmDialog
         open={!!deleting}

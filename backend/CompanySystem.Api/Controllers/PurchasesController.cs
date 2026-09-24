@@ -5,6 +5,7 @@ using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Dtos;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace CompanySystem.Api.Controllers;
 [ApiController]
 [Authorize] // must be logged in to reach any endpoint here
 [Route("api/[controller]")] // → /api/purchases
-public class PurchasesController(AppDbContext db) : ControllerBase
+public class PurchasesController(AppDbContext db, StockService stock) : ControllerBase
 {
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -50,7 +51,8 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         return Ok(detail);
     }
 
-    // POST /api/purchases  → record a purchase (managers only). Restocks the warehouse.
+    // POST /api/purchases  → record a purchase (managers only). The material
+    // lands where it was delivered: the warehouse or a project's site.
     [Authorize(Roles = Roles.Managers)]
     [HttpPost]
     public async Task<ActionResult<PurchaseDetailDto>> Create(PurchaseInputDto input)
@@ -75,8 +77,10 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         };
         db.Purchases.Add(purchase);
 
-        // Restock: add each line's quantity to the warehouse item.
-        await AdjustStock(QuantityByItem(input.Items.Select(l => (l.ItemId, l.Quantity))));
+        // Put the material where it was delivered.
+        var delta = new Dictionary<StockKey, int>();
+        foreach (var l in input.Items) StockService.Add(delta, input.ProjectId, l.ItemId, l.Quantity);
+        await stock.Apply(delta);
 
         await db.SaveChangesAsync();
 
@@ -85,8 +89,8 @@ public class PurchasesController(AppDbContext db) : ControllerBase
     }
 
     // PUT /api/purchases/5  → edit a purchase (managers only).
-    // Moves stock by the difference (new quantity − old quantity) and records
-    // exactly what changed in the purchase's history.
+    // Moves stock by the difference (take the old lines out of the old place,
+    // put the new lines in the new place) and records exactly what changed.
     [Authorize(Roles = Roles.Managers)]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<PurchaseDetailDto>> Update(int id, PurchaseInputDto input)
@@ -105,14 +109,14 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         if (sentIds.Any(lid => !existing.ContainsKey(lid)) || sentIds.Distinct().Count() != sentIds.Count)
             return BadRequest(new { message = "One or more lines don't belong to this purchase." });
 
-        // --- stock: new quantities minus old quantities, per item ---
-        var delta = QuantityByItem(input.Items.Select(l => (l.ItemId, l.Quantity)));
-        foreach (var li in purchase.Items)
-            delta[li.ItemId] = delta.GetValueOrDefault(li.ItemId) - li.Quantity;
+        // --- stock: old lines leave the old place, new lines arrive at the new one ---
+        var delta = new Dictionary<StockKey, int>();
+        foreach (var li in purchase.Items) StockService.Add(delta, purchase.ProjectId, li.ItemId, -li.Quantity);
+        foreach (var l in input.Items) StockService.Add(delta, input.ProjectId, l.ItemId, l.Quantity);
 
-        var shortfall = await AdjustStock(delta);
+        var shortfall = await stock.Apply(delta);
         if (shortfall is not null)
-            return Conflict(new { message = $"Can't save — not enough stock (some items were already used). {shortfall}" });
+            return Conflict(new { message = $"Can't save — some of this material has already been moved or used. {shortfall}" });
 
         // --- work out what changed (names are snapshots for the history) ---
         var itemIds = input.Items.Select(l => l.ItemId).Concat(purchase.Items.Select(li => li.ItemId)).Distinct().ToList();
@@ -188,7 +192,8 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         return Ok(await LoadDetail(purchase.Id));
     }
 
-    // DELETE /api/purchases/5  → delete a purchase (managers only). Reverses the restock.
+    // DELETE /api/purchases/5  → delete a purchase (managers only). Takes its
+    // material back out of wherever it was delivered.
     [Authorize(Roles = Roles.Managers)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
@@ -198,10 +203,12 @@ public class PurchasesController(AppDbContext db) : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
         if (purchase is null) return NotFound();
 
-        // Take back the stock this purchase added — blocked if some was already used.
-        var shortfall = await AdjustStock(QuantityByItem(purchase.Items.Select(li => (li.ItemId, -li.Quantity))));
+        // Take back the stock this purchase added — blocked if some was already moved.
+        var delta = new Dictionary<StockKey, int>();
+        foreach (var li in purchase.Items) StockService.Add(delta, purchase.ProjectId, li.ItemId, -li.Quantity);
+        var shortfall = await stock.Apply(delta);
         if (shortfall is not null)
-            return Conflict(new { message = $"Can't delete — not enough stock (some items were already used). {shortfall}" });
+            return Conflict(new { message = $"Can't delete — some of this material has already been moved or used. {shortfall}" });
 
         db.Purchases.Remove(purchase); // cascade removes its lines and history
         await db.SaveChangesAsync();
@@ -233,38 +240,10 @@ public class PurchasesController(AppDbContext db) : ControllerBase
         return null;
     }
 
-    // Adds up quantities per item (the same item can appear on several lines).
-    private static Dictionary<int, int> QuantityByItem(IEnumerable<(int ItemId, int Quantity)> lines)
-    {
-        var totals = new Dictionary<int, int>();
-        foreach (var (itemId, qty) in lines)
-            totals[itemId] = totals.GetValueOrDefault(itemId) + qty;
-        return totals;
-    }
-
-    // Moves each item's stock by its delta. If ANY item would drop below zero
-    // (because that stock was already used), nothing is changed and a readable
-    // explanation is returned instead. Returns null on success.
-    private async Task<string?> AdjustStock(Dictionary<int, int> delta)
-    {
-        var ids = delta.Where(d => d.Value != 0).Select(d => d.Key).ToList();
-        if (ids.Count == 0) return null;
-
-        var items = await db.Items.Where(i => ids.Contains(i.Id)).ToListAsync();
-        var shortfalls = items
-            .Where(i => i.Quantity + delta[i.Id] < 0)
-            .Select(i => $"{i.Name}: would remove {-delta[i.Id]} {i.Unit}, but only {i.Quantity} {i.Unit} in stock.")
-            .ToList();
-        if (shortfalls.Count > 0) return string.Join(" ", shortfalls);
-
-        foreach (var i in items) i.Quantity += delta[i.Id];
-        return null;
-    }
-
     private async Task<string?> SupplierName(int id) =>
         await db.Suppliers.Where(s => s.Id == id).Select(s => s.Name).FirstOrDefaultAsync();
 
-    // Null project = General (no project).
+    // Null project = delivered to the warehouse.
     private async Task<string?> ProjectName(int? id) =>
         id is null ? null : await db.Projects.Where(p => p.Id == id).Select(p => p.Name).FirstOrDefaultAsync();
 

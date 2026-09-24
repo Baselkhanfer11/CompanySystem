@@ -1,10 +1,11 @@
 namespace CompanySystem.Api.Models;
 
 /// <summary>
-/// A purchase = one supplier invoice. It has a header (who we bought from, an
-/// optional project the cost is charged to, the date, an invoice reference) and
-/// one or more <see cref="PurchaseItem"/> lines. Recording a purchase restocks
-/// the warehouse (each line adds its quantity to the item's stock).
+/// A purchase = one supplier invoice. It has a header (who we bought from,
+/// where it was delivered, the date, an invoice reference) and one or more
+/// <see cref="PurchaseItem"/> lines. The material lands where it was delivered:
+/// the warehouse (adds to the item's stock) or a project's site (charged to
+/// that project straight away).
 /// </summary>
 public class Purchase
 {
@@ -14,8 +15,9 @@ public class Purchase
     public int SupplierId { get; set; }
     public Supplier? Supplier { get; set; }
 
-    // Optional: the project this purchase is charged to (for cost-per-project).
-    // Null means a general purchase (e.g. plain warehouse restocking).
+    // Where the material was delivered: a project's site, or null = the warehouse.
+    // Delivered to a site = that project's cost; to the warehouse = stock that
+    // is charged to a project later, when it's issued (see StockMovement).
     public int? ProjectId { get; set; }
     public Project? Project { get; set; }
 

@@ -78,6 +78,10 @@ public class ProjectsController(AppDbContext db) : ControllerBase
         var project = await db.Projects.FindAsync(id);
         if (project is null) return NotFound();
 
+        // Keep cost history intact: a project with material records stays.
+        if (await db.Purchases.AnyAsync(p => p.ProjectId == id) || await db.StockMovements.AnyAsync(m => m.ProjectId == id))
+            return Conflict(new { message = "Can't delete — this project has purchases or stock movements. Set it to Completed instead." });
+
         db.Projects.Remove(project);
         await db.SaveChangesAsync();
         return NoContent();

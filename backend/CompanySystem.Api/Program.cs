@@ -20,6 +20,9 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 // ---- File storage (uploaded documents) ----
 builder.Services.AddSingleton<CompanySystem.Api.Services.FileStorage>();
 
+// ---- Stock (where material is, and moving it) ----
+builder.Services.AddScoped<CompanySystem.Api.Services.StockService>();
+
 var jwt = builder.Configuration.GetSection("Jwt");
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
