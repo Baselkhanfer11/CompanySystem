@@ -241,7 +241,37 @@ export interface PurchaseLineInput {
 // A new purchase that starts pre-filled (e.g. from the to-buy list).
 export interface PurchaseDraft {
   projectId: number | null; // where it's delivered (null = warehouse)
+  supplierId?: number | null; // suggested from the price history (the cheapest recent one)
   lines: { itemId: number; quantity: number; unitPrice: number }[];
+}
+
+// ---- Supplier price history ----
+
+// What we've paid one supplier for one item (built from past purchases).
+export interface SupplierPrice {
+  itemId: number;
+  supplierId: number;
+  supplierName: string;
+  supplierCode: string;
+  supplierActive: boolean;
+  lastPrice: number; // on the most recent purchase
+  lastDate: string;
+  minPrice: number;
+  avgPrice: number; // per unit, weighted by quantity
+  timesBought: number;
+  totalQuantity: number;
+}
+
+// One past purchase of an item.
+export interface PriceHistoryLine {
+  purchaseId: number;
+  date: string;
+  supplierId: number;
+  supplierName: string;
+  invoiceNumber: string | null;
+  deliveredTo: string | null; // project name, or null = the warehouse
+  quantity: number;
+  unitPrice: number;
 }
 
 // A new "send to site" movement that starts pre-filled (from the to-buy list).
