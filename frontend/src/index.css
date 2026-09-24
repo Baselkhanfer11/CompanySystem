@@ -938,3 +938,39 @@ tr.covered .cover-track span { background: var(--emerald); }
 
 /* Shown for the moment a page's code is downloading (first visit only). */
 .page-loading { display: grid; place-items: center; min-height: 240px; }
+
+/* ---- Button polish ---- */
+/* Page title on one side, its main actions on the other; stacked on phones. */
+.page-header.with-actions { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.page-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .page-header.with-actions { flex-direction: column; align-items: stretch; }
+  .page-header.with-actions .btn { flex: 1; }
+}
+/* One visible focus ring for every button and link, keyboard only (not on mouse click).
+   These elements animate "all" properties, so start from an invisible ring of the same
+   size — focusing then just fades the colour in (no grey flash, no size jump). */
+.btn, .act-btn, .icon-btn, .seg-btn, .nav-item, .item-sites, .item-short, .dash-more, .link-btn {
+  outline: 2px solid transparent; outline-offset: 2px;
+}
+.btn:focus-visible, .act-btn:focus-visible, .icon-btn:focus-visible, .seg-btn:focus-visible,
+.nav-item:focus-visible, .item-sites:focus-visible, .item-short:focus-visible, .dash-more:focus-visible, .link-btn:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+/* Store card actions: on hover, on keyboard focus, and always on touch screens (no hover there). */
+.item-card:focus-within .item-actions { opacity: 1; }
+@media (hover: none) { .item-actions { opacity: 1; } }
+/* The confirm dialog's icon (tinted like the danger button). */
+.confirm-illus { margin: 0; background: rgba(251,113,133,0.1); border-color: rgba(251,113,133,0.25); }
+.confirm-illus svg { color: var(--rose); }
+
+/* Phones: the top bar was wider than the screen (34px padding + 18px gaps), which
+   squeezed the icon buttons and pushed the bell off-screen. Tighter spacing, a
+   search box that takes what's left, and icon buttons that never shrink. */
+@media (max-width: 600px) {
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar .search-box { flex: 1; width: auto; min-width: 0; max-width: none; padding: 9px 10px; }
+  .topbar .topbar-spacer { display: none; }
+  .topbar .icon-btn, .topbar .lang-switch, .topbar .notif { flex-shrink: 0; }
+  .page-scroll { padding: 20px 16px 48px; }
+}

@@ -74,13 +74,13 @@ export function StockMovementsPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('stock.title')}</h1>
           <p>{t('stock.sub')}</p>
         </div>
         {manage && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="page-actions">
             <button className="btn btn-ghost" onClick={() => setModalType('Return')}><UndoIcon /> {t('stock.return')}</button>
             <button className="btn btn-primary" onClick={() => setModalType('Issue')}><SwapIcon /> {t('stock.send')}</button>
           </div>
@@ -188,6 +188,8 @@ export function StockMovementsPage() {
         busy={undoBusy}
         onCancel={() => setUndoing(null)}
         onConfirm={handleUndo}
+        confirmLabel={t('stock.undoConfirm')}
+        icon={<UndoIcon />}
       />
     </div>
   );

@@ -80,7 +80,7 @@ export function StorePage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('store.title')}</h1>
           <p>{t('store.sub')}</p>
@@ -133,8 +133,8 @@ export function StorePage() {
                   {i.imageUrl ? <img src={i.imageUrl} alt={i.name} /> : <BoxesIcon />}
                   {manage && (
                     <div className="item-actions">
-                      <button className="act-btn" onClick={() => openEdit(i)} aria-label={t('common.edit')}><EditIcon /></button>
-                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label={t('common.delete')}><TrashIcon /></button>
+                      <button className="act-btn" onClick={() => openEdit(i)} aria-label={t('common.edit')} title={t('common.edit')}><EditIcon /></button>
+                      <button className="act-btn danger" onClick={() => setDeleting(i)} aria-label={t('common.delete')} title={t('common.delete')}><TrashIcon /></button>
                     </div>
                   )}
                 </div>

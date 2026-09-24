@@ -1,14 +1,18 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { purchasesApi } from '../api/purchases';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { CartIcon, ClipboardIcon, ProjectsIcon, WalletIcon } from '../components/icons';
+import { PurchaseModal } from '../components/PurchaseModal';
 import { StatCard } from '../components/StatCard';
+import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
+import { NONE, purchasesChanged, useProjects, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatUsd, formatUsdShort } from '../lib/format';
 import type { LayoutContext } from '../layouts/AppLayout';
-import type { Shortage } from '../types';
+import type { Project, PurchaseDraft, PurchaseInput, Shortage, Supplier } from '../types';
 
 // How urgent a shortage is, from what the warehouse can cover:
 //   urgent  → nothing in the warehouse, the site waits until we buy
@@ -26,8 +30,10 @@ export function ToBuyPage() {
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
 
+  const toast = useToast();
+
   // The shortages list lives in the shared items cache (the bell uses it too).
-  const { shortages, loading, error, refresh, revalidate } = useItems();
+  const { items, shortages, loading, error, refresh, revalidate } = useItems();
   useEffect(() => { revalidate(); }, [revalidate]); // re-check if the copy is getting old
 
   const filtered = useMemo(() => {
@@ -44,15 +50,44 @@ export function ToBuyPage() {
   const projectsWaiting = new Set(shortages.flatMap((s) => s.projects.map((p) => p.projectId))).size;
   const urgentCount = shortages.filter((s) => levelOf(s) === 'urgent').length;
 
+  // ---- "Buy it": open the purchase form already filled in ----
+  const suppliers: Supplier[] = useSuppliers().data ?? NONE;
+  const projects: Project[] = useProjects().data ?? NONE;
+  const [draft, setDraft] = useState<PurchaseDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // One project needs it and the warehouse has none → deliver straight to that
+  // site. Otherwise buy into the warehouse and send it on from there.
+  const deliverTo = (s: Shortage) => (s.projects.length === 1 && s.inWarehouse <= 0 ? s.projects[0] : null);
+  const buyOne = (s: Shortage) =>
+    setDraft({ projectId: deliverTo(s)?.projectId ?? null, lines: [{ itemId: s.itemId, quantity: s.toBuy, unitPrice: s.price }] });
+  const buyAll = () =>
+    setDraft({ projectId: null, lines: toBuy.map((s) => ({ itemId: s.itemId, quantity: s.toBuy, unitPrice: s.price })) });
+
+  const handleSave = async (data: PurchaseInput) => {
+    setSaving(true);
+    try {
+      await purchasesApi.create(data);
+      toast('success', t('purchase.recorded'));
+      setDraft(null);
+      purchasesChanged(); // stock moved, so the list below updates itself
+    } catch (e) { toast('error', (e as Error).message); } // the form stays open
+    finally { setSaving(false); }
+  };
+
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div className="page-header with-actions">
         <div>
           <h1>{t('toBuy.title')}</h1>
           <p>{t('toBuy.sub')}</p>
         </div>
         {manage && toBuy.length > 0 && (
-          <Link className="btn btn-primary" to="/purchases"><CartIcon /> {t('purchase.add')}</Link>
+          <div className="page-actions">
+            <button className="btn btn-primary" onClick={buyAll} title={t('toBuy.buyAllHint')}>
+              <CartIcon /> {t('toBuy.buyAll', { n: toBuy.length })}
+            </button>
+          </div>
         )}
       </div>
 
@@ -110,6 +145,7 @@ export function ToBuyPage() {
                   <th style={{ textAlign: 'end' }}>{t('toBuy.colToBuy')}</th>
                   <th style={{ textAlign: 'end' }}>{t('toBuy.colPrice')}</th>
                   <th style={{ textAlign: 'end' }}>{t('toBuy.colCost')}</th>
+                  {manage && <th aria-label={t('toBuy.buy')} />}
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +175,21 @@ export function ToBuyPage() {
                     </td>
                     <td style={{ textAlign: 'end', color: 'var(--text-muted)' }}>{formatUsd(s.price)}</td>
                     <td style={{ textAlign: 'end', fontWeight: 600 }}>{s.toBuy > 0 ? formatUsd(s.estimatedCost) : '—'}</td>
+                    {manage && (
+                      <td style={{ textAlign: 'end' }}>
+                        {s.toBuy > 0 && (
+                          <button
+                            className={`btn btn-sm ${level === 'urgent' ? 'btn-primary' : 'btn-ghost'}`}
+                            onClick={() => buyOne(s)}
+                            title={deliverTo(s)
+                              ? t('toBuy.buyToSite', { n: `${s.toBuy} ${s.unit}`, site: deliverTo(s)!.projectName })
+                              : t('toBuy.buyToWarehouse', { n: `${s.toBuy} ${s.unit}` })}
+                          >
+                            <CartIcon /> {t('toBuy.buy')}
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                   );
                 })}
@@ -147,6 +198,18 @@ export function ToBuyPage() {
           </div>
         )}
       </div>
+
+      <PurchaseModal
+        open={draft !== null}
+        initial={null}
+        draft={draft}
+        suppliers={suppliers}
+        projects={projects}
+        items={items}
+        saving={saving}
+        onClose={() => setDraft(null)}
+        onSave={handleSave}
+      />
     </div>
   );
 }

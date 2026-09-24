@@ -238,6 +238,12 @@ export interface PurchaseLineInput {
   quantity: number;
   unitPrice: number;
 }
+// A new purchase that starts pre-filled (e.g. from the to-buy list).
+export interface PurchaseDraft {
+  projectId: number | null; // where it's delivered (null = warehouse)
+  lines: { itemId: number; quantity: number; unitPrice: number }[];
+}
+
 export interface PurchaseInput {
   supplierId: number;
   projectId?: number | null;
