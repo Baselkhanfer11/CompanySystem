@@ -63,5 +63,5 @@ The bell polls every 20 seconds and also refreshes on window focus and right aft
 
 - **Fixed 3 steps** — the pipeline is always Engineer → Manager → CEO.
 - **Every document belongs to a project.**
-- **No new roles** — it reuses the existing three (Employee / WarehouseManager / Administrator).
+- **No special roles** — anyone can upload; reviews use the existing WarehouseManager (Manager stage) and Administrator (CEO stage). The Procurement Officer uploads like an Employee and doesn't review.
 - **Notifications are decoupled** from documents so history and alerts don't disappear when a document is removed.

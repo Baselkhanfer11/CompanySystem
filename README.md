@@ -44,9 +44,16 @@ bun install
 bun run dev
 ```
 
-## Planned features
-- [ ] Employees
-- [ ] Store / warehouse (items & stock)
-- [ ] Stock movements ("processes") with printable records
-- [ ] Projects
-- [ ] Purchases & Sales statistics
+## Features
+- [x] Employees, login access and four roles
+- [x] Store / warehouse (items & stock, by location)
+- [x] Projects with material plans
+- [x] Suppliers, purchases and supplier price history
+- [x] Stock movements (send / return / split between sites)
+- [x] To-buy list, project costs and a home dashboard
+- [x] Excel document approvals with notifications
+- [ ] Sales
+- [ ] Export to Excel
+- [ ] Printable stock-movement records
+
+More in the [wiki](wiki/Home.md).
