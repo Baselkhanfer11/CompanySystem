@@ -49,6 +49,20 @@ const en: Dict = {
   'nav.soon': 'Soon',
   'nav.signOut': 'Sign out',
 
+  // Change your own password
+  'pw.open': 'Change password',
+  'pw.title': 'Change password',
+  'pw.sub': 'Choose a new password for your account.',
+  'pw.current': 'Current password',
+  'pw.new': 'New password',
+  'pw.confirm': 'New password again',
+  'pw.hint': 'At least {n} characters.',
+  'pw.currentRequired': 'Enter your current password.',
+  'pw.tooShort': 'The new password needs at least {n} characters.',
+  'pw.mismatch': 'The two new passwords do not match.',
+  'pw.sameAsOld': 'The new password is the same as the current one.',
+  'pw.saved': 'Password changed.',
+
   // Theme toggle
   'theme.toLight': 'Switch to light mode',
   'theme.toDark': 'Switch to dark mode',
@@ -94,7 +108,6 @@ const en: Dict = {
   'login.password': 'Password',
   'login.signIn': 'Sign in',
   'login.failed': 'Login failed',
-  'login.hint': 'First time? Use the seeded admin —',
 
   // Dashboard
   'dash.welcome': 'Welcome back',
@@ -833,6 +846,20 @@ const ar: Dict = {
   'nav.soon': 'قريباً',
   'nav.signOut': 'تسجيل الخروج',
 
+  // Change your own password
+  'pw.open': 'تغيير كلمة المرور',
+  'pw.title': 'تغيير كلمة المرور',
+  'pw.sub': 'اختر كلمة مرور جديدة لحسابك.',
+  'pw.current': 'كلمة المرور الحالية',
+  'pw.new': 'كلمة المرور الجديدة',
+  'pw.confirm': 'أعد كتابة كلمة المرور الجديدة',
+  'pw.hint': '{n} أحرف على الأقل.',
+  'pw.currentRequired': 'أدخل كلمة المرور الحالية.',
+  'pw.tooShort': 'يجب أن تتكون كلمة المرور الجديدة من {n} أحرف على الأقل.',
+  'pw.mismatch': 'كلمتا المرور الجديدتان غير متطابقتين.',
+  'pw.sameAsOld': 'كلمة المرور الجديدة هي نفس الحالية.',
+  'pw.saved': 'تم تغيير كلمة المرور.',
+
   // Theme toggle
   'theme.toLight': 'التبديل إلى الوضع الفاتح',
   'theme.toDark': 'التبديل إلى الوضع الداكن',
@@ -878,7 +905,6 @@ const ar: Dict = {
   'login.password': 'كلمة المرور',
   'login.signIn': 'تسجيل الدخول',
   'login.failed': 'فشل تسجيل الدخول',
-  'login.hint': 'أول مرة؟ استخدم حساب المدير الافتراضي —',
 
   // Dashboard
   'dash.welcome': 'مرحباً بعودتك',

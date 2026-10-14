@@ -55,6 +55,29 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
         return Ok(UserDto.From(user));
     }
 
+    // PUT /api/auth/password  → change your own password
+    [Authorize]
+    [HttpPut("password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest req)
+    {
+        var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var user = await db.Users.FindAsync(id);
+        if (user is null || !user.IsActive)
+            return Unauthorized();
+
+        // 400, not 401: a wrong current password must not sign the user out.
+        if (hasher.VerifyHashedPassword(user, user.PasswordHash, req.CurrentPassword ?? "") == PasswordVerificationResult.Failed)
+            return BadRequest(new { message = "Your current password is wrong." });
+        if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < MinPasswordLength)
+            return BadRequest(new { message = $"The new password needs at least {MinPasswordLength} characters." });
+
+        user.PasswordHash = hasher.HashPassword(user, req.NewPassword);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    private const int MinPasswordLength = 8; // same rule as the change-password form
+
     // True when the user is linked to an employee that no longer exists or is inactive.
     private async Task<bool> IsLinkedToInactiveEmployee(User user) =>
         user.EmployeeId is int empId &&

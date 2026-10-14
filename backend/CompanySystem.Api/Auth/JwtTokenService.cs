@@ -8,15 +8,27 @@ namespace CompanySystem.Api.Auth;
 
 /// <summary>
 /// Creates signed JWT tokens for logged-in users.
-/// The signing key + settings come from appsettings.json ("Jwt" section).
+/// Settings come from appsettings.json ("Jwt" section); the signing key is a secret
+/// (dotnet user-secrets locally) and is never in git.
 /// </summary>
 public class JwtTokenService(IConfiguration config)
 {
+    /// <summary>The key that signs and checks tokens. Stops with a clear message if it isn't set.</summary>
+    public static SymmetricSecurityKey SigningKey(IConfiguration config)
+    {
+        var key = config["Jwt:Key"];
+        // HMAC-SHA256 needs at least 256 bits (32 bytes).
+        if (string.IsNullOrEmpty(key) || Encoding.UTF8.GetByteCount(key) < 32)
+            throw new InvalidOperationException(
+                "Jwt:Key is missing or shorter than 32 characters. Set it with dotnet user-secrets " +
+                "inside backend/CompanySystem.Api (see the README).");
+        return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+    }
+
     public (string token, DateTime expiresAt) Create(User user)
     {
         var jwt = config.GetSection("Jwt");
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(SigningKey(config), SecurityAlgorithms.HmacSha256);
         var expires = DateTime.UtcNow.AddMinutes(int.Parse(jwt["ExpiryMinutes"] ?? "480"));
 
         // Claims = the facts baked into the token.

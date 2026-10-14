@@ -10,8 +10,17 @@ How to run CompanySystem on your own machine.
 
 ## 1. Run the backend (the API)
 
+**One-time setup: secrets.** The token signing key and the first admin's password are secrets, so they are **not** in `appsettings.json` or git. Store them with `dotnet user-secrets` (kept in your user profile, outside the repo):
+
 ```bash
 cd backend/CompanySystem.Api
+dotnet user-secrets set "Jwt:Key" "<a long random string, at least 32 characters>"
+dotnet user-secrets set "Seed:AdminPassword" "<the admin's password>"
+```
+
+The API refuses to start without `Jwt:Key`. Then run it (still inside `backend/CompanySystem.Api`):
+
+```bash
 dotnet run
 ```
 
@@ -20,7 +29,7 @@ The API starts on `http://localhost:5022` and serves JSON under `/api/...`. You 
 > **Database:** on startup the API **applies any pending EF Core migrations by itself** and creates the tables, so a fresh database just works.
 > If you add a new migration, it's applied the next time the API starts (or run `dotnet ef database update` inside `backend/CompanySystem.Api`).
 
-> **First admin account:** the very first time the app runs (when there are no users yet), it creates one **Administrator** account. Its username and password come from the `Seed` section of `appsettings` — set your own there and keep real passwords out of git.
+> **First admin account:** the very first time the app runs (when there are no users yet), it creates one **Administrator** account. Its username comes from the `Seed` section of `appsettings.json` and its password from the `Seed:AdminPassword` secret above. An administrator still using the old password that was once in git gets the new secret automatically on the next start.
 
 ## 2. Run the frontend (the web app)
 

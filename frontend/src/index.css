@@ -480,8 +480,6 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .login-title { font-size: var(--fs-2xl); text-align: center; }
 .login-sub { text-align: center; color: var(--text-muted); margin-top: 6px; font-size: var(--fs-base); }
 .login-error { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25); color: var(--rose); font-size: var(--fs-md); }
-.login-hint { margin-top: var(--sp-4); text-align: center; font-size: var(--fs-sm); color: var(--text-dim); }
-.login-hint b { color: var(--text-muted); font-weight: 600; }
 .auth-loading { height: 100%; display: grid; place-items: center; }
 
 /* ============================================================

@@ -31,6 +31,15 @@ CompanySystem/
 - [Bun](https://bun.sh)
 - SQL Server (LocalDB or full)
 
+### One-time setup: secrets
+Secrets never go in git. Locally they live in `dotnet user-secrets` (stored in your user profile,
+outside the repo). Inside `backend/CompanySystem.Api`:
+```bash
+dotnet user-secrets set "Jwt:Key" "<a long random string, at least 32 characters>"
+dotnet user-secrets set "Seed:AdminPassword" "<the admin's password>"
+```
+The first run creates the `admin` account with that password. The API won't start without `Jwt:Key`.
+
 ### Run the backend
 ```bash
 cd backend/CompanySystem.Api

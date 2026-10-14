@@ -18,8 +18,10 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(url, { ...options, headers });
 
-  if (res.status === 401) {
-    // Token missing/expired/invalid — clear it and tell the app to log out.
+  // A 401 with a token means it expired or is invalid. Without one (e.g. signing in
+  // with a wrong password) it falls through, so the server's own message is shown.
+  if (res.status === 401 && token) {
+    // Token expired/invalid — clear it and tell the app to log out.
     setToken(null);
     window.dispatchEvent(new Event('auth:logout'));
     throw new Error('Your session has expired. Please sign in again.');
