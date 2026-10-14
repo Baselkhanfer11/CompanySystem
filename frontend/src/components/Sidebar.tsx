@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { canManage, isAdmin } from '../auth/roles';
 import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import {
-  BoxesIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, LogoutIcon,
+  BoxesIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, KeyIcon, LogoutIcon,
   ProjectsIcon, ShieldIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
+import { PasswordModal } from './PasswordModal';
 
 const live = [
   { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, end: true },
@@ -21,6 +23,7 @@ const soon = [
 export function Sidebar({ open }: { open: boolean }) {
   const { user, logout } = useAuth();
   const { t } = useI18n();
+  const [changingPassword, setChangingPassword] = useState(false);
   // How many items open projects are short of — shown next to "To buy".
   const toBuyCount = useItems().shortages.filter((s) => s.toBuy > 0).length;
   return (
@@ -106,11 +109,15 @@ export function Sidebar({ open }: { open: boolean }) {
             <div className="name">{user?.fullName || 'User'}</div>
             <div className="role">{user?.role ? t(`role.${user.role}`) : ''}</div>
           </div>
+          <button className="act-btn" onClick={() => setChangingPassword(true)} aria-label={t('pw.open')} data-tip={t('pw.open')}>
+            <KeyIcon />
+          </button>
           <button className="act-btn" onClick={logout} aria-label={t('nav.signOut')} data-tip={t('nav.signOut')}>
             <LogoutIcon />
           </button>
         </div>
       </div>
+      {changingPassword && <PasswordModal onClose={() => setChangingPassword(false)} />}
     </aside>
   );
 }

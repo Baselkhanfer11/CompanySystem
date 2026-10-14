@@ -13,3 +13,6 @@ public record UserDto(int Id, string Username, string FullName, string Role, boo
 
 // What login returns: the token + who you are + when it expires.
 public record AuthResponse(string Token, DateTime ExpiresAt, UserDto User);
+
+// Changing your own password: the current one proves it's really you.
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

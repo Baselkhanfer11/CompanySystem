@@ -1,4 +1,3 @@
-using System.Text;
 using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Models;
@@ -24,6 +23,8 @@ builder.Services.AddSingleton<CompanySystem.Api.Services.FileStorage>();
 builder.Services.AddScoped<CompanySystem.Api.Services.StockService>();
 
 var jwt = builder.Configuration.GetSection("Jwt");
+// Read the key now, so a missing secret stops the API at start-up, not at the first sign-in.
+var signingKey = JwtTokenService.SigningKey(builder.Configuration);
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -36,7 +37,7 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!)),
+            IssuerSigningKey = signingKey,
         };
     });
 builder.Services.AddAuthorization();

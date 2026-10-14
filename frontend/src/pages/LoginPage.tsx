@@ -83,10 +83,6 @@ export function LoginPage() {
           {busy && <span className="spinner" />}
           {t('login.signIn')}
         </button>
-
-        <div className="login-hint">
-          {t('login.hint')} <b>admin</b> / <b>Admin@123</b>
-        </div>
       </form>
     </div>
   );
