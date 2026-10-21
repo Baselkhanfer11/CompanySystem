@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useMoney } from '../auth/useMoney';
 import { Avatar } from '../components/Avatar';
 import {
   AlertIcon, BoxesIcon, CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SwapIcon, UndoIcon, UsersIcon, WalletIcon,
@@ -27,10 +28,11 @@ export function DashboardPage() {
   const { items, shortages } = useItems();
   const { data, loading, error } = useDashboard();
   const seesCosts = data?.costThisMonth != null; // the server leaves money out for non-managers
+  const { costs, prices } = useMoney();
 
   // ---- tiles ----
   const short = shortages.filter((s) => s.toBuy > 0);
-  const toBuyTotal = short.reduce((sum, s) => sum + s.estimatedCost, 0);
+  const toBuyTotal = short.reduce((sum, s) => sum + (s.estimatedCost ?? 0), 0);
   const out = items.filter((i) => isOutOfStock(i.quantity));
   const low = items.filter((i) => isLowStock(i.quantity));
   const onHold = data?.projects.filter((p) => p.status === 'OnHold').length ?? 0;
@@ -99,7 +101,7 @@ export function DashboardPage() {
         ) : (
           <StatCard icon={<UsersIcon />} value={loading ? '—' : data?.activeEmployees ?? '—'} label={t('dash.team')} color="#7c6cff" trend={data ? t('dash.teamOf', { n: data.employees }) : undefined} delay={0} />
         )}
-        <StatCard icon={<ClipboardIcon />} value={money(toBuyTotal)} label={t('dash.toBuy')} color="#fb7185" trend={short.length ? t('dash.toBuyItems', { n: short.length }) : t('dash.toBuyNone')} delay={70} />
+        <StatCard icon={<ClipboardIcon />} value={prices ? money(toBuyTotal) : short.length} label={prices ? t('dash.toBuy') : t('toBuy.itemsShort')} color="#fb7185" trend={short.length ? t('dash.toBuyItems', { n: short.length }) : t('dash.toBuyNone')} delay={70} />
         <StatCard icon={<BoxesIcon />} value={out.length + low.length} label={t('dash.alerts')} color="#fbbf24" trend={out.length + low.length ? t('dash.alertsDetail', { out: out.length, low: low.length }) : t('dash.alertsNone')} delay={140} />
         <StatCard icon={<ProjectsIcon />} value={loading ? '—' : data?.activeProjects ?? '—'} label={t('dash.activeProjects')} color="#34d399" trend={onHold ? t('dash.onHold', { n: onHold }) : undefined} delay={210} />
       </div>
@@ -131,7 +133,7 @@ export function DashboardPage() {
                       </div>
                       <div className="meta">
                         <strong>{t('plan.progressOf', { p: p.progress })}</strong>
-                        <span>{p.stillToSpend > 0 ? t('dash.stillToSpend', { amount: formatUsd(p.stillToSpend) }) : t('dash.planDone')}</span>
+                        <span>{costs && (p.stillToSpend ?? 0) > 0 ? t('dash.stillToSpend', { amount: formatUsd(p.stillToSpend) }) : p.progress >= 100 ? t('dash.planDone') : ''}</span>
                       </div>
                     </>
                   ) : (
@@ -159,7 +161,7 @@ export function DashboardPage() {
                     <span>{a.s.projects.length === 1 ? t('dash.forProject', { project: a.s.projects[0].projectName }) : t('dash.forProjects', { n: a.s.projects.length })}</span>
                   </div>
                 </div>
-                <span className="dash-amount crit">{t('dash.buy', { n: `${a.s.toBuy} ${a.s.unit}`, amount: formatUsd(a.s.estimatedCost) })}</span>
+                <span className="dash-amount crit">{prices ? t('dash.buy', { n: `${a.s.toBuy} ${a.s.unit}`, amount: formatUsd(a.s.estimatedCost) }) : t('dash.buyQty', { n: `${a.s.toBuy} ${a.s.unit}` })}</span>
               </Link>
             ) : (
               <Link key={a.key} to="/store" className="dash-item">
@@ -189,7 +191,7 @@ export function DashboardPage() {
                   <div className="dash-sentence">{describe(a)}</div>
                   <div className="meta"><span title={formatDateTime(a.createdAt)}>{formatTimeAgo(a.createdAt, t)}</span></div>
                 </div>
-                <span className="dash-amount">{a.kind === 'Return' ? '−' : ''}{formatUsd(a.total)}</span>
+                {costs && <span className="dash-amount">{a.kind === 'Return' ? '−' : ''}{formatUsd(a.total)}</span>}
               </Link>
             ))}
           </div>

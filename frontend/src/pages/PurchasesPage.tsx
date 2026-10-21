@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { purchasesApi } from '../api/purchases';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
+import { useMoney } from '../auth/useMoney';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportButton } from '../components/ExportButton';
 import { EditIcon, PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
@@ -24,6 +25,7 @@ export function PurchasesPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
+  const { prices } = useMoney(); // employees see no prices
   const { items } = useItems();
 
   const { data, loading, error: loadError, refresh } = usePurchases();
@@ -57,7 +59,7 @@ export function PurchasesPage() {
     { header: t('purchase.colProject'), value: (p) => p.projectName ?? t('purchase.general') },
     { header: t('purchase.colInvoice'), value: (p) => p.invoiceNumber },
     { header: t('purchase.colLines'), type: 'number', value: (p) => p.lineCount },
-    { header: t('purchase.colTotal'), type: 'money', value: (p) => p.total },
+    ...(prices ? [{ header: t('purchase.colTotal'), type: 'money' as const, value: (p: PurchaseListItem) => p.total }] : []),
     { header: t('xl.recordedBy'), value: (p) => p.createdByName },
   ], filtered)];
 
@@ -151,7 +153,7 @@ export function PurchasesPage() {
                   <th>{t('purchase.colProject')}</th>
                   <th>{t('purchase.colInvoice')}</th>
                   <th style={{ textAlign: 'center' }}>{t('purchase.colLines')}</th>
-                  <th className="num">{t('purchase.colTotal')}</th>
+                  {prices && <th className="num">{t('purchase.colTotal')}</th>}
                   <th className="num">{t('purchase.colActions')}</th>
                 </tr>
               </thead>
@@ -163,7 +165,7 @@ export function PurchasesPage() {
                     <td>{p.projectName ?? <span style={{ color: 'var(--text-dim)' }}>{t('purchase.general')}</span>}</td>
                     <td><span className="cell-code">{p.invoiceNumber ?? '—'}</span></td>
                     <td style={{ textAlign: 'center' }}>{p.lineCount}</td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatMoney(p.total)}</td>
+                    {prices && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(p.total)}</td>}
                     <td>
                       <div className="row-actions">
                         <button className="act-btn" onClick={() => setViewing(p.id)} aria-label={t('purchase.view')} data-tip={t('purchase.view')}><SearchIcon /></button>

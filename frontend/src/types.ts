@@ -63,7 +63,7 @@ export interface Item {
   code: string;
   quantity: number;
   unit: string;
-  price: number;
+  price?: number;
   imageUrl?: string | null;
   createdAt: string;
 }
@@ -171,7 +171,7 @@ export interface PurchaseListItem {
   invoiceNumber?: string | null;
   date: string;
   lineCount: number;
-  total: number;
+  total?: number;
   createdByName: string;
   createdAt: string;
 }
@@ -184,8 +184,8 @@ export interface PurchaseLine {
   itemCode: string;
   unit: string;
   quantity: number;
-  unitPrice: number;
-  lineTotal: number;
+  unitPrice?: number;
+  lineTotal?: number;
 }
 
 // A full purchase with all its lines.
@@ -200,7 +200,7 @@ export interface PurchaseDetail {
   notes?: string | null;
   createdByName: string;
   createdAt: string;
-  total: number;
+  total?: number;
   items: PurchaseLine[];
   lastEditedByName?: string | null;
   lastEditedAt?: string | null;
@@ -254,10 +254,10 @@ export interface SupplierPrice {
   supplierName: string;
   supplierCode: string;
   supplierActive: boolean;
-  lastPrice: number; // on the most recent purchase
+  lastPrice?: number; // on the most recent purchase
   lastDate: string;
-  minPrice: number;
-  avgPrice: number; // per unit, weighted by quantity
+  minPrice?: number;
+  avgPrice?: number; // per unit, weighted by quantity
   timesBought: number;
   totalQuantity: number;
 }
@@ -271,7 +271,7 @@ export interface PriceHistoryLine {
   invoiceNumber: string | null;
   deliveredTo: string | null; // project name, or null = the warehouse
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number;
 }
 
 // A new "send to site" movement that starts pre-filled (from the to-buy list).
@@ -301,7 +301,7 @@ export interface SiteStock {
   itemCode: string;
   unit: string;
   quantity: number;
-  value: number; // what this material cost the project
+  value?: number; // what this material cost the project
 }
 
 export type MovementType = 'Issue' | 'Return'; // warehouse → site | site → warehouse
@@ -317,7 +317,7 @@ export interface StockMovementListItem {
   lineCount: number;
   lines: { itemName: string; unit: string; quantity: number }[]; // in line order
   itemNames: string[]; // each item once
-  total: number;
+  total?: number;
   createdByName: string;
   createdAt: string;
 }
@@ -329,8 +329,8 @@ export interface StockMovementLine {
   itemCode: string;
   unit: string;
   quantity: number;
-  unitCost: number;
-  lineTotal: number;
+  unitCost?: number;
+  lineTotal?: number;
 }
 
 export interface StockMovementDetail {
@@ -343,7 +343,7 @@ export interface StockMovementDetail {
   notes?: string | null;
   createdByName: string;
   createdAt: string;
-  total: number;
+  total?: number;
   lines: StockMovementLine[];
 }
 
@@ -429,11 +429,11 @@ export interface PlanLine {
   name: string;
   code: string;
   unit: string;
-  price: number;
+  price?: number;
   planned: number;
   onSite: number;
   stillNeeded: number;
-  stillToSpend: number; // still needed × price
+  stillToSpend?: number; // still needed × price
   inPlan: boolean; // false = on the site but not planned
 }
 
@@ -443,9 +443,9 @@ export interface ProjectPlan {
   code: string;
   status: string;
   lines: PlanLine[];
-  estimatedBudget: number;
-  spentSoFar: number;
-  stillToSpend: number;
+  estimatedBudget?: number;
+  spentSoFar?: number;
+  stillToSpend?: number;
   progress: number; // 0-100
   updatedByName?: string | null;
   updatedAt?: string | null;
@@ -457,11 +457,11 @@ export interface Shortage {
   name: string;
   code: string;
   unit: string;
-  price: number;
+  price?: number;
   needed: number;
   inWarehouse: number;
   toBuy: number;
-  estimatedCost: number;
+  estimatedCost?: number;
   projects: { projectId: number; projectName: string; stillNeeded: number }[];
 }
 
@@ -474,7 +474,7 @@ export interface ProjectProgress {
   status: string;
   hasPlan: boolean;
   progress: number; // 0-100
-  stillToSpend: number;
+  stillToSpend?: number;
   itemsOnSite: number;
 }
 
@@ -486,7 +486,7 @@ export interface Activity {
   supplierName?: string | null;
   projectName?: string | null; // null on a purchase = delivered to the warehouse
   items: string[];
-  total: number;
+  total?: number;
   createdAt: string;
 }
 

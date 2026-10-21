@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { purchasesApi } from '../api/purchases';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
 import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
@@ -33,13 +34,13 @@ function describeChange(c: PurchaseChange, t: T, arrow: string): string {
 
   switch (c.kind) {
     case 'LineAdded':
-      return t('purchaseHistory.lineAdded', { item: c.item ?? '', qty: qty(c.toQty), price: formatMoney(c.toPrice ?? 0) });
+      return t('purchaseHistory.lineAdded', { item: c.item ?? '', qty: qty(c.toQty), price: formatMoney(c.toPrice) });
     case 'LineRemoved':
-      return t('purchaseHistory.lineRemoved', { item: c.item ?? '', qty: qty(c.fromQty), price: formatMoney(c.fromPrice ?? 0) });
+      return t('purchaseHistory.lineRemoved', { item: c.item ?? '', qty: qty(c.fromQty), price: formatMoney(c.fromPrice) });
     case 'LineChanged': {
       const parts: string[] = [];
       if (c.fromQty !== c.toQty) parts.push(change(qty(c.fromQty), qty(c.toQty)));
-      if (c.fromPrice !== c.toPrice) parts.push(t('purchaseHistory.price', { change: change(formatMoney(c.fromPrice ?? 0), formatMoney(c.toPrice ?? 0)) }));
+      if (c.fromPrice !== c.toPrice) parts.push(t('purchaseHistory.price', { change: change(formatMoney(c.fromPrice), formatMoney(c.toPrice)) }));
       return `${iso(c.item ?? '')}: ${parts.join(' · ')}`;
     }
     default: {
@@ -64,6 +65,7 @@ export function PurchaseDetailModal(props: Props) {
 
 function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseId: number }) {
   const { t, dir } = useI18n();
+  const { prices } = useMoney(); // employees see no prices
   const fetchDetail = useCallback(() => purchasesApi.getById(purchaseId), [purchaseId]);
   const { data: detail, loading, error } = useCached(`purchase:${purchaseId}`, fetchDetail, 0);
 
@@ -113,8 +115,8 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
                     <tr>
                       <th>{t('purchaseDetail.item')}</th>
                       <th className="num">{t('purchaseDetail.qty')}</th>
-                      <th className="num">{t('purchaseDetail.unitPrice')}</th>
-                      <th className="num">{t('purchaseDetail.lineTotal')}</th>
+                      {prices && <th className="num">{t('purchaseDetail.unitPrice')}</th>}
+                      {prices && <th className="num">{t('purchaseDetail.lineTotal')}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -125,18 +127,20 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
                           <div className="email">{li.itemCode}</div>
                         </td>
                         <td className="num">{li.quantity} {li.unit}</td>
-                        <td className="num">{formatMoney(li.unitPrice)}</td>
-                        <td className="num" style={{ fontWeight: 600 }}>{formatMoney(li.lineTotal)}</td>
+                        {prices && <td className="num">{formatMoney(li.unitPrice)}</td>}
+                        {prices && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(li.lineTotal)}</td>}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
-                <span>{t('purchaseDetail.total')}</span>
-                <strong>{formatMoney(detail.total)}</strong>
-              </div>
+              {prices && (
+                <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+                  <span>{t('purchaseDetail.total')}</span>
+                  <strong>{formatMoney(detail.total)}</strong>
+                </div>
+              )}
 
               {/* History — who recorded it, then every edit (oldest first) */}
               <section>

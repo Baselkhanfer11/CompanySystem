@@ -27,13 +27,13 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
   const best = bestRecent(idx, item.id);
   const lines: PriceHistoryLine[] = history.data ?? [];
   const last = lines[0];
-  const spent = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+  const spent = lines.reduce((s, l) => s + l.quantity * (l.unitPrice ?? 0), 0);
   const qty = lines.reduce((s, l) => s + l.quantity, 0);
 
   // Each purchase compared with the one before it from the same supplier.
   const changeOf = (i: number) => {
     const prev = lines.slice(i + 1).find((l) => l.supplierId === lines[i].supplierId);
-    return prev ? pctChange(lines[i].unitPrice, prev.unitPrice) : 0;
+    return prev ? pctChange(lines[i].unitPrice ?? 0, prev.unitPrice ?? 0) : 0;
   };
 
   const loading = prices.loading || history.loading;

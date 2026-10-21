@@ -66,10 +66,17 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
+        // Money fields are left out for people who may not see them (see Json/MoneyVisibility.cs).
+        options.JsonSerializerOptions.TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver
+        {
+            Modifiers = { CompanySystem.Api.Json.MoneyVisibility.HideMoney },
+        };
         // Always send timestamps as UTC (with a 'Z'), so the browser shows
         // correct local times and "x minutes ago" values.
         options.JsonSerializerOptions.Converters.Add(new CompanySystem.Api.Json.UtcDateTimeConverter());
     });
+// Lets MoneyVisibility see who the current request is for.
+builder.Services.AddHttpContextAccessor();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
 import type { Item, MovementDraft, MovementType, Project, SiteStock, StockMovementInput } from '../types';
@@ -36,6 +37,7 @@ export function MovementModal(props: Props) {
 
 function MovementForm({ initialType, draft, projects, items, siteStock, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
+  const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [type, setType] = useState<MovementType>(draft ? 'Issue' : initialType);
   const [projectId, setProjectId] = useState(draft ? String(draft.projectId) : '');
   const [date, setDate] = useState(today);
@@ -59,7 +61,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
   const unitValue = (itemId: number) => {
     if (isIssue) return itemsById.get(itemId)?.price ?? 0;
     const s = onSite.get(itemId);
-    return s && s.quantity > 0 ? s.value / s.quantity : 0; // average cost on the site
+    return s && s.quantity > 0 ? (s.value ?? 0) / s.quantity : 0; // average cost on the site
   };
 
   // Sending: any item. Returning: only what's on that site.
@@ -148,7 +150,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
                     <div className="line-item">{t('movementModal.item')}</div>
                     <div className="line-qty">{t('movementModal.qty')}</div>
                     <div className="line-price">{t('movementModal.available')}</div>
-                    <div className="line-total">{t('movementModal.value')}</div>
+                    <div className="line-total">{costs && t('movementModal.value')}</div>
                     <div className="line-remove" />
                   </div>
 
@@ -169,7 +171,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
                         <div className="line-price" style={{ color: over ? 'var(--rose)' : 'var(--text-muted)' }}>
                           {item ? `${available(item.id)} ${item.unit}` : '—'}
                         </div>
-                        <div className="line-total">{formatMoney(lineValue(l))}</div>
+                        <div className="line-total">{costs && formatMoney(lineValue(l))}</div>
                         <div className="line-remove">
                           <button className="act-btn danger" onClick={() => removeLine(l.key)} disabled={lines.length === 1} aria-label={t('movementModal.removeLine')} data-tip={t('movementModal.removeLine')}>
                             <TrashIcon />
@@ -185,7 +187,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
                 </button>
               </>
             )}
-            <div className="field-hint" style={{ marginTop: 12 }}>{t('movementModal.costHint')}</div>
+            {costs && <div className="field-hint" style={{ marginTop: 12 }}>{t('movementModal.costHint')}</div>}
           </div>
 
           <div className="field">
@@ -198,8 +200,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
 
         <div className="modal-foot" style={{ justifyContent: 'space-between' }}>
           <div className="grand-total">
-            <span>{t('movementModal.value')}</span>
-            <strong>{formatMoney(total)}</strong>
+            {costs && <><span>{t('movementModal.value')}</span><strong>{formatMoney(total)}</strong></>}
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>

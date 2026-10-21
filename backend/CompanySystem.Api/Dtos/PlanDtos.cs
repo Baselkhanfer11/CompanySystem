@@ -1,3 +1,5 @@
+using CompanySystem.Api.Json;
+
 namespace CompanySystem.Api.Dtos;
 
 // ---- What the frontend sends ----
@@ -15,11 +17,11 @@ public record PlanLineDto(
     string Name,
     string Code,
     string Unit,
-    decimal Price,
+    [property: BuyingPrice] decimal Price,
     int Planned,
     int OnSite,
     int StillNeeded,     // planned − on site (never below 0)
-    decimal StillToSpend, // still needed × price
+    [property: CostFigure] decimal StillToSpend, // still needed × price
     bool InPlan);        // false = on the site but not planned
 
 // A project's material plan with its money summary.
@@ -29,9 +31,9 @@ public record ProjectPlanDto(
     string Code,
     string Status,
     IReadOnlyList<PlanLineDto> Lines,
-    decimal EstimatedBudget, // planned × price
-    decimal SpentSoFar,      // what the material on the site actually cost
-    decimal StillToSpend,    // still needed × price
+    [property: CostFigure] decimal EstimatedBudget, // planned × price
+    [property: CostFigure] decimal SpentSoFar,      // what the material on the site actually cost
+    [property: CostFigure] decimal StillToSpend,    // still needed × price
     int Progress,            // % of the planned material (by value) that's on site
     string? UpdatedByName,
     DateTime? UpdatedAt);
@@ -46,9 +48,9 @@ public record ShortageDto(
     string Name,
     string Code,
     string Unit,
-    decimal Price,
+    [property: BuyingPrice] decimal Price,
     int Needed,
     int InWarehouse,
     int ToBuy,
-    decimal EstimatedCost, // to buy × price
+    [property: BuyingPrice] decimal EstimatedCost, // to buy × price
     IReadOnlyList<ShortageNeedDto> Projects);

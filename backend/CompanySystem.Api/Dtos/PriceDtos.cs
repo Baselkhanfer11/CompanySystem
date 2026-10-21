@@ -1,3 +1,5 @@
+using CompanySystem.Api.Json;
+
 namespace CompanySystem.Api.Dtos;
 
 // What we've paid a supplier for an item — one row per (item, supplier) that
@@ -8,10 +10,10 @@ public record SupplierPriceDto(
     string SupplierName,
     string SupplierCode,
     bool SupplierActive,
-    decimal LastPrice,    // the price on the most recent purchase
+    [property: BuyingPrice] decimal LastPrice,    // the price on the most recent purchase
     DateTime LastDate,
-    decimal MinPrice,     // the cheapest they've ever sold it for
-    decimal AvgPrice,     // average paid per unit (weighted by quantity)
+    [property: BuyingPrice] decimal MinPrice,     // the cheapest they've ever sold it for
+    [property: BuyingPrice] decimal AvgPrice,     // average paid per unit (weighted by quantity)
     int TimesBought,      // how many purchases it was on
     int TotalQuantity);
 
@@ -24,4 +26,4 @@ public record PriceHistoryLineDto(
     string? InvoiceNumber,
     string? DeliveredTo,  // project name, or null = the warehouse
     int Quantity,
-    decimal UnitPrice);
+    [property: BuyingPrice] decimal UnitPrice);

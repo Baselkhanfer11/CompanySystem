@@ -1,3 +1,5 @@
+using CompanySystem.Api.Json;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -17,6 +19,7 @@ public class Item
     // Unit of measure, e.g. "pcs", "box", "kg".
     public string Unit { get; set; } = "pcs";
 
+    [BuyingPrice] // hidden from people who may not see prices (Json/MoneyVisibility.cs)
     public decimal Price { get; set; }
 
     // Optional logo/photo for the item (set later via image upload).

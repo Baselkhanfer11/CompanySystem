@@ -1,3 +1,5 @@
+using CompanySystem.Api.Json;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -49,8 +51,8 @@ public record PurchaseChange(
     string? Unit = null,
     int? FromQty = null,
     int? ToQty = null,
-    decimal? FromPrice = null,
-    decimal? ToPrice = null);
+    [property: BuyingPrice] decimal? FromPrice = null,
+    [property: BuyingPrice] decimal? ToPrice = null);
 
 public static class PurchaseChangeKinds
 {

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
+import { useMoney } from '../auth/useMoney';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportButton } from '../components/ExportButton';
 import { PrinterIcon, SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
@@ -26,6 +27,7 @@ export function StockMovementsPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
+  const { costs } = useMoney(); // what a movement was worth: managers only
   const { items, revalidate } = useItems();
 
   const { data, loading, error: loadError, refresh } = useMovements();
@@ -62,7 +64,7 @@ export function StockMovementsPage() {
       { header: t('stock.colSite'), value: (m) => m.projectName },
       { header: t('xl.projectCode'), value: (m) => m.projectCode },
       { header: t('stock.colItems'), value: (m) => m.itemNames.join(', ') },
-      { header: t('stock.colValue'), type: 'money', value: (m) => m.total },
+      ...(costs ? [{ header: t('stock.colValue'), type: 'money' as const, value: (m: StockMovementListItem) => m.total }] : []),
       { header: t('xl.recordedBy'), value: (m) => m.createdByName },
       { header: t('xl.notes'), value: (m) => m.notes },
     ], filtered),
@@ -155,7 +157,7 @@ export function StockMovementsPage() {
                   <th>{t('stock.colType')}</th>
                   <th>{t('stock.colSite')}</th>
                   <th>{t('stock.colItems')}</th>
-                  <th className="num">{t('stock.colValue')}</th>
+                  {costs && <th className="num">{t('stock.colValue')}</th>}
                   <th className="num">{t('stock.colActions')}</th>
                 </tr>
               </thead>
@@ -166,7 +168,7 @@ export function StockMovementsPage() {
                     <td><MovementBadge type={m.type} /></td>
                     <td><div className="name">{m.projectName}</div><div className="email">{m.createdByName}</div></td>
                     <td className="cell-clip" title={m.itemNames.join(', ')}>{m.itemNames.join(', ')}</td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatMoney(m.total)}</td>
+                    {costs && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(m.total)}</td>}
                     <td>
                       <div className="row-actions">
                         <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} data-tip={t('stock.view')}><SearchIcon /></button>

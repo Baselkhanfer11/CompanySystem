@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { itemsApi } from '../api/items';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
+import { useMoney } from '../auth/useMoney';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportButton } from '../components/ExportButton';
 import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon, TrendingIcon } from '../components/icons';
@@ -26,6 +27,7 @@ export function StorePage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
+  const { prices } = useMoney(); // employees see no prices
 
   // Items come from the shared cache (also feeds the notifications bell).
   const { items, shortages, loading, error: loadError, refresh, revalidate } = useItems();
@@ -66,8 +68,10 @@ export function StorePage() {
     { header: t('itemModal.unit'), value: (i) => i.unit },
     { header: t('toBuy.colWarehouse'), type: 'number', value: (i) => i.quantity },
     { header: t('xl.onSites'), type: 'number', value: onSitesOf },
-    { header: t('toBuy.colPrice'), type: 'money', value: (i) => i.price },
-    { header: t('xl.value'), type: 'money', value: (i) => i.quantity * i.price },
+    ...(prices ? [
+      { header: t('toBuy.colPrice'), type: 'money' as const, value: (i: Item) => i.price },
+      { header: t('xl.value'), type: 'money' as const, value: (i: Item) => i.quantity * (i.price ?? 0) },
+    ] : []),
     { header: t('xl.status'), value: (i) => (isOutOfStock(i.quantity) ? t('store.out') : i.quantity <= LOW_STOCK ? t('xl.lowStock') : t('xl.inStock')) },
     { header: t('xl.short'), type: 'number', value: (i) => shortByItem.get(i.id)?.toBuy },
   ], filtered)];
@@ -160,9 +164,11 @@ export function StorePage() {
                   <span className={`qty-badge ${out ? 'out' : low ? 'low' : ''}`}>
                     {out ? t('store.out') : `${i.quantity} ${i.unit}${low ? ' · ' + t('store.low') : ''}`}
                   </span>
-                  <button type="button" className="item-price" onClick={() => setPricing(i)} title={t('prices.open')} aria-label={`${formatPrice(i.price)} · ${t('prices.open')}`}>
-                    <TrendingIcon /> {formatPrice(i.price)}
-                  </button>
+                  {prices && (
+                    <button type="button" className="item-price" onClick={() => setPricing(i)} title={t('prices.open')} aria-label={`${formatPrice(i.price)} · ${t('prices.open')}`}>
+                      <TrendingIcon /> {formatPrice(i.price)}
+                    </button>
+                  )}
                 </div>
                 {short && (
                   <Link to="/to-buy" className="item-short">
