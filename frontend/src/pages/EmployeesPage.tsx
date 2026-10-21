@@ -6,6 +6,7 @@ import { canManage, isAdmin } from '../auth/roles';
 import { AccessModal } from '../components/AccessModal';
 import { Avatar } from '../components/Avatar';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { EmployeeModal } from '../components/EmployeeModal';
 import { EditIcon, KeyIcon, PlusIcon, TrashIcon, UsersIcon } from '../components/icons';
 import { RoleBadge } from '../components/RoleBadge';
@@ -14,6 +15,7 @@ import { useToast } from '../components/toast';
 import { NONE, peopleChanged, useEmployees } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Employee, EmployeeInput, GrantAccessInput, UpdateAccessInput } from '../types';
 
@@ -52,6 +54,19 @@ export function EmployeesPage() {
       [e.fullName, e.email, e.position].filter(Boolean).some((v) => v!.toLowerCase().includes(q)),
     );
   }, [employees, search]);
+
+  // The Excel file: the same employees as the table (login details only for admins, like the table).
+  const exportSheets = () => [sheet<Employee>(t('emp.title'), [
+    { header: t('xl.name'), value: (e) => e.fullName },
+    { header: t('xl.email'), value: (e) => e.email },
+    { header: t('emp.colPosition'), value: (e) => e.position },
+    { header: t('emp.colStatus'), value: (e) => (e.isActive ? t('common.active') : t('common.inactive')) },
+    ...(admin ? [
+      { header: t('xl.username'), value: (e: Employee) => e.access?.username },
+      { header: t('xl.role'), value: (e: Employee) => (e.access ? t(`role.${e.access.role}`) : null) },
+    ] : []),
+    { header: t('emp.colHired'), type: 'date', value: (e) => e.hireDate },
+  ], filtered)];
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (e: Employee) => { setEditing(e); setModalOpen(true); };
@@ -110,11 +125,14 @@ export function EmployeesPage() {
           <h1>{t('emp.title')}</h1>
           <p>{t('emp.sub')}</p>
         </div>
-        {manage && (
-          <button className="btn btn-primary" onClick={openCreate}>
-            <PlusIcon /> {t('emp.add')}
-          </button>
-        )}
+        <div className="page-actions">
+          <ExportButton fileName="employees" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && (
+            <button className="btn btn-primary" onClick={openCreate}>
+              <PlusIcon /> {t('emp.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="panel rise">

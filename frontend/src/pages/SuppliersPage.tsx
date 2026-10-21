@@ -4,6 +4,7 @@ import { suppliersApi } from '../api/suppliers';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { EditIcon, PlusIcon, TrashIcon, TruckIcon } from '../components/icons';
 import { LoadError, TableSkeleton } from '../components/States';
 import { SupplierModal } from '../components/SupplierModal';
@@ -13,6 +14,7 @@ import { NONE, suppliersChanged, usePrices, useSuppliers } from '../data/queries
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { SUPPLIER_STATUS_BADGE } from '../lib/suppliers';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Supplier, SupplierInput } from '../types';
 
@@ -49,6 +51,20 @@ export function SuppliersPage() {
     );
   }, [suppliers, search]);
 
+  // The Excel file: the same suppliers as the table, with every contact detail.
+  const exportSheets = () => [sheet<Supplier>(t('supplier.title'), [
+    { header: t('supplier.colName'), value: (s) => s.name },
+    { header: t('supplier.colCode'), value: (s) => s.code },
+    { header: t('xl.contactPerson'), value: (s) => s.contactPerson },
+    { header: t('xl.phone'), value: (s) => s.phone },
+    { header: t('xl.email'), value: (s) => s.email },
+    { header: t('xl.address'), value: (s) => s.address },
+    { header: t('supplier.colStatus'), value: (s) => t(`supplier.status.${s.status}`) },
+    { header: t('xl.itemsBought'), type: 'number', value: (s) => itemsBought.get(s.id) ?? 0 },
+    { header: t('supplier.colCreated'), type: 'date', value: (s) => s.createdAt },
+    { header: t('xl.notes'), value: (s) => s.notes },
+  ], filtered)];
+
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (s: Supplier) => { setEditing(s); setModalOpen(true); };
 
@@ -82,11 +98,14 @@ export function SuppliersPage() {
           <h1>{t('supplier.title')}</h1>
           <p>{t('supplier.sub')}</p>
         </div>
-        {manage && (
-          <button className="btn btn-primary" onClick={openCreate}>
-            <PlusIcon /> {t('supplier.add')}
-          </button>
-        )}
+        <div className="page-actions">
+          <ExportButton fileName="suppliers" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && (
+            <button className="btn btn-primary" onClick={openCreate}>
+              <PlusIcon /> {t('supplier.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="panel rise">

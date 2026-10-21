@@ -19,6 +19,7 @@
 - 💰 **Project costs** — what each project has cost, by supplier, item and month (managers only).
 - 📄 **Documents & Approvals** — upload an Excel file and route it **Engineer → Manager → CEO**. Each reviewer can approve, return or reject, and every step is traceable.
 - 🔔 **Notifications** — a near-live bell for document reviews and outcomes, and for stock that's short, low or out.
+- 📥 **Export to Excel** — every list page has an **Excel** button that downloads exactly what's on screen (your search, your language) as a real `.xlsx`: money and dates stay numbers, the header row has filters and stays put.
 - 🌍 **Bilingual UI** — English + Arabic (full right-to-left layout), dark / light theme, works on phones.
 
 ---
