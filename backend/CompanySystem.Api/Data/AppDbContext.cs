@@ -79,10 +79,10 @@ public class AppDbContext : DbContext
             .HasIndex(i => i.Code)
             .IsUnique();
 
-        // Store money with 2 decimal places.
+        // Prices keep 4 decimal places (small parts can cost 0.0750 each).
         modelBuilder.Entity<Item>()
             .Property(i => i.Price)
-            .HasPrecision(18, 2);
+            .HasPrecision(18, 4);
 
         // Project codes must be unique.
         modelBuilder.Entity<Project>()
@@ -171,10 +171,10 @@ public class AppDbContext : DbContext
             .HasForeignKey(li => li.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Store the paid unit price with 2 decimal places.
+        // Store the paid unit price with 4 decimal places, like the item's price.
         modelBuilder.Entity<PurchaseItem>()
             .Property(li => li.UnitPrice)
-            .HasPrecision(18, 2);
+            .HasPrecision(18, 4);
 
         // A purchase's edit history is deleted with the purchase. Keep the
         // editor link non-cascading so removing a user never erases history.

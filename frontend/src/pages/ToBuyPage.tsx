@@ -19,6 +19,7 @@ import { useItems } from '../data/ItemsContext';
 import { movementsChanged, NONE, purchasesChanged, useMovements, usePrices, useProjects, useSiteStock, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
+import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, lastFrom, suggestSupplier } from '../lib/prices';
 import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -356,10 +357,10 @@ export function ToBuyPage() {
                       </div>
                     </td>
                     {seePrices && <td className="num" style={{ color: 'var(--text-muted)' }}>
-                      {formatUsd(s.price)}
+                      {formatPrice(s.price)}
                       {best && (
-                        <div className="best-price" title={t('toBuy.bestAt', { price: formatUsd(best.lastPrice), supplier: best.supplierName })}>
-                          <span>{t('toBuy.best', { price: formatUsd(best.lastPrice) })}</span>
+                        <div className="best-price" title={t('toBuy.bestAt', { price: formatPrice(best.lastPrice), supplier: best.supplierName })}>
+                          <span>{t('toBuy.best', { price: formatPrice(best.lastPrice) })}</span>
                           <span>{best.supplierName}</span>
                         </div>
                       )}

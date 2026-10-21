@@ -121,7 +121,14 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
                 return Fail(BadRequest(new { message = "At least one item is required." }));
             if (input.Items.Any(l => l.Quantity <= 0))
                 return Fail(BadRequest(new { message = "Every line must have a quantity greater than zero." }));
+            var problem = InputRules.DateProblem(input.Date)
+                ?? input.Items.Select(l => InputRules.QuantityProblem(l.Quantity)).FirstOrDefault(p => p is not null);
+            if (problem is not null)
+                return Fail(BadRequest(new { message = problem }));
         }
+
+        // From here on, nobody else can move stock until this is saved (or given up).
+        await using var change = await stock.BeginChange();
 
         var projectIds = inputs.Select(i => i.ProjectId).Distinct().ToList();
         if (await db.Projects.CountAsync(p => projectIds.Contains(p.Id)) != projectIds.Count)
@@ -186,6 +193,7 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
 
         db.StockMovements.AddRange(movements);
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return (null, movements);
     }
 
@@ -195,10 +203,19 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
     [HttpDelete("movements/{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
+        await using var change = await stock.BeginChange();
         var movement = await db.StockMovements
             .Include(m => m.Lines)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (movement is null) return NotFound();
+
+        // An issue's cost may already be part of a later return's average.
+        if (movement.Type == StockMovementTypes.Issue)
+        {
+            var returned = await stock.ReturnedSince(movement.CreatedAt, movement.Lines.Select(l => (movement.ProjectId, l.ItemId)).Distinct().ToList());
+            if (returned is not null)
+                return Conflict(new { message = $"Can't undo this send. {returned}" });
+        }
 
         // The exact opposite of what the movement did.
         var sign = movement.Type == StockMovementTypes.Issue ? -1 : 1;
@@ -214,6 +231,7 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
 
         db.StockMovements.Remove(movement); // cascade removes its lines
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return NoContent();
     }
 

@@ -3,7 +3,7 @@ import { purchasesApi } from '../api/purchases';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
+import { formatDate, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
 import type { PurchaseChange, PurchaseDetail } from '../types';
 import { EditIcon, ReceiptIcon, XIcon } from './icons';
 
@@ -127,7 +127,7 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
                           <div className="email">{li.itemCode}</div>
                         </td>
                         <td className="num">{li.quantity} {li.unit}</td>
-                        {prices && <td className="num">{formatMoney(li.unitPrice)}</td>}
+                        {prices && <td className="num">{formatUnitMoney(li.unitPrice)}</td>}
                         {prices && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(li.lineTotal)}</td>}
                       </tr>
                     ))}

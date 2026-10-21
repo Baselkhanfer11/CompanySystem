@@ -3,7 +3,7 @@ import { stockApi } from '../api/stock';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
+import { formatDate, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
 import { movementPrintUrl } from '../lib/stock';
 import { PrinterIcon, SwapIcon, XIcon } from './icons';
 import { MovementBadge } from './MovementBadge';
@@ -74,7 +74,7 @@ function MovementDetailView({ movementId, onClose }: Props & { movementId: numbe
                           <div className="email">{l.itemCode}</div>
                         </td>
                         <td className="num">{l.quantity} {l.unit}</td>
-                        {costs && <td className="num">{formatMoney(l.unitCost)}</td>}
+                        {costs && <td className="num">{formatUnitMoney(l.unitCost)}</td>}
                         {costs && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(l.lineTotal)}</td>}
                       </tr>
                     ))}

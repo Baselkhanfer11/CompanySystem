@@ -54,6 +54,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     [HttpPost]
     public async Task<ActionResult<PurchaseDetailDto>> Create(PurchaseInputDto input)
     {
+        await using var change = await stock.BeginChange();
         var error = await ValidateInput(input);
         if (error is not null) return error;
 
@@ -80,6 +81,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         await stock.Apply(delta);
 
         await db.SaveChangesAsync();
+        await change.CommitAsync();
 
         var detail = await LoadDetail(purchase.Id);
         return CreatedAtAction(nameof(GetById), new { id = purchase.Id }, detail);
@@ -92,6 +94,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     [HttpPut("{id:int}")]
     public async Task<ActionResult<PurchaseDetailDto>> Update(int id, PurchaseInputDto input)
     {
+        await using var change = await stock.BeginChange();
         var purchase = await db.Purchases
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -105,6 +108,17 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         var sentIds = input.Items.Where(l => l.Id is not null).Select(l => l.Id!.Value).ToList();
         if (sentIds.Any(lid => !existing.ContainsKey(lid)) || sentIds.Distinct().Count() != sentIds.Count)
             return BadRequest(new { message = "One or more lines don't belong to this purchase." });
+
+        // What this purchase costs each site, before and after. Where that changes,
+        // a later return may already have used the old cost.
+        var before = SiteCosts(purchase.ProjectId, purchase.Items.Select(li => (li.ItemId, li.Quantity, li.UnitPrice)));
+        var after = SiteCosts(input.ProjectId, input.Items.Select(l => (l.ItemId, l.Quantity, l.UnitPrice)));
+        var costChanged = before.Keys.Union(after.Keys)
+            .Where(k => before.GetValueOrDefault(k) != after.GetValueOrDefault(k))
+            .ToList();
+        var returned = await stock.ReturnedSince(purchase.CreatedAt, costChanged);
+        if (returned is not null)
+            return Conflict(new { message = $"Can't change this purchase's quantities or prices. {returned}" });
 
         // --- stock: old lines leave the old place, new lines arrive at the new one ---
         var delta = new Dictionary<StockKey, int>();
@@ -186,6 +200,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         }
 
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return Ok(await LoadDetail(purchase.Id));
     }
 
@@ -195,10 +210,15 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
+        await using var change = await stock.BeginChange();
         var purchase = await db.Purchases
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (purchase is null) return NotFound();
+
+        var returned = await stock.ReturnedSince(purchase.CreatedAt, SiteCosts(purchase.ProjectId, purchase.Items.Select(li => (li.ItemId, li.Quantity, li.UnitPrice))).Keys);
+        if (returned is not null)
+            return Conflict(new { message = $"Can't delete this purchase. {returned}" });
 
         // Take back the stock this purchase added — blocked if some was already moved.
         var delta = new Dictionary<StockKey, int>();
@@ -209,6 +229,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
 
         db.Purchases.Remove(purchase); // cascade removes its lines and history
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return NoContent();
     }
 
@@ -227,14 +248,30 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
             return BadRequest(new { message = "At least one line item is required." });
         if (input.Items.Any(l => l.Quantity <= 0))
             return BadRequest(new { message = "Every line must have a quantity greater than zero." });
-        if (input.Items.Any(l => l.UnitPrice < 0))
-            return BadRequest(new { message = "Unit price can't be negative." });
+        var problem = InputRules.DateProblem(input.Date)
+            ?? input.Items.Select(l => InputRules.QuantityProblem(l.Quantity) ?? InputRules.PriceProblem(l.UnitPrice)).FirstOrDefault(p => p is not null);
+        if (problem is not null)
+            return BadRequest(new { message = problem });
 
         var itemIds = input.Items.Select(l => l.ItemId).Distinct().ToList();
         if (await db.Items.CountAsync(i => itemIds.Contains(i.Id)) != itemIds.Count)
             return BadRequest(new { message = "One or more items were not found." });
 
         return null;
+    }
+
+    // What a purchase's lines cost each site, per item (nothing for the warehouse).
+    private static Dictionary<(int ProjectId, int ItemId), (int Qty, decimal Value)> SiteCosts(
+        int? projectId, IEnumerable<(int ItemId, int Quantity, decimal UnitPrice)> lines)
+    {
+        var costs = new Dictionary<(int ProjectId, int ItemId), (int Qty, decimal Value)>();
+        if (projectId is not int pid) return costs;
+        foreach (var (itemId, qty, price) in lines)
+        {
+            var cur = costs.GetValueOrDefault((pid, itemId));
+            costs[(pid, itemId)] = (cur.Qty + qty, cur.Value + qty * price);
+        }
+        return costs;
     }
 
     private async Task<string?> SupplierName(int id) =>

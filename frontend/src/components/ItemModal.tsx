@@ -48,7 +48,7 @@ function ItemForm({ initial, saving, onClose, onSave }: Props) {
     if (!Number.isFinite(quantity) || quantity < 0) return setError(t('itemModal.qtyInvalid'));
     if (!Number.isFinite(price) || price < 0) return setError(t('itemModal.priceInvalid'));
 
-    onSave({ name: form.name.trim(), code: form.code.trim(), quantity, unit: form.unit, price });
+    onSave({ name: form.name.trim(), code: form.code.trim(), quantity, unit: form.unit, price, quantityWas: initial?.quantity });
   };
 
   return (
@@ -88,7 +88,7 @@ function ItemForm({ initial, saving, onClose, onSave }: Props) {
             </div>
             <div className="field">
               <label>{t('itemModal.price')}</label>
-              <input className="input" type="number" min="0" step="0.01" value={form.price} onChange={(e) => set('price', e.target.value)} />
+              <input className="input" type="number" min="0" step="0.0001" value={form.price} onChange={(e) => set('price', e.target.value)} />
             </div>
           </div>
 

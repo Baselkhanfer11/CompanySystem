@@ -26,6 +26,12 @@ Because site stock is calculated from the records, it can never drift out of ste
 
 All stock changes go through **`StockService.Apply`**. It adds up every change, then checks every place that would **lose** stock. If **any** of them would drop below zero, **nothing** changes and the API answers `409 Conflict` with a readable reason (e.g. *"Can't send — not enough stock. Cement: needs 50 bag from the warehouse, but only 30 bag there."*).
 
+**Changes take turns.** Every stock change (purchase, send, return, undo, a count correction) first takes one shared lock (`StockService.BeginChange`, a SQL Server app lock held until the change is saved). So two people sending the last 30 at the same moment can't both succeed: the second one sees what the first left.
+
+**Editing an item never moves stock.** The item window sends the count it showed when it was opened. The warehouse count only changes when you changed it there (a stock-count correction), and only if nobody moved stock in the meantime — otherwise you're asked to reopen the form.
+
+**Typos are refused**, not saved: dates before 2000 or after tomorrow, quantities over 1,000,000, prices over 1,000,000,000 or with more than 4 decimals (`InputRules`).
+
 ## Suppliers
 
 Who the company buys from: name, unique code, contact details, notes, and a status (`Active` / `Inactive`). Inactive suppliers stay in the history but aren't suggested for new purchases. A supplier that has purchases **can't be deleted** — the cost history must stay intact.
@@ -80,6 +86,8 @@ The movement form only offers what makes sense: sending can use any item (checke
 ### Undoing a movement
 
 Deleting a movement does the exact opposite of what it did. It's **blocked** if the material has moved on since (e.g. it was sent and then already returned).
+
+A return is priced from the site's average cost at that moment, so the records that average came from are fixed after it: undoing an **earlier send** of that item to that site, or changing the quantities, prices or lines of an **earlier purchase** delivered there (or deleting it), is refused until the later return is undone. Otherwise the site could end up with a cost that no longer adds up — even below zero.
 
 ### Several movements at once
 

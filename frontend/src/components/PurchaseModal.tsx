@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney, formatUsd } from '../lib/format';
+import { formatDate, formatMoney } from '../lib/format';
+import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, lastFrom, pctChange } from '../lib/prices';
 import type { Item, Project, PurchaseDetail, PurchaseDraft, PurchaseInput, Supplier } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
@@ -127,7 +128,7 @@ function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onCl
     if (supplierId) {
       const last = lastFrom(priceIdx, itemId, supplierId);
       if (last) {
-        parts.push(<span key="last">{t('purchaseModal.lastPaid', { price: formatUsd(last.lastPrice), date: formatDate(last.lastDate) })}</span>);
+        parts.push(<span key="last">{t('purchaseModal.lastPaid', { price: formatPrice(last.lastPrice), date: formatDate(last.lastDate) })}</span>);
         const change = Number.isFinite(price) ? pctChange(price, last.lastPrice ?? 0) : 0;
         if (change > 0) parts.push(<span key="chg" className="price-change up">{t('purchaseModal.up', { p: change })}</span>);
         if (change < 0) parts.push(<span key="chg" className="price-change down">{t('purchaseModal.down', { p: -change })}</span>);
@@ -136,10 +137,10 @@ function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onCl
       }
       const paying = Number.isFinite(price) ? price : last?.lastPrice;
       if (best && best.supplierId !== supplierId && paying !== undefined && best.lastPrice < paying) {
-        parts.push(<span key="best" className="price-change warn">{t('purchaseModal.cheaperAt', { supplier: best.supplierName, price: formatUsd(best.lastPrice) })}</span>);
+        parts.push(<span key="best" className="price-change warn">{t('purchaseModal.cheaperAt', { supplier: best.supplierName, price: formatPrice(best.lastPrice) })}</span>);
       }
     } else if (best) {
-      parts.push(<span key="best">{t('purchaseModal.bestAt', { supplier: best.supplierName, price: formatUsd(best.lastPrice) })}</span>);
+      parts.push(<span key="best">{t('purchaseModal.bestAt', { supplier: best.supplierName, price: formatPrice(best.lastPrice) })}</span>);
     }
     return parts.length ? <div className="line-note">{parts}</div> : null;
   };
@@ -251,7 +252,7 @@ function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onCl
                     <input className="input" type="number" min="1" step="1" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} />
                   </div>
                   <div className="line-price">
-                    <input className="input" type="number" min="0" step="0.01" value={l.unitPrice} onChange={(e) => setLine(l.key, { unitPrice: e.target.value })} />
+                    <input className="input" type="number" min="0" step="0.0001" value={l.unitPrice} onChange={(e) => setLine(l.key, { unitPrice: e.target.value })} />
                   </div>
                   <div className="line-total">{formatMoney(lineTotal(l))}</div>
                   <div className="line-remove">

@@ -159,8 +159,8 @@ namespace CompanySystem.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -376,8 +376,8 @@ namespace CompanySystem.Api.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.HasKey("Id");
 

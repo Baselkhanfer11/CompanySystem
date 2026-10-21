@@ -40,6 +40,8 @@ public class MaterialPlanController(AppDbContext db, StockService stock) : Contr
         input ??= [];
         if (input.Any(l => l.Planned < 0))
             return BadRequest(new { message = "Planned quantity can't be negative." });
+        if (input.Select(l => InputRules.QuantityProblem(l.Planned)).FirstOrDefault(p => p is not null) is string problem)
+            return BadRequest(new { message = problem });
         if (input.Select(l => l.ItemId).Distinct().Count() != input.Count)
             return BadRequest(new { message = "Each item can only appear once in the plan." });
 
