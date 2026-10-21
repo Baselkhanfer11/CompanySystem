@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
 import type { Shortage, StockMovementInput } from '../types';
@@ -41,6 +42,7 @@ export function SplitModal({ shortage, ...rest }: Props) {
 
 function SplitBody({ shortage: s, saving, onClose, onSave }: Omit<Props, 'shortage'> & { shortage: Shortage }) {
   const { t } = useI18n();
+  const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [qty, setQty] = useState(() => shareByNeed(s.inWarehouse, s.projects).map(String));
   const [date, setDate] = useState(today);
   const [notes, setNotes] = useState('');
@@ -182,8 +184,7 @@ function SplitBody({ shortage: s, saving, onClose, onSave }: Omit<Props, 'shorta
 
         <div className="modal-foot" style={{ justifyContent: 'space-between' }}>
           <div className="grand-total">
-            <span>{t('movementModal.value')}</span>
-            <strong>{formatMoney(sending * s.price)}</strong>
+            {costs && <><span>{t('movementModal.value')}</span><strong>{formatMoney(sending * (s.price ?? 0))}</strong></>}
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>

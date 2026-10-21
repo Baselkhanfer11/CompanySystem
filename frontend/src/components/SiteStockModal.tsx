@@ -1,3 +1,4 @@
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
 import type { Project, SiteStock } from '../types';
@@ -12,9 +13,10 @@ interface Props {
 // What's on one project's site right now.
 export function SiteStockModal({ project, rows, onClose }: Props) {
   const { t } = useI18n();
+  const { costs } = useMoney(); // what's on a site cost the project: managers only
   if (!project) return null;
 
-  const totalCost = rows.reduce((sum, r) => sum + r.value, 0);
+  const totalCost = rows.reduce((sum, r) => sum + (r.value ?? 0), 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -37,7 +39,7 @@ export function SiteStockModal({ project, rows, onClose }: Props) {
                   <tr>
                     <th>{t('purchaseDetail.item')}</th>
                     <th className="num">{t('purchaseDetail.qty')}</th>
-                    <th className="num">{t('siteModal.cost')}</th>
+                    {costs && <th className="num">{t('siteModal.cost')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -45,14 +47,16 @@ export function SiteStockModal({ project, rows, onClose }: Props) {
                     <tr key={r.itemId}>
                       <td><div className="name">{r.itemName}</div><div className="email">{r.itemCode}</div></td>
                       <td className="num">{r.quantity} {r.unit}</td>
-                      <td className="num">{formatMoney(r.value)}</td>
+                      {costs && <td className="num">{formatMoney(r.value)}</td>}
                     </tr>
                   ))}
-                  <tr className="total-row">
-                    <td>{t('stock.total')}</td>
-                    <td />
-                    <td className="num">{formatMoney(totalCost)}</td>
-                  </tr>
+                  {costs && (
+                    <tr className="total-row">
+                      <td>{t('stock.total')}</td>
+                      <td />
+                      <td className="num">{formatMoney(totalCost)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

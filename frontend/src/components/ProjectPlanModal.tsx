@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { plansApi } from '../api/plans';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
 import { formatDateTime, formatTimeAgo, formatUsd } from '../lib/format';
@@ -21,7 +22,7 @@ interface Row {
   name: string;
   code: string;
   unit: string;
-  price: number;
+  price?: number; // missing for people who may not see prices
   onSite: number;
   planned: number;
   inPlan: boolean;
@@ -41,6 +42,7 @@ export function ProjectPlanModal(props: Props) {
 
 function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { project: Project }) {
   const { t } = useI18n();
+  const { costs } = useMoney(); // budgets and what's been spent: managers only
   const toast = useToast();
   // The plan as loaded (last copy at once, always re-checked), or as just saved.
   const fetchPlan = useCallback(() => plansApi.get(project.id), [project.id]);
@@ -78,10 +80,11 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
 
   // Live totals, so the numbers react while typing.
   const still = (r: Row) => Math.max(0, r.planned - r.onSite);
-  const budget = rows.reduce((s, r) => s + r.planned * r.price, 0);
-  const stillToSpend = rows.reduce((s, r) => s + still(r) * r.price, 0);
-  const covered = rows.reduce((s, r) => s + Math.min(r.onSite, r.planned) * r.price, 0);
-  const progress = budget > 0 ? Math.round((covered / budget) * 100) : 0;
+  const budget = rows.reduce((s, r) => s + r.planned * (r.price ?? 0), 0);
+  const stillToSpend = rows.reduce((s, r) => s + still(r) * (r.price ?? 0), 0);
+  const covered = rows.reduce((s, r) => s + Math.min(r.onSite, r.planned) * (r.price ?? 0), 0);
+  // Without prices (an employee), use the progress the server worked out.
+  const progress = budget > 0 ? Math.round((covered / budget) * 100) : plan?.progress ?? 0;
 
   const dirty = edits !== null && JSON.stringify(edits) !== JSON.stringify(planDraft);
   const addable = items.filter((i) => !(i.id in draft));
@@ -123,13 +126,15 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
 
           {!loading && plan && (
             <>
-              <div className="mini-stats">
-                <div><span className="k">{t('plan.budget')}</span><span className="v">{formatUsd(budget)}</span></div>
-                <div><span className="k">{t('plan.spent')}</span><span className="v">{formatUsd(plan.spentSoFar)}</span></div>
-                <div><span className="k">{t('plan.stillToSpend')}</span><span className="v">{formatUsd(stillToSpend)}</span></div>
-              </div>
+              {costs && (
+                <div className="mini-stats">
+                  <div><span className="k">{t('plan.budget')}</span><span className="v">{formatUsd(budget)}</span></div>
+                  <div><span className="k">{t('plan.spent')}</span><span className="v">{formatUsd(plan.spentSoFar)}</span></div>
+                  <div><span className="k">{t('plan.stillToSpend')}</span><span className="v">{formatUsd(stillToSpend)}</span></div>
+                </div>
+              )}
 
-              {budget > 0 && (
+              {rows.some((r) => r.planned > 0) && (
                 <div className="plan-progress">
                   <div className="plan-progress-head">
                     <span>{t('plan.progress')}</span>
@@ -152,7 +157,7 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
                         <th className="num">{t('plan.colPlanned')}</th>
                         <th className="num">{t('plan.colOnSite')}</th>
                         <th className="num">{t('plan.colStill')}</th>
-                        <th className="num">{t('plan.colCost')}</th>
+                        {costs && <th className="num">{t('plan.colCost')}</th>}
                         {canEdit && <th />}
                       </tr>
                     </thead>
@@ -184,7 +189,7 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
                                 <span className="badge active"><span className="dot" />{t('plan.done')}{r.onSite > r.planned ? ` · ${t('plan.over', { n: r.onSite - r.planned })}` : ''}</span>
                               )}
                             </td>
-                            <td className="num" style={{ fontWeight: 600 }}>{left > 0 ? formatUsd(left * r.price) : '—'}</td>
+                            {costs && <td className="num" style={{ fontWeight: 600 }}>{left > 0 ? formatUsd(left * (r.price ?? 0)) : '—'}</td>}
                             {canEdit && (
                               <td>
                                 {r.inPlan && (
@@ -211,9 +216,9 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
               )}
 
               <div className="field-hint">
-                {t('plan.priceHint')}
+                {costs && t('plan.priceHint')}
                 {plan.updatedByName && plan.updatedAt && (
-                  <> · <span title={formatDateTime(plan.updatedAt)}>{t('plan.lastEdited', { name: plan.updatedByName, when: formatTimeAgo(plan.updatedAt, t) })}</span></>
+                  <>{costs && ' · '}<span title={formatDateTime(plan.updatedAt)}>{t('plan.lastEdited', { name: plan.updatedByName, when: formatTimeAgo(plan.updatedAt, t) })}</span></>
                 )}
               </div>
             </>

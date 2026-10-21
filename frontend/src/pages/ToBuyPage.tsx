@@ -4,6 +4,7 @@ import { purchasesApi } from '../api/purchases';
 import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
+import { useMoney } from '../auth/useMoney';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportButton } from '../components/ExportButton';
 import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SearchIcon, SplitIcon, TruckIcon, UndoIcon, WalletIcon } from '../components/icons';
@@ -71,7 +72,7 @@ function groupBySite(shortages: Shortage[]): SiteSend[] {
       const quantity = Math.min(p.stillNeeded, s.inWarehouse);
       const site = sites.get(p.projectId) ?? { projectId: p.projectId, projectName: p.projectName, lines: [], value: 0 };
       site.lines.push({ itemId: s.itemId, name: s.name, unit: s.unit, quantity, needed: p.stillNeeded });
-      site.value += quantity * s.price;
+      site.value += quantity * (s.price ?? 0);
       sites.set(p.projectId, site);
     }
   }
@@ -85,6 +86,8 @@ export function ToBuyPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const manage = canProcure(user?.role); // managers + the Procurement Officer
+  // Shopping-list prices: managers + Procurement. What a send is worth: managers only.
+  const { prices: seePrices, costs } = useMoney();
 
   const toast = useToast();
 
@@ -102,19 +105,19 @@ export function ToBuyPage() {
   // Urgent first, then partly covered — most expensive first within each.
   const shopping = useMemo(
     () => matches.filter((s) => s.toBuy > 0)
-      .sort((a, b) => Number(levelOf(b) === 'urgent') - Number(levelOf(a) === 'urgent') || b.estimatedCost - a.estimatedCost),
+      .sort((a, b) => Number(levelOf(b) === 'urgent') - Number(levelOf(a) === 'urgent') || (b.estimatedCost ?? 0) - (a.estimatedCost ?? 0)),
     [matches],
   );
   const ready = useMemo(() => groupBySite(matches), [matches]);
   // The biggest value in the warehouse first.
   const shared = useMemo(
-    () => matches.filter(isShared).sort((a, b) => b.inWarehouse * b.price - a.inWarehouse * a.price),
+    () => matches.filter(isShared).sort((a, b) => b.inWarehouse * (b.price ?? 0) - a.inWarehouse * (a.price ?? 0)),
     [matches],
   );
 
   const toBuy = shortages.filter((s) => s.toBuy > 0);
   const readyCount = shortages.filter((s) => canSend(s) || isShared(s)).length;
-  const totalCost = toBuy.reduce((sum, s) => sum + s.estimatedCost, 0);
+  const totalCost = toBuy.reduce((sum, s) => sum + (s.estimatedCost ?? 0), 0);
   const projectsWaiting = new Set(shortages.flatMap((s) => s.projects.map((p) => p.projectId))).size;
   const urgentCount = toBuy.filter((s) => levelOf(s) === 'urgent').length;
 
@@ -137,10 +140,12 @@ export function ToBuyPage() {
     { header: t('toBuy.colWarehouse'), type: 'number', value: (s) => s.inWarehouse },
     { header: t('toBuy.colToBuy'), type: 'number', value: (s) => s.toBuy },
     { header: t('xl.level'), value: (s) => t(`toBuy.${levelOf(s)}`) },
-    { header: t('toBuy.colPrice'), type: 'money', value: (s) => s.price },
-    { header: t('xl.bestPrice'), type: 'money', value: (s) => bestRecent(priceIdx, s.itemId)?.lastPrice },
-    { header: t('xl.bestSupplier'), value: (s) => bestRecent(priceIdx, s.itemId)?.supplierName },
-    { header: t('toBuy.colCost'), type: 'money', value: (s) => s.estimatedCost },
+    ...(seePrices ? [
+      { header: t('toBuy.colPrice'), type: 'money' as const, value: (s: Shortage) => s.price },
+      { header: t('xl.bestPrice'), type: 'money' as const, value: (s: Shortage) => bestRecent(priceIdx, s.itemId)?.lastPrice },
+      { header: t('xl.bestSupplier'), value: (s: Shortage) => bestRecent(priceIdx, s.itemId)?.supplierName },
+      { header: t('toBuy.colCost'), type: 'money' as const, value: (s: Shortage) => s.estimatedCost },
+    ] : []),
   ], shopping)];
 
   // One project needs it and the warehouse has none → deliver straight to that
@@ -153,7 +158,7 @@ export function ToBuyPage() {
     setDraft({
       projectId: deliverTo(s)?.projectId ?? null,
       supplierId: best?.supplierId ?? null,
-      lines: [{ itemId: s.itemId, quantity: s.toBuy, unitPrice: best?.lastPrice ?? s.price }],
+      lines: [{ itemId: s.itemId, quantity: s.toBuy, unitPrice: best?.lastPrice ?? s.price ?? 0 }],
     });
   };
   // One purchase for everything: the supplier that makes the whole purchase cheapest.
@@ -165,7 +170,7 @@ export function ToBuyPage() {
       lines: toBuy.map((s) => ({
         itemId: s.itemId,
         quantity: s.toBuy,
-        unitPrice: (supplierId && lastFrom(priceIdx, s.itemId, supplierId)?.lastPrice) || s.price,
+        unitPrice: (supplierId && lastFrom(priceIdx, s.itemId, supplierId)?.lastPrice) || s.price || 0,
       })),
     });
   };
@@ -270,7 +275,7 @@ export function ToBuyPage() {
 
       {ok && shortages.length > 0 && (
         <div className="stat-grid">
-          <StatCard icon={<WalletIcon />} value={<span title={formatUsd(totalCost)}>{formatUsdShort(totalCost)}</span>} label={t('toBuy.total')} color="#7c6cff" delay={0} />
+          {seePrices && <StatCard icon={<WalletIcon />} value={<span title={formatUsd(totalCost)}>{formatUsdShort(totalCost)}</span>} label={t('toBuy.total')} color="#7c6cff" delay={0} />}
           <StatCard icon={<ClipboardIcon />} value={toBuy.length} label={t('toBuy.itemsShort')} color="#fb7185" trend={urgentCount ? t('toBuy.urgentCount', { n: urgentCount }) : undefined} delay={70} />
           <StatCard icon={<TruckIcon />} value={readyCount} label={t('toBuy.readyShort')} color="#34d399" delay={140} />
           <StatCard icon={<ProjectsIcon />} value={projectsWaiting} label={t('toBuy.projectsShort')} color="#fbbf24" delay={210} />
@@ -319,8 +324,8 @@ export function ToBuyPage() {
                   <th>{t('toBuy.colNeeded')}</th>
                   <th className="num">{t('toBuy.colWarehouse')}</th>
                   <th className="num">{t('toBuy.colToBuy')}</th>
-                  <th className="num">{t('toBuy.colPrice')}</th>
-                  <th className="num">{t('toBuy.colCost')}</th>
+                  {seePrices && <th className="num">{t('toBuy.colPrice')}</th>}
+                  {seePrices && <th className="num">{t('toBuy.colCost')}</th>}
                   {manage && <th aria-label={t('toBuy.buy')} />}
                 </tr>
               </thead>
@@ -350,7 +355,7 @@ export function ToBuyPage() {
                         <span className={`badge ${LEVEL_BADGE[level]}`}><span className="dot" />{t(`toBuy.${level}`)}</span>
                       </div>
                     </td>
-                    <td className="num" style={{ color: 'var(--text-muted)' }}>
+                    {seePrices && <td className="num" style={{ color: 'var(--text-muted)' }}>
                       {formatUsd(s.price)}
                       {best && (
                         <div className="best-price" title={t('toBuy.bestAt', { price: formatUsd(best.lastPrice), supplier: best.supplierName })}>
@@ -358,8 +363,8 @@ export function ToBuyPage() {
                           <span>{best.supplierName}</span>
                         </div>
                       )}
-                    </td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.estimatedCost)}</td>
+                    </td>}
+                    {seePrices && <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.estimatedCost)}</td>}
                     {manage && (
                       <td className="num">
                         <button
@@ -397,7 +402,7 @@ export function ToBuyPage() {
                 <tr>
                   <th>{t('toBuy.colSite')}</th>
                   <th>{t('toBuy.colSend')}</th>
-                  <th className="num">{t('toBuy.colValue')}</th>
+                  {costs && <th className="num">{t('toBuy.colValue')}</th>}
                   {manage && <th aria-label={t('toBuy.send')} />}
                 </tr>
               </thead>
@@ -416,7 +421,7 @@ export function ToBuyPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(site.value)}</td>
+                    {costs && <td className="num" style={{ fontWeight: 600 }}>{formatUsd(site.value)}</td>}
                     {manage && (
                       <td className="num">
                         <button className="btn btn-sm btn-ghost" onClick={() => sendSite(site)} title={t('toBuy.sendHint', { site: site.projectName })}>
@@ -430,7 +435,7 @@ export function ToBuyPage() {
                 {/* Several sites need it and there isn't enough for all: the user splits it. */}
                 {shared.length > 0 && (
                   <tr className="table-group">
-                    <td colSpan={manage ? 4 : 3}><SplitIcon /> {t('toBuy.sharedGroup')}</td>
+                    <td colSpan={2 + (costs ? 1 : 0) + (manage ? 1 : 0)}><SplitIcon /> {t('toBuy.sharedGroup')}</td>
                   </tr>
                 )}
                 {shared.map((s) => (
@@ -447,7 +452,7 @@ export function ToBuyPage() {
                       </div>
                       <div className="split-have">{t('toBuy.haveForAll', { n: `${s.inWarehouse} ${s.unit}` })}</div>
                     </td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.inWarehouse * s.price)}</td>
+                    {costs && <td className="num" style={{ fontWeight: 600 }}>{formatUsd(s.inWarehouse * (s.price ?? 0))}</td>}
                     {manage && (
                       <td className="num">
                         <button className="btn btn-sm btn-ghost" onClick={() => setSplitting(s)} title={t('toBuy.splitHint', { n: `${s.inWarehouse} ${s.unit}` })}>
@@ -479,7 +484,7 @@ export function ToBuyPage() {
                   <th>{t('toBuy.colWhen')}</th>
                   <th>{t('toBuy.colSite')}</th>
                   <th>{t('toBuy.colSent')}</th>
-                  <th className="num">{t('toBuy.colValue')}</th>
+                  {costs && <th className="num">{t('toBuy.colValue')}</th>}
                   <th className="num">{t('stock.colActions')}</th>
                 </tr>
               </thead>
@@ -499,7 +504,7 @@ export function ToBuyPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="num" style={{ fontWeight: 600 }}>{formatUsd(m.total)}</td>
+                    {costs && <td className="num" style={{ fontWeight: 600 }}>{formatUsd(m.total)}</td>}
                     <td>
                       <div className="row-actions">
                         <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} data-tip={t('stock.view')}><SearchIcon /></button>

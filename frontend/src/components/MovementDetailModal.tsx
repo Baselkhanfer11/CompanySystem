@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { stockApi } from '../api/stock';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
 import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
@@ -22,6 +23,7 @@ export function MovementDetailModal(props: Props) {
 
 function MovementDetailView({ movementId, onClose }: Props & { movementId: number }) {
   const { t } = useI18n();
+  const { costs } = useMoney(); // what a movement was worth: managers only
   const fetchDetail = useCallback(() => stockApi.getMovement(movementId), [movementId]);
   const { data: detail, loading, error } = useCached(`movement:${movementId}`, fetchDetail, 0);
 
@@ -60,8 +62,8 @@ function MovementDetailView({ movementId, onClose }: Props & { movementId: numbe
                     <tr>
                       <th>{t('purchaseDetail.item')}</th>
                       <th className="num">{t('purchaseDetail.qty')}</th>
-                      <th className="num">{t('movementDetail.unitCost')}</th>
-                      <th className="num">{t('purchaseDetail.lineTotal')}</th>
+                      {costs && <th className="num">{t('movementDetail.unitCost')}</th>}
+                      {costs && <th className="num">{t('purchaseDetail.lineTotal')}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -72,18 +74,20 @@ function MovementDetailView({ movementId, onClose }: Props & { movementId: numbe
                           <div className="email">{l.itemCode}</div>
                         </td>
                         <td className="num">{l.quantity} {l.unit}</td>
-                        <td className="num">{formatMoney(l.unitCost)}</td>
-                        <td className="num" style={{ fontWeight: 600 }}>{formatMoney(l.lineTotal)}</td>
+                        {costs && <td className="num">{formatMoney(l.unitCost)}</td>}
+                        {costs && <td className="num" style={{ fontWeight: 600 }}>{formatMoney(l.lineTotal)}</td>}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
-                <span>{t('purchaseDetail.total')}</span>
-                <strong>{formatMoney(detail.total)}</strong>
-              </div>
+              {costs && (
+                <div className="grand-total" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+                  <span>{t('purchaseDetail.total')}</span>
+                  <strong>{formatMoney(detail.total)}</strong>
+                </div>
+              )}
             </>
           )}
 

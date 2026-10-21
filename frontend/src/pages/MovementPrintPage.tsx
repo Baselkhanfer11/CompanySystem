@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { stockApi } from '../api/stock';
 import { CubeIcon, PrinterIcon } from '../components/icons';
+import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatDateTime, formatMoney } from '../lib/format';
 import { movementNumber } from '../lib/stock';
@@ -12,12 +13,14 @@ import './print.css';
 // for a return, with signature boxes. Opens in its own tab, without the sidebar.
 export function MovementPrintPage() {
   const { t } = useI18n();
+  const { costs } = useMoney(); // what a movement was worth: managers only
   const id = Number(useParams().id);
   const autoPrint = useSearchParams()[0].get('print') === '1';
 
   const [detail, setDetail] = useState<StockMovementDetail | null>(null);
   const [error, setError] = useState('');
-  const [showPrices, setShowPrices] = useState(true);
+  const [pricesTicked, setShowPrices] = useState(true);
+  const showPrices = costs && pricesTicked;
 
   useEffect(() => {
     let active = true;
@@ -60,10 +63,12 @@ export function MovementPrintPage() {
     <div className="pr-screen">
       <div className="pr-toolbar">
         <Link to="/movements" className="btn btn-ghost">{t('print.back')}</Link>
-        <label className="pr-check">
-          <input type="checkbox" checked={showPrices} onChange={(e) => setShowPrices(e.target.checked)} />
-          {t('print.showPrices')}
-        </label>
+        {costs && (
+          <label className="pr-check">
+            <input type="checkbox" checked={pricesTicked} onChange={(e) => setShowPrices(e.target.checked)} />
+            {t('print.showPrices')}
+          </label>
+        )}
         <button type="button" className="btn btn-primary" onClick={() => window.print()} title={t('print.hint')}>
           <PrinterIcon /> {t('print.button')}
         </button>

@@ -128,7 +128,7 @@ function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onCl
       const last = lastFrom(priceIdx, itemId, supplierId);
       if (last) {
         parts.push(<span key="last">{t('purchaseModal.lastPaid', { price: formatUsd(last.lastPrice), date: formatDate(last.lastDate) })}</span>);
-        const change = Number.isFinite(price) ? pctChange(price, last.lastPrice) : 0;
+        const change = Number.isFinite(price) ? pctChange(price, last.lastPrice ?? 0) : 0;
         if (change > 0) parts.push(<span key="chg" className="price-change up">{t('purchaseModal.up', { p: change })}</span>);
         if (change < 0) parts.push(<span key="chg" className="price-change down">{t('purchaseModal.down', { p: -change })}</span>);
       } else {

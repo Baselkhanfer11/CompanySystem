@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Json;
 
 namespace CompanySystem.Api.Dtos;
 
@@ -30,7 +31,7 @@ public record PurchaseListDto(
     string? InvoiceNumber,
     DateTime Date,
     int LineCount,
-    decimal Total,
+    [property: BuyingPrice] decimal Total,
     string CreatedByName,
     DateTime CreatedAt)
 {
@@ -58,8 +59,8 @@ public record PurchaseItemDto(
     string ItemCode,
     string Unit,
     int Quantity,
-    decimal UnitPrice,
-    decimal LineTotal);
+    [property: BuyingPrice] decimal UnitPrice,
+    [property: BuyingPrice] decimal LineTotal);
 
 // One entry in a purchase's edit history.
 public record PurchaseEventDto(
@@ -81,7 +82,7 @@ public record PurchaseDetailDto(
     string? Notes,
     string CreatedByName,
     DateTime CreatedAt,
-    decimal Total,
+    [property: BuyingPrice] decimal Total,
     IReadOnlyList<PurchaseItemDto> Items,
     string? LastEditedByName,
     DateTime? LastEditedAt,

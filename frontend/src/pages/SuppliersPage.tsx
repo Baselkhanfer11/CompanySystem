@@ -174,7 +174,9 @@ export function SuppliersPage() {
                     </td>
                     <td>
                       {itemsBought.get(s.id)
-                        ? <button type="button" className="link-btn" onClick={() => setPricing(s)}>{itemsBought.get(s.id) === 1 ? t('prices.oneItem') : t('prices.itemsBought', { n: itemsBought.get(s.id)! })}</button>
+                        ? manage
+                          ? <button type="button" className="link-btn" onClick={() => setPricing(s)}>{itemsBought.get(s.id) === 1 ? t('prices.oneItem') : t('prices.itemsBought', { n: itemsBought.get(s.id)! })}</button>
+                          : <span>{itemsBought.get(s.id) === 1 ? t('prices.oneItem') : t('prices.itemsBought', { n: itemsBought.get(s.id)! })}</span>
                         : <span style={{ color: 'var(--text-dim)' }}>—</span>}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDate(s.createdAt)}</td>

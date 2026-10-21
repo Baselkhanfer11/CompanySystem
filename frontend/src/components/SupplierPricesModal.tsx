@@ -52,7 +52,7 @@ export function SupplierPricesModal({ supplier, onClose }: { supplier: Supplier 
                   {rows.map((p) => {
                     const item = itemsById.get(p.itemId);
                     const best = bestRecent(idx, p.itemId);
-                    const cheaper = best && best.supplierId !== p.supplierId && best.lastPrice < p.lastPrice ? best : null;
+                    const cheaper = best && best.supplierId !== p.supplierId && best.lastPrice < (p.lastPrice ?? 0) ? best : null;
                     return (
                       <tr key={p.itemId} className={isRecent(p) ? undefined : 'price-row-old'}>
                         <td>

@@ -1,3 +1,5 @@
+using CompanySystem.Api.Json;
+
 namespace CompanySystem.Api.Dtos;
 
 // Everything the home dashboard needs, in one response.
@@ -22,7 +24,7 @@ public record ProjectProgressDto(
     string Status,
     bool HasPlan,
     int Progress,        // 0-100
-    decimal StillToSpend,
+    [property: CostFigure] decimal StillToSpend,
     int ItemsOnSite);
 
 // One recent purchase or stock movement, newest first.
@@ -34,5 +36,5 @@ public record ActivityDto(
     string? SupplierName, // purchases
     string? ProjectName,  // the site (null = a purchase delivered to the warehouse)
     IReadOnlyList<string> Items,
-    decimal Total,
+    [property: CostFigure] decimal Total,
     DateTime CreatedAt);

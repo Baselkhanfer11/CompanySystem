@@ -19,13 +19,15 @@ export const lastFrom = (idx: PriceIndex, itemId: number, supplierId: number) =>
 
 /**
  * The cheapest supplier for an item right now: active, bought from recently,
- * lowest last price (a tie goes to the more recent purchase).
+ * lowest last price (a tie goes to the more recent purchase). Null without
+ * prices — including for people who may not see them.
  */
-export function bestRecent(idx: PriceIndex, itemId: number): SupplierPrice | null {
-  let best: SupplierPrice | null = null;
+export function bestRecent(idx: PriceIndex, itemId: number): (SupplierPrice & { lastPrice: number }) | null {
+  let best: (SupplierPrice & { lastPrice: number }) | null = null;
   for (const p of idx.get(itemId) ?? []) {
-    if (!p.supplierActive || !isRecent(p)) continue;
-    if (!best || p.lastPrice < best.lastPrice || (p.lastPrice === best.lastPrice && p.lastDate > best.lastDate)) best = p;
+    if (!p.supplierActive || !isRecent(p) || p.lastPrice === undefined) continue;
+    const price = p.lastPrice;
+    if (!best || price < best.lastPrice || (price === best.lastPrice && p.lastDate > best.lastDate)) best = { ...p, lastPrice: price };
   }
   return best;
 }
@@ -38,7 +40,7 @@ export function bestRecent(idx: PriceIndex, itemId: number): SupplierPrice | nul
  */
 export function suggestSupplier(
   idx: PriceIndex,
-  lines: { itemId: number; quantity: number; listPrice: number }[],
+  lines: { itemId: number; quantity: number; listPrice?: number }[],
 ): number | null {
   const candidates = new Set<number>();
   for (const l of lines) for (const p of idx.get(l.itemId) ?? []) if (p.supplierActive && isRecent(p)) candidates.add(p.supplierId);
@@ -48,7 +50,7 @@ export function suggestSupplier(
   for (const supplierId of candidates) {
     const total = lines.reduce((sum, l) => {
       const last = lastFrom(idx, l.itemId, supplierId);
-      return sum + l.quantity * (last && isRecent(last) ? last.lastPrice : l.listPrice);
+      return sum + l.quantity * ((last && isRecent(last) ? last.lastPrice : undefined) ?? l.listPrice ?? 0);
     }, 0);
     if (total < lowest) { lowest = total; pick = supplierId; }
   }

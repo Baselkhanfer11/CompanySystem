@@ -4,9 +4,12 @@
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 
+// Money the API left out (the person may not see it) shows as "—".
+const HIDDEN = '—';
+
 /** Format a money amount with grouped thousands and 2 decimals, e.g. "1,250.00". */
-export const formatMoney = (n: number) =>
-  (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const formatMoney = (n?: number) =>
+  n === undefined ? HIDDEN : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const usdCompact = new Intl.NumberFormat('en-US', {
@@ -14,10 +17,10 @@ const usdCompact = new Intl.NumberFormat('en-US', {
 });
 
 /** Exact US-dollar amount, e.g. "$1,250.00". */
-export const formatUsd = (n: number) => usd.format(n ?? 0);
+export const formatUsd = (n?: number) => (n === undefined ? HIDDEN : usd.format(n));
 
 /** Short US-dollar amount for tiles and axes: "$129.00" below 10K, then "$12.3K", "$4.2M". */
-export const formatUsdShort = (n: number) => ((n ?? 0) < 10_000 ? formatUsd(n) : usdCompact.format(n));
+export const formatUsdShort = (n?: number) => (n === undefined ? HIDDEN : n < 10_000 ? formatUsd(n) : usdCompact.format(n));
 
 /** Axis-tick dollars with no cents: "$0", "$500", "$1.5K". */
 export const formatUsdTick = (n: number) => usdCompact.format(n ?? 0);

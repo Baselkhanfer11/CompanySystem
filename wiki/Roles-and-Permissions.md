@@ -27,7 +27,8 @@ Two **groups** are built from them:
 | Send / return / undo **stock movements** (incl. split) | ❌ | ✅ | ✅ | ✅ |
 | Edit a project's **material plan** | ❌ | ✅ | ✅ | ✅ |
 | Create / edit / delete **employees** and **projects** | ❌ | ❌ | ✅ | ✅ |
-| See **money**: the Costs page and the cost tile on the dashboard | ❌ | ❌ | ✅ | ✅ |
+| See **buying prices**: item prices, purchase invoices, supplier price history, to-buy estimates | ❌ | ✅ | ✅ | ✅ |
+| See **cost figures**: the Costs page, dashboard money, site stock values, what a send or return was worth, plan budgets | ❌ | ❌ | ✅ | ✅ |
 | Approve / return / reject at the **Manager** stage | ❌ | ❌ | ✅ | ❌ |
 | Approve / return / reject at the **CEO** stage | ❌ | ❌ | ❌ | ✅ |
 | Manage user accounts & access | ❌ | ❌ | ❌ | ✅ |
@@ -36,7 +37,9 @@ Two **groups** are built from them:
 
 > **Note on approvals:** a reviewer can only act at **their** stage. A manager cannot approve a document that's already waiting on the CEO, and vice-versa. **Nobody reviews their own document** — see [[Documents and Approvals]].
 
-> **Why the Procurement Officer can't see costs:** cost reports are financial data for the managers. The officer still sees prices on purchases and on the to-buy list — they need those to buy well.
+> **Why the Procurement Officer can't see costs:** cost figures are financial data for the managers. The officer still sees **buying prices** (items, purchases, price history, the to-buy list) — they need those to buy well. An **Employee** sees no money at all.
+
+> **How it's enforced:** every money field in the API is tagged as a *cost figure* or a *buying price* (`[CostFigure]` / `[BuyingPrice]`, see `Json/MoneyVisibility.cs`), and the API leaves tagged fields out of its answer for anyone not allowed to see them. The screens hide those columns and tiles too (`useMoney()`). A new money field only needs the tag.
 
 ## Accounts vs. employees
 

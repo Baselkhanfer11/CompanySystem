@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Json;
 
 namespace CompanySystem.Api.Dtos;
 
@@ -31,7 +32,7 @@ public record StockMovementListDto(
     string? Notes,
     int LineCount,
     IReadOnlyList<MovementLineBriefDto> Lines, // in line order
-    decimal Total,
+    [property: CostFigure] decimal Total,
     string CreatedByName,
     DateTime CreatedAt)
 {
@@ -63,8 +64,8 @@ public record StockMovementLineDto(
     string ItemCode,
     string Unit,
     int Quantity,
-    decimal UnitCost,
-    decimal LineTotal);
+    [property: CostFigure] decimal UnitCost,
+    [property: CostFigure] decimal LineTotal);
 
 public record StockMovementDetailDto(
     int Id,
@@ -76,7 +77,7 @@ public record StockMovementDetailDto(
     string? Notes,
     string CreatedByName,
     DateTime CreatedAt,
-    decimal Total,
+    [property: CostFigure] decimal Total,
     IReadOnlyList<StockMovementLineDto> Lines);
 
 // How much of one item is on one site right now, and what it cost that project.
@@ -89,4 +90,4 @@ public record SiteStockDto(
     string ItemCode,
     string Unit,
     int Quantity,
-    decimal Value);
+    [property: CostFigure] decimal Value);
