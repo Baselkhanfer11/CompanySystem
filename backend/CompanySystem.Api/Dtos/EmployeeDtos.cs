@@ -15,8 +15,9 @@ public record EmployeeDto(
     DateTime HireDate, bool IsActive, EmployeeAccessDto? Access)
 {
     // Requires the User navigation to be loaded (Include(e => e.User)).
-    public static EmployeeDto From(Employee e) =>
-        new(e.Id, e.FullName, e.Email, e.Position, e.HireDate, e.IsActive, EmployeeAccessDto.From(e.User));
+    // The login (username + role) is only filled in for administrators.
+    public static EmployeeDto From(Employee e, bool withLogin) =>
+        new(e.Id, e.FullName, e.Email, e.Position, e.HireDate, e.IsActive, withLogin ? EmployeeAccessDto.From(e.User) : null);
 }
 
 // What the frontend sends to create/update an employee's core fields.

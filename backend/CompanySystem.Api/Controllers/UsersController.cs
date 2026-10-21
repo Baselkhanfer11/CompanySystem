@@ -36,13 +36,8 @@ public class UsersController(AppDbContext db) : ControllerBase
         var user = await db.Users.FindAsync(id);
         if (user is null) return NotFound();
 
-        if (user is { Role: Roles.Administrator, IsActive: true })
-        {
-            var otherAdmins = await db.Users.CountAsync(u =>
-                u.Role == Roles.Administrator && u.IsActive && u.Id != id);
-            if (otherAdmins == 0)
-                return BadRequest(new { message = "There must be at least one active administrator." });
-        }
+        if (user.Role == Roles.Administrator && !await AccountRules.HasOtherUsableAdmin(db, id))
+            return BadRequest(new { message = "There must be at least one active administrator." });
 
         db.Users.Remove(user);
         await db.SaveChangesAsync();

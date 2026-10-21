@@ -46,6 +46,15 @@ cd backend/CompanySystem.Api
 dotnet run
 ```
 
+### Run the tests
+The backend has automated tests (`backend/CompanySystem.Api.Tests`). Each run starts the real API on a
+brand-new throwaway database on your SQL Server, and deletes it afterwards:
+```bash
+cd backend
+dotnet test
+```
+Stop the API first (or it locks its files). In Visual Studio: **Test → Run All Tests**.
+
 ### Run the frontend
 ```bash
 cd frontend

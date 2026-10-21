@@ -34,7 +34,7 @@ Two **groups** are built from them:
 
 > **Enforced on the server.** The UI hides buttons people can't use, but the API checks every request too — hiding a button is never the only protection.
 
-> **Note on approvals:** a reviewer can only act at **their** stage. A manager cannot approve a document that's already waiting on the CEO, and vice-versa.
+> **Note on approvals:** a reviewer can only act at **their** stage. A manager cannot approve a document that's already waiting on the CEO, and vice-versa. **Nobody reviews their own document** — see [[Documents and Approvals]].
 
 > **Why the Procurement Officer can't see costs:** cost reports are financial data for the managers. The officer still sees prices on purchases and on the to-buy list — they need those to buy well.
 
@@ -42,7 +42,15 @@ Two **groups** are built from them:
 
 - An **Employee** record is just a person in the directory — it doesn't grant a login.
 - To let someone sign in, an **Administrator** goes to **Employees → Grant access**, which creates a `User` (with a role + password) linked to that employee.
-- Access can later be updated (role, password) or revoked from the same place.
+- Access can later be updated (role, password) or revoked from the same place. Passwords need at least **8 characters**.
+- **Changes take effect at once.** Every request re-checks the account behind the sign-in: switching a login off, switching its employee off, changing its role or revoking it makes the old sign-in stop working immediately (the person must sign in again, with their new role).
+- **Login names and roles are visible to Administrators only.**
+
+### Protecting administrators
+
+- Only an **Administrator** can switch off or delete an employee who has an Administrator login (a Warehouse Manager gets *403*).
+- There is always at least one usable administrator: the last one can't be demoted, switched off, revoked or deleted.
+- Nobody can switch off or delete **their own** employee record, revoke their own access, or change their own role.
 
 ## Adding a new role later
 

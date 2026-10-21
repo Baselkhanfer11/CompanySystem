@@ -54,9 +54,11 @@ export function DocumentsPage() {
   }, [docs, search]);
 
   // Who can do what, based on the current user's role and the document's stage.
+  // Same rule as the API: the stage's reviewer, and never on your own document.
   const canReview = (d: ApprovalDocument) =>
-    (d.status === 'PendingManager' && user?.role === ROLES.WarehouseManager) ||
-    (d.status === 'PendingCEO' && user?.role === ROLES.Administrator);
+    d.uploadedById !== user?.id &&
+    ((d.status === 'PendingManager' && user?.role === ROLES.WarehouseManager) ||
+     (d.status === 'PendingCEO' && user?.role === ROLES.Administrator));
   const canResubmit = (d: ApprovalDocument) => d.status === 'Returned' && d.uploadedById === user?.id;
 
   const handleUpload = async (form: FormData) => {

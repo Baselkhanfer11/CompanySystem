@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Dtos;
@@ -13,6 +14,11 @@ namespace CompanySystem.Api.Controllers;
 [Route("api/[controller]")] // → the base URL is  /api/employees
 public class EmployeesController(AppDbContext db) : ControllerBase
 {
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    // Login names and roles are for administrators only.
+    private bool ShowLogins => User.IsInRole(Roles.Administrator);
+
     // GET /api/employees  → list all employees (with their access status)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll()
@@ -21,7 +27,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
             .Include(e => e.User)
             .OrderBy(e => e.Id)
             .ToListAsync();
-        return Ok(employees.Select(EmployeeDto.From));
+        return Ok(employees.Select(e => EmployeeDto.From(e, ShowLogins)));
     }
 
     // GET /api/employees/5  → get one employee by id
@@ -30,7 +36,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     {
         var employee = await db.Employees.AsNoTracking().Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
-        return Ok(EmployeeDto.From(employee));
+        return Ok(EmployeeDto.From(employee, ShowLogins));
     }
 
     // POST /api/employees  → create a new employee (managers only)
@@ -51,7 +57,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         db.Employees.Add(employee);
         await db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = employee.Id }, EmployeeDto.From(employee));
+        return CreatedAtAction(nameof(GetById), new { id = employee.Id }, EmployeeDto.From(employee, ShowLogins));
     }
 
     // PUT /api/employees/5  → update an existing employee (managers only)
@@ -61,6 +67,10 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     {
         var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
+
+        // Switching an employee off also switches off their login, so it follows the login rules.
+        if (employee.IsActive && !input.IsActive && await CannotSwitchOffLogin(employee.User) is { } refusal)
+            return refusal;
 
         employee.FullName = input.FullName.Trim();
         employee.Email = input.Email;
@@ -83,17 +93,28 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
 
-        // Don't let deleting an employee remove the last active administrator.
-        if (employee.User is { Role: Roles.Administrator, IsActive: true })
-        {
-            var otherAdmins = await db.Users.CountAsync(u =>
-                u.Role == Roles.Administrator && u.IsActive && u.Id != employee.User.Id);
-            if (otherAdmins == 0)
-                return BadRequest(new { message = "This employee is the last active administrator and cannot be deleted." });
-        }
+        // Deleting an employee also deletes their login, so it follows the login rules.
+        if (await CannotSwitchOffLogin(employee.User) is { } refusal)
+            return refusal;
 
         db.Employees.Remove(employee);
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // Why this login can't be switched off or deleted through its employee record —
+    // or null when it can. Yourself: never. An administrator: only by another
+    // administrator, and never the last one.
+    private async Task<ActionResult?> CannotSwitchOffLogin(User? login)
+    {
+        if (login is null) return null;
+        if (login.Id == CurrentUserId)
+            return BadRequest(new { message = "You cannot switch off or delete your own employee record." });
+        if (login.Role != Roles.Administrator) return null;
+        if (!User.IsInRole(Roles.Administrator))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only an administrator can switch off or delete an administrator." });
+        if (!await AccountRules.HasOtherUsableAdmin(db, login.Id))
+            return BadRequest(new { message = "There must be at least one active administrator." });
+        return null;
     }
 }

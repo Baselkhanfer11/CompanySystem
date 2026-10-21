@@ -27,11 +27,12 @@ Where CompanySystem is and where it's heading.
 - **Send what we have** — partial sends to single sites, and **Recently sent** with view / undo (#14).
 - **Split shared items** — share short stock between several sites, booked all-or-nothing (#15).
 
-**Security, reporting and upkeep** (PRs #17 – #20)
+**Security, reporting and upkeep** (PRs #17 – #21)
 - **Secrets out of git** — JWT key and admin password in user-secrets; **Change password** for every user (#17).
 - **Export to Excel** — an **Excel** button on Store, Purchases, Stock movements, To buy, Costs, Suppliers, Employees and Projects (#18).
 - **Printable stock-movement records** — an A4 delivery note / return note for every movement (number, from → to, items, signatures), or save as PDF (#19).
 - **Lint cleanup** — zero linter warnings: forms start fresh each time they open, and detail windows load through the shared request cache (#20).
+- **Security hardening + automated tests** — account changes take effect at once, admins protected from lock-out, nobody reviews their own document, login names for admins only; the first automated test project (#21).
 
 **Throughout** — bilingual EN/AR with RTL, dark/light theme, correct UTC times, phone-friendly layouts.
 
