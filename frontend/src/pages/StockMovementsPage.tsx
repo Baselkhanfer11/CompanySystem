@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportButton } from '../components/ExportButton';
-import { SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
+import { PrinterIcon, SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
 import { MovementBadge } from '../components/MovementBadge';
 import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
@@ -15,6 +15,7 @@ import { useItems } from '../data/ItemsContext';
 import { movementsChanged, NONE, useMovements, useProjects, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
+import { movementPrintUrl } from '../lib/stock';
 import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { MovementType, Project, SiteStock, StockMovementInput, StockMovementListItem } from '../types';
@@ -169,6 +170,7 @@ export function StockMovementsPage() {
                     <td>
                       <div className="row-actions">
                         <button className="act-btn" onClick={() => setViewing(m.id)} aria-label={t('stock.view')} data-tip={t('stock.view')}><SearchIcon /></button>
+                        <a className="act-btn" href={movementPrintUrl(m.id)} target="_blank" rel="noopener" aria-label={t('print.hint')} data-tip={t('print.hint')}><PrinterIcon /></a>
                         {manage && (
                           <button className="act-btn danger" onClick={() => setUndoing(m)} aria-label={t('stock.undo')} data-tip={t('stock.undo')}><UndoIcon /></button>
                         )}

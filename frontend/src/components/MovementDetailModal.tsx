@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { stockApi } from '../api/stock';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
+import { movementPrintUrl } from '../lib/stock';
 import type { StockMovementDetail } from '../types';
-import { SwapIcon, XIcon } from './icons';
+import { PrinterIcon, SwapIcon, XIcon } from './icons';
 import { MovementBadge } from './MovementBadge';
 
 interface Props {
@@ -101,6 +102,11 @@ export function MovementDetailModal({ open, movementId, onClose }: Props) {
         </div>
 
         <div className="modal-foot">
+          {detail && (
+            <a className="btn btn-ghost" href={movementPrintUrl(detail.id)} target="_blank" rel="noopener" title={t('print.hint')}>
+              <PrinterIcon /> {t('print.button')}
+            </a>
+          )}
           <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
         </div>
       </div>
