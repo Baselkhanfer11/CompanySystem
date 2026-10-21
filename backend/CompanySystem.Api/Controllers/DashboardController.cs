@@ -22,9 +22,11 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
     private const int RecentEmployees = 5;
     private const int ActivityCount = 8;
 
-    // GET /api/dashboard
+    // GET /api/dashboard?today=2026-10-21
+    // "today" is the viewer's own date, so the month turns over at their
+    // midnight, not the server's (UTC). Anything more than a day off is ignored.
     [HttpGet]
-    public async Task<ActionResult<DashboardDto>> Get()
+    public async Task<ActionResult<DashboardDto>> Get([FromQuery] DateTime? today)
     {
         // ---- team ----
         var employees = await db.Employees.CountAsync();
@@ -39,7 +41,8 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
         decimal? costThisMonth = null, costLastMonth = null;
         if (Roles.Managers.Split(',').Any(User.IsInRole))
         {
-            var now = DateTime.UtcNow;
+            var utc = DateTime.UtcNow.Date;
+            var now = today is DateTime t && Math.Abs((t.Date - utc).TotalDays) <= 1 ? t.Date : utc;
             var thisMonth = new DateTime(now.Year, now.Month, 1);
             costThisMonth = await ProjectCost(thisMonth, thisMonth.AddMonths(1));
             costLastMonth = await ProjectCost(thisMonth.AddMonths(-1), thisMonth);

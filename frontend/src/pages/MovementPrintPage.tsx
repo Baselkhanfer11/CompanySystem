@@ -90,40 +90,43 @@ export function MovementPrintPage() {
           <div><dt>{t('print.recordedBy')}</dt><dd>{detail.createdByName}</dd></div>
         </dl>
 
-        <table className="pr-table">
-          <thead>
-            <tr>
-              <th className="pr-n">#</th>
-              <th>{t('print.item')}</th>
-              <th>{t('print.code')}</th>
-              <th className="pr-num">{t('print.qty')}</th>
-              <th>{t('print.unit')}</th>
-              {showPrices && <th className="pr-num">{t('print.unitCost')}</th>}
-              {showPrices && <th className="pr-num">{t('print.value')}</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {detail.lines.map((l, i) => (
-              <tr key={l.id}>
-                <td className="pr-n">{i + 1}</td>
-                <td>{l.itemName}</td>
-                <td className="pr-code">{l.itemCode}</td>
-                <td className="pr-num"><b>{l.quantity}</b></td>
-                <td>{l.unit}</td>
-                {showPrices && <td className="pr-num">{formatUnitMoney(l.unitCost)}</td>}
-                {showPrices && <td className="pr-num">{formatMoney(l.lineTotal)}</td>}
-              </tr>
-            ))}
-          </tbody>
-          {showPrices && (
-            <tfoot>
+        {/* On a phone the table is wider than the sheet: it scrolls sideways (printing is unaffected). */}
+        <div className="pr-table-wrap">
+          <table className="pr-table">
+            <thead>
               <tr>
-                <td colSpan={6}>{t('print.total')}</td>
-                <td className="pr-num">{formatMoney(detail.total)}</td>
+                <th className="pr-n">#</th>
+                <th>{t('print.item')}</th>
+                <th>{t('print.code')}</th>
+                <th className="pr-num">{t('print.qty')}</th>
+                <th>{t('print.unit')}</th>
+                {showPrices && <th className="pr-num">{t('print.unitCost')}</th>}
+                {showPrices && <th className="pr-num">{t('print.value')}</th>}
               </tr>
-            </tfoot>
-          )}
-        </table>
+            </thead>
+            <tbody>
+              {detail.lines.map((l, i) => (
+                <tr key={l.id}>
+                  <td className="pr-n">{i + 1}</td>
+                  <td className="pr-item">{l.itemName}</td>
+                  <td className="pr-code">{l.itemCode}</td>
+                  <td className="pr-num"><b>{l.quantity}</b></td>
+                  <td>{l.unit}</td>
+                  {showPrices && <td className="pr-num">{formatUnitMoney(l.unitCost)}</td>}
+                  {showPrices && <td className="pr-num">{formatMoney(l.lineTotal)}</td>}
+                </tr>
+              ))}
+            </tbody>
+            {showPrices && (
+              <tfoot>
+                <tr>
+                  <td colSpan={6}>{t('print.total')}</td>
+                  <td className="pr-num">{formatMoney(detail.total)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
 
         {detail.notes && (
           <section className="pr-notes">

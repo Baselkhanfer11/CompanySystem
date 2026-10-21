@@ -4,6 +4,8 @@
 // table, a bold header row that stays put when you scroll, filters on the
 // header, real numbers / money / dates) and zip them up without compression.
 
+import { localDate } from './format';
+
 export type CellType = 'text' | 'number' | 'money' | 'date';
 export type CellValue = string | number | null | undefined; // dates as ISO strings
 
@@ -38,7 +40,7 @@ export function downloadXlsx(fileName: string, sheets: Sheet[], rtl = false) {
   const href = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = href;
-  a.download = `${fileName}-${localDay(new Date())}.xlsx`;
+  a.download = `${fileName}-${localDate()}.xlsx`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -143,9 +145,6 @@ function uniqueSheetNames(names: string[]): string[] {
 const esc = (s: string) =>
   s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '') // eslint-disable-line no-control-regex
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-const localDay = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // ---- The fixed XML parts ----
 
