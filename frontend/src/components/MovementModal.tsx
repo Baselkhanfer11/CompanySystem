@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
 import type { Item, MovementDraft, MovementType, Project, SiteStock, StockMovementInput } from '../types';
@@ -27,26 +27,23 @@ const today = () => new Date().toISOString().slice(0, 10);
 let keySeq = 1;
 const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1' });
 
-export function MovementModal({ open, initialType, draft, projects, items, siteStock, saving, onClose, onSave }: Props) {
-  const { t } = useI18n();
-  const [type, setType] = useState<MovementType>(initialType);
-  const [projectId, setProjectId] = useState('');
-  const [date, setDate] = useState(today());
-  const [notes, setNotes] = useState('');
-  const [lines, setLines] = useState<LineState[]>([blankLine()]);
-  const [error, setError] = useState('');
+// Rendered only while open, and fresh each time, so the form always starts
+// from the button that opened it (or the pre-filled draft).
+export function MovementModal(props: Props) {
+  if (!props.open) return null;
+  return <MovementForm {...props} />;
+}
 
-  useEffect(() => {
-    if (!open) return;
-    setType(draft ? 'Issue' : initialType);
-    setProjectId(draft ? String(draft.projectId) : '');
-    setDate(today());
-    setNotes('');
-    setLines(draft?.lines.length
-      ? draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity) }))
-      : [blankLine()]);
-    setError('');
-  }, [open, initialType, draft]);
+function MovementForm({ initialType, draft, projects, items, siteStock, saving, onClose, onSave }: Props) {
+  const { t } = useI18n();
+  const [type, setType] = useState<MovementType>(draft ? 'Issue' : initialType);
+  const [projectId, setProjectId] = useState(draft ? String(draft.projectId) : '');
+  const [date, setDate] = useState(today);
+  const [notes, setNotes] = useState('');
+  const [lines, setLines] = useState<LineState[]>(() => (draft?.lines.length
+    ? draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity) }))
+    : [blankLine()]));
+  const [error, setError] = useState('');
 
   const isIssue = type === 'Issue';
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -70,8 +67,6 @@ export function MovementModal({ open, initialType, draft, projects, items, siteS
 
   const lineValue = (l: LineState) => (l.itemId ? (parseInt(l.quantity) || 0) * unitValue(Number(l.itemId)) : 0);
   const total = lines.reduce((sum, l) => sum + lineValue(l), 0);
-
-  if (!open) return null;
 
   // Switching direction or site changes which items make sense, so start the lines over.
   const switchType = (next: MovementType) => { setType(next); setLines([blankLine()]); setError(''); };

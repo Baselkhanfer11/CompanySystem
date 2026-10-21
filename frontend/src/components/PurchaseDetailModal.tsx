@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { purchasesApi } from '../api/purchases';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
 import type { PurchaseChange, PurchaseDetail } from '../types';
 import { EditIcon, ReceiptIcon, XIcon } from './icons';
@@ -54,26 +55,17 @@ function describeChange(c: PurchaseChange, t: T, arrow: string): string {
   }
 }
 
-export function PurchaseDetailModal({ open, purchaseId, onClose, onEdit }: Props) {
+// Rendered only while open. Shows the last copy at once (if there is one) and
+// always re-checks the server, through the shared request cache.
+export function PurchaseDetailModal(props: Props) {
+  if (!props.open || props.purchaseId == null) return null;
+  return <PurchaseDetailView key={props.purchaseId} {...props} purchaseId={props.purchaseId} />;
+}
+
+function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseId: number }) {
   const { t, dir } = useI18n();
-  const [detail, setDetail] = useState<PurchaseDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!open || purchaseId == null) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    setDetail(null);
-    purchasesApi.getById(purchaseId)
-      .then((d) => { if (active) setDetail(d); })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [open, purchaseId]);
-
-  if (!open) return null;
+  const fetchDetail = useCallback(() => purchasesApi.getById(purchaseId), [purchaseId]);
+  const { data: detail, loading, error } = useCached(`purchase:${purchaseId}`, fetchDetail, 0);
 
   // Arrows point the way the text reads: → in English, ← in Arabic.
   const arrow = dir === 'rtl' ? '←' : '→';

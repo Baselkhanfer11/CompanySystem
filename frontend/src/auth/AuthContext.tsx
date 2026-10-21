@@ -22,11 +22,12 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Only a saved token needs checking; without one we know right away.
+  const [loading, setLoading] = useState(() => !!getToken());
 
   // On first load: if we have a saved token, ask the server who we are.
   useEffect(() => {
-    if (!getToken()) { setLoading(false); return; }
+    if (!getToken()) return;
     let active = true;
     authApi.me()
       .then((u) => { if (active) setUser(u); })

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
@@ -28,16 +28,19 @@ export function AppLayout() {
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+
+  // Clear the search whenever we change pages, so a leftover search from one
+  // page never silently filters the next one. (Done while rendering, React's
+  // way to reset state when something changes — no extra render pass.)
+  const [searchPage, setSearchPage] = useState(pathname);
+  if (searchPage !== pathname) {
+    setSearchPage(pathname);
+    setSearch('');
+  }
   const { t } = useI18n();
 
   const searchKey = SEARCH_KEY_BY_PATH[pathname];
   const searchPlaceholder = searchKey ? t(searchKey) : undefined;
-
-  // Reset the query whenever we change pages, so a leftover search from one
-  // page never silently filters the next one.
-  useEffect(() => {
-    setSearch('');
-  }, [pathname]);
 
   return (
     <ItemsProvider>

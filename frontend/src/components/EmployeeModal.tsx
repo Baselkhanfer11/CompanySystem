@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, EmployeeInput } from '../types';
 import { XIcon } from './icons';
@@ -13,29 +13,26 @@ interface Props {
 
 const empty: EmployeeInput = { fullName: '', email: '', position: '', isActive: true };
 
-export function EmployeeModal({ open, initial, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so the form always starts
+// from the record being edited (or blank).
+export function EmployeeModal(props: Props) {
+  if (!props.open) return null;
+  return <EmployeeForm key={props.initial?.id ?? 'new'} {...props} />;
+}
+
+function EmployeeForm({ initial, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
-  const [form, setForm] = useState<EmployeeInput>(empty);
+  const [form, setForm] = useState<EmployeeInput>(() =>
+    initial
+      ? {
+          fullName: initial.fullName,
+          email: initial.email ?? '',
+          position: initial.position ?? '',
+          isActive: initial.isActive,
+        }
+      : empty,
+  );
   const [error, setError] = useState('');
-
-  // Reset the form whenever the modal opens (with the employee being edited, or blank).
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setForm(
-        initial
-          ? {
-              fullName: initial.fullName,
-              email: initial.email ?? '',
-              position: initial.position ?? '',
-              isActive: initial.isActive,
-            }
-          : empty,
-      );
-    }
-  }, [open, initial]);
-
-  if (!open) return null;
 
   const set = <K extends keyof EmployeeInput>(k: K, v: EmployeeInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
