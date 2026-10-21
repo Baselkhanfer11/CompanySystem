@@ -4,6 +4,7 @@ import { purchasesApi } from '../api/purchases';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { EditIcon, PlusIcon, ReceiptIcon, SearchIcon, TrashIcon } from '../components/icons';
 import { PurchaseDetailModal } from '../components/PurchaseDetailModal';
 import { PurchaseModal } from '../components/PurchaseModal';
@@ -13,6 +14,7 @@ import { useItems } from '../data/ItemsContext';
 import { NONE, purchasesChanged, useProjects, usePurchases, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Project, PurchaseDetail, PurchaseInput, PurchaseListItem, Supplier } from '../types';
 
@@ -47,6 +49,17 @@ export function PurchasesPage() {
       [p.supplierName, p.projectName, p.invoiceNumber, p.createdByName].filter(Boolean).some((v) => v!.toLowerCase().includes(q)),
     );
   }, [purchases, search]);
+
+  // The Excel file: the same purchases as the table.
+  const exportSheets = () => [sheet<PurchaseListItem>(t('purchase.title'), [
+    { header: t('purchase.colDate'), type: 'date', value: (p) => p.date },
+    { header: t('purchase.colSupplier'), value: (p) => p.supplierName },
+    { header: t('purchase.colProject'), value: (p) => p.projectName ?? t('purchase.general') },
+    { header: t('purchase.colInvoice'), value: (p) => p.invoiceNumber },
+    { header: t('purchase.colLines'), type: 'number', value: (p) => p.lineCount },
+    { header: t('purchase.colTotal'), type: 'money', value: (p) => p.total },
+    { header: t('xl.recordedBy'), value: (p) => p.createdByName },
+  ], filtered)];
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
 
@@ -89,11 +102,14 @@ export function PurchasesPage() {
           <h1>{t('purchase.title')}</h1>
           <p>{t('purchase.sub')}</p>
         </div>
-        {manage && (
-          <button className="btn btn-primary" onClick={openCreate}>
-            <PlusIcon /> {t('purchase.add')}
-          </button>
-        )}
+        <div className="page-actions">
+          <ExportButton fileName="purchases" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && (
+            <button className="btn btn-primary" onClick={openCreate}>
+              <PlusIcon /> {t('purchase.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="panel rise">

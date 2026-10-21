@@ -62,7 +62,7 @@ bun run dev
 - [x] To-buy list, project costs and a home dashboard
 - [x] Excel document approvals with notifications
 - [ ] Sales
-- [ ] Export to Excel
+- [x] Export to Excel
 - [ ] Printable stock-movement records
 
 More in the [wiki](wiki/Home.md).

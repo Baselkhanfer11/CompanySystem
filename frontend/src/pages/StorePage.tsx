@@ -4,6 +4,7 @@ import { itemsApi } from '../api/items';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { AlertIcon, BoxesIcon, EditIcon, MapPinIcon, PlusIcon, TrashIcon, TrendingIcon } from '../components/icons';
 import { ItemLocationsModal } from '../components/ItemLocationsModal';
 import { ItemModal } from '../components/ItemModal';
@@ -15,6 +16,7 @@ import { itemsChanged, NONE, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { LOW_STOCK, isOutOfStock } from '../lib/stock';
 import { formatPrice } from '../lib/units';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Item, ItemInput, SiteStock } from '../types';
 
@@ -55,6 +57,21 @@ export function StorePage() {
     return items.filter((i) => [i.name, i.code, i.unit].some((v) => v.toLowerCase().includes(q)));
   }, [items, search]);
 
+  const onSitesOf = (i: Item) => (sitesByItem.get(i.id) ?? []).reduce((sum, s) => sum + s.quantity, 0);
+
+  // The Excel file: the same items as the cards, one row each.
+  const exportSheets = () => [sheet<Item>(t('store.title'), [
+    { header: t('itemModal.name'), value: (i) => i.name },
+    { header: t('itemModal.code'), value: (i) => i.code },
+    { header: t('itemModal.unit'), value: (i) => i.unit },
+    { header: t('toBuy.colWarehouse'), type: 'number', value: (i) => i.quantity },
+    { header: t('xl.onSites'), type: 'number', value: onSitesOf },
+    { header: t('toBuy.colPrice'), type: 'money', value: (i) => i.price },
+    { header: t('xl.value'), type: 'money', value: (i) => i.quantity * i.price },
+    { header: t('xl.status'), value: (i) => (isOutOfStock(i.quantity) ? t('store.out') : i.quantity <= LOW_STOCK ? t('xl.lowStock') : t('xl.inStock')) },
+    { header: t('xl.short'), type: 'number', value: (i) => shortByItem.get(i.id)?.toBuy },
+  ], filtered)];
+
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (i: Item) => { setEditing(i); setModalOpen(true); };
 
@@ -88,7 +105,10 @@ export function StorePage() {
           <h1>{t('store.title')}</h1>
           <p>{t('store.sub')}</p>
         </div>
-        {manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('store.add')}</button>}
+        <div className="page-actions">
+          <ExportButton fileName="store" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('store.add')}</button>}
+        </div>
       </div>
 
       {loading && (
@@ -122,7 +142,7 @@ export function StorePage() {
             const out = isOutOfStock(i.quantity);
             const low = !out && i.quantity <= LOW_STOCK;
             const short = shortByItem.get(i.id);
-            const onSites = (sitesByItem.get(i.id) ?? []).reduce((sum, s) => sum + s.quantity, 0);
+            const onSites = onSitesOf(i);
             return (
               <div key={i.id} className="item-card rise">
                 <div className="item-logo">

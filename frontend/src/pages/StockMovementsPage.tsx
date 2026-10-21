@@ -4,6 +4,7 @@ import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { SearchIcon, SwapIcon, UndoIcon } from '../components/icons';
 import { MovementBadge } from '../components/MovementBadge';
 import { MovementDetailModal } from '../components/MovementDetailModal';
@@ -14,6 +15,7 @@ import { useItems } from '../data/ItemsContext';
 import { movementsChanged, NONE, useMovements, useProjects, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney } from '../lib/format';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { MovementType, Project, SiteStock, StockMovementInput, StockMovementListItem } from '../types';
 
@@ -50,6 +52,29 @@ export function StockMovementsPage() {
     );
   }, [movements, search]);
 
+  // The Excel file: one sheet like the table, and one row per item sent or returned.
+  type ExportLine = { m: StockMovementListItem; line: StockMovementListItem['lines'][number] };
+  const exportSheets = () => [
+    sheet<StockMovementListItem>(t('stock.title'), [
+      { header: t('stock.colDate'), type: 'date', value: (m) => m.date },
+      { header: t('stock.colType'), value: (m) => t(`stock.type.${m.type}`) },
+      { header: t('stock.colSite'), value: (m) => m.projectName },
+      { header: t('xl.projectCode'), value: (m) => m.projectCode },
+      { header: t('stock.colItems'), value: (m) => m.itemNames.join(', ') },
+      { header: t('stock.colValue'), type: 'money', value: (m) => m.total },
+      { header: t('xl.recordedBy'), value: (m) => m.createdByName },
+      { header: t('xl.notes'), value: (m) => m.notes },
+    ], filtered),
+    sheet<ExportLine>(t('xl.itemsSheet'), [
+      { header: t('stock.colDate'), type: 'date', value: (r) => r.m.date },
+      { header: t('stock.colType'), value: (r) => t(`stock.type.${r.m.type}`) },
+      { header: t('stock.colSite'), value: (r) => r.m.projectName },
+      { header: t('toBuy.colItem'), value: (r) => r.line.itemName },
+      { header: t('xl.quantity'), type: 'number', value: (r) => r.line.quantity },
+      { header: t('itemModal.unit'), value: (r) => r.line.unit },
+    ], filtered.flatMap((m) => m.lines.map((line) => ({ m, line })))),
+  ];
+
   const handleSave = async (data: StockMovementInput) => {
     setSaving(true);
     try {
@@ -80,12 +105,15 @@ export function StockMovementsPage() {
           <h1>{t('stock.title')}</h1>
           <p>{t('stock.sub')}</p>
         </div>
-        {manage && (
-          <div className="page-actions">
-            <button className="btn btn-ghost" onClick={() => setModalType('Return')}><UndoIcon /> {t('stock.return')}</button>
-            <button className="btn btn-primary" onClick={() => setModalType('Issue')}><SwapIcon /> {t('stock.send')}</button>
-          </div>
-        )}
+        <div className="page-actions">
+          <ExportButton fileName="stock-movements" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && (
+            <>
+              <button className="btn btn-ghost" onClick={() => setModalType('Return')}><UndoIcon /> {t('stock.return')}</button>
+              <button className="btn btn-primary" onClick={() => setModalType('Issue')}><SwapIcon /> {t('stock.send')}</button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="panel rise">

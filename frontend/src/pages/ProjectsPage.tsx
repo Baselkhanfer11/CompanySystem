@@ -4,6 +4,7 @@ import { projectsApi } from '../api/projects';
 import { useAuth } from '../auth/AuthContext';
 import { canManage, canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { ClipboardIcon, EditIcon, PlusIcon, ProjectsIcon, TrashIcon } from '../components/icons';
 import { ProjectModal } from '../components/ProjectModal';
 import { ProjectPlanModal } from '../components/ProjectPlanModal';
@@ -15,6 +16,7 @@ import { NONE, projectsChanged, useProjects, useSiteStock } from '../data/querie
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Project, ProjectInput, SiteStock } from '../types';
 
@@ -50,6 +52,16 @@ export function ProjectsPage() {
     );
   }, [projects, search]);
 
+  // The Excel file: the same projects as the table.
+  const exportSheets = () => [sheet<Project>(t('project.title'), [
+    { header: t('project.colName'), value: (p) => p.name },
+    { header: t('project.colCode'), value: (p) => p.code },
+    { header: t('project.colStatus'), value: (p) => t(`project.status.${p.status}`) },
+    { header: t('xl.description'), value: (p) => p.description },
+    { header: t('xl.itemsOnSite'), type: 'number', value: (p) => siteRows(p.id).length },
+    { header: t('project.colCreated'), type: 'date', value: (p) => p.createdAt },
+  ], filtered)];
+
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (p: Project) => { setEditing(p); setModalOpen(true); };
 
@@ -83,11 +95,14 @@ export function ProjectsPage() {
           <h1>{t('project.title')}</h1>
           <p>{t('project.sub')}</p>
         </div>
-        {manage && (
-          <button className="btn btn-primary" onClick={openCreate}>
-            <PlusIcon /> {t('project.add')}
-          </button>
-        )}
+        <div className="page-actions">
+          <ExportButton fileName="projects" sheets={exportSheets} disabled={loading || filtered.length === 0} />
+          {manage && (
+            <button className="btn btn-primary" onClick={openCreate}>
+              <PlusIcon /> {t('project.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="panel rise">

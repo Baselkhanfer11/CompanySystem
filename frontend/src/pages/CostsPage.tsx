@@ -6,13 +6,15 @@ import { canManage } from '../auth/roles';
 import { BarList, type BarRow } from '../components/charts/BarList';
 import { MonthlyChart } from '../components/charts/MonthlyChart';
 import { BoxesIcon, ProjectsIcon, ReceiptIcon, ShieldIcon, SwapIcon, WalletIcon } from '../components/icons';
+import { ExportButton } from '../components/ExportButton';
 import { ProjectCostModal } from '../components/ProjectCostModal';
 import { StatCard } from '../components/StatCard';
 import { LoadError } from '../components/States';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatUsd, formatUsdShort } from '../lib/format';
 import { PERIODS, periodRange, type Period } from '../lib/reports';
-import type { ProjectCostRow, ProjectCostsReport } from '../types';
+import { sheet } from '../lib/xlsx';
+import type { MonthlySpend, ProjectCostRow, ProjectCostsReport } from '../types';
 
 export function CostsPage() {
   const { t } = useI18n();
@@ -91,11 +93,38 @@ export function CostsPage() {
 
   const money = (n: number) => <span title={formatUsd(n)}>{formatUsdShort(n)}</span>;
 
+  // The Excel file for the chosen period: costs per project (warehouse last), and per month.
+  const exportSheets = () => !report ? [] : [
+    sheet<ProjectCostRow>(t('costs.byProject'), [
+      { header: t('project.colName'), value: (r) => (r.projectId === null ? t('costs.viewWarehouse') : r.name) },
+      { header: t('project.colCode'), value: (r) => r.code },
+      { header: t('project.colStatus'), value: (r) => (r.status ? t(`project.status.${r.status}`) : null) },
+      { header: t('costDetail.total'), type: 'money', value: (r) => r.total },
+      { header: t('xl.delivered'), type: 'money', value: (r) => r.delivered },
+      { header: t('xl.fromWarehouse'), type: 'money', value: (r) => r.fromWarehouse },
+      { header: t('xl.purchaseCount'), type: 'number', value: (r) => r.purchaseCount },
+      { header: t('xl.movementCount'), type: 'number', value: (r) => r.movementCount },
+    ], report.warehouse.purchaseCount > 0 ? [...report.projects, report.warehouse] : report.projects),
+    sheet<MonthlySpend>(t('costs.monthly'), [
+      { header: t('xl.month'), value: (m) => new Date(m.year, m.month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
+      { header: t('costDetail.total'), type: 'money', value: (m) => m.total },
+    ], report.monthly),
+  ];
+
   return (
     <div>
-      <div className="page-header">
-        <h1>{t('costs.title')}</h1>
-        <p>{t('costs.sub')}</p>
+      <div className="page-header with-actions">
+        <div>
+          <h1>{t('costs.title')}</h1>
+          <p>{t('costs.sub')}</p>
+        </div>
+        <div className="page-actions">
+          <ExportButton
+            fileName={`costs-${period}`}
+            sheets={exportSheets}
+            disabled={!report || (report.purchaseCount === 0 && report.movementCount === 0)}
+          />
+        </div>
       </div>
 
       {/* One filter row — it scopes every tile and chart below it. */}

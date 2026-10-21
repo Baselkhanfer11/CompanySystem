@@ -5,6 +5,7 @@ import { stockApi } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportButton } from '../components/ExportButton';
 import { CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SearchIcon, SplitIcon, TruckIcon, UndoIcon, WalletIcon } from '../components/icons';
 import { MovementDetailModal } from '../components/MovementDetailModal';
 import { MovementModal } from '../components/MovementModal';
@@ -18,6 +19,7 @@ import { movementsChanged, NONE, purchasesChanged, useMovements, usePrices, useP
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
 import { bestRecent, indexPrices, lastFrom, suggestSupplier } from '../lib/prices';
+import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type {
   MovementDraft, Project, PurchaseDraft, PurchaseInput, Shortage, SiteStock, StockMovementInput, StockMovementListItem, Supplier,
@@ -125,6 +127,21 @@ export function ToBuyPage() {
   const [draft, setDraft] = useState<PurchaseDraft | null>(null);
   const prices = usePrices().data ?? NONE;
   const priceIdx = useMemo(() => indexPrices(prices), [prices]);
+
+  // The Excel file: the shopping list, in the same order as the table.
+  const exportSheets = () => [sheet<Shortage>(t('toBuy.title'), [
+    { header: t('toBuy.colItem'), value: (s) => s.name },
+    { header: t('itemModal.code'), value: (s) => s.code },
+    { header: t('toBuy.colNeeded'), value: (s) => s.projects.map((p) => `${p.projectName} · ${p.stillNeeded} ${s.unit}`).join(', ') },
+    { header: t('itemModal.unit'), value: (s) => s.unit },
+    { header: t('toBuy.colWarehouse'), type: 'number', value: (s) => s.inWarehouse },
+    { header: t('toBuy.colToBuy'), type: 'number', value: (s) => s.toBuy },
+    { header: t('xl.level'), value: (s) => t(`toBuy.${levelOf(s)}`) },
+    { header: t('toBuy.colPrice'), type: 'money', value: (s) => s.price },
+    { header: t('xl.bestPrice'), type: 'money', value: (s) => bestRecent(priceIdx, s.itemId)?.lastPrice },
+    { header: t('xl.bestSupplier'), value: (s) => bestRecent(priceIdx, s.itemId)?.supplierName },
+    { header: t('toBuy.colCost'), type: 'money', value: (s) => s.estimatedCost },
+  ], shopping)];
 
   // One project needs it and the warehouse has none → deliver straight to that
   // site. Otherwise buy into the warehouse and send it on from there.
@@ -241,13 +258,14 @@ export function ToBuyPage() {
           <h1>{t('toBuy.title')}</h1>
           <p>{t('toBuy.sub')}</p>
         </div>
-        {manage && toBuy.length > 0 && (
-          <div className="page-actions">
+        <div className="page-actions">
+          <ExportButton fileName="to-buy" sheets={exportSheets} disabled={loading || shopping.length === 0} />
+          {manage && toBuy.length > 0 && (
             <button className="btn btn-primary" onClick={buyAll} title={t('toBuy.buyAllHint')}>
               <CartIcon /> {t('toBuy.buyAll', { n: toBuy.length })}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {ok && shortages.length > 0 && (
