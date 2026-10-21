@@ -37,6 +37,7 @@
 .pr-facts dt { font-size: 11px; color: #6b7180; text-transform: uppercase; letter-spacing: 0.04em; }
 .pr-facts dd { margin: 2px 0 0; font-weight: 600; }
 
+.pr-table-wrap { overflow-x: auto; }
 .pr-table { width: 100%; border-collapse: collapse; }
 .pr-table th { text-align: start; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555b68; background: #f2f3f7; padding: 8px; border-bottom: 1px solid #c9cdd6; }
 .pr-table td { padding: 8px; border-bottom: 1px solid #e3e5eb; vertical-align: top; }
@@ -66,6 +67,11 @@
 
 @media (max-width: 700px) {
   .pr-sheet { min-height: 0; padding: 20px 16px; }
+  .pr-head { flex-direction: column; gap: 12px; }
+  .pr-title { text-align: start; }
+  .pr-table th, .pr-table td { padding: 6px; }
+  .pr-item { min-width: 130px; } /* a long name wraps, but not one word per line */
+  .pr-code { white-space: nowrap; }
   .pr-facts { grid-template-columns: 1fr 1fr; }
   .pr-signs { grid-template-columns: 1fr; }
 }
@@ -78,6 +84,7 @@
   body::before { display: none; } /* the app's background glow */
   .pr-toolbar { display: none; }
   .pr-screen { position: static; overflow: visible; padding: 0; background: #fff; }
+  .pr-table-wrap { overflow: visible; }
   /* One A4 page minus the 12mm margins, less a little slack so rounding never adds a blank page. */
   .pr-sheet { max-width: none; min-height: calc(297mm - 24mm - 4mm); margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
   .pr-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatMoney } from '../lib/format';
+import { formatMoney, localDate } from '../lib/format';
 import type { Item, MovementDraft, MovementType, Project, SiteStock, StockMovementInput } from '../types';
 import { PlusIcon, TrashIcon, XIcon } from './icons';
 
@@ -23,8 +23,6 @@ interface LineState {
   quantity: string;
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 let keySeq = 1;
 const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1' });
 
@@ -40,7 +38,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
   const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [type, setType] = useState<MovementType>(draft ? 'Issue' : initialType);
   const [projectId, setProjectId] = useState(draft ? String(draft.projectId) : '');
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(localDate);
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<LineState[]>(() => (draft?.lines.length
     ? draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity) }))

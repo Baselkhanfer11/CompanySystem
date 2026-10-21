@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney } from '../lib/format';
+import { formatDate, formatMoney, localDate } from '../lib/format';
 import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, lastFrom, pctChange } from '../lib/prices';
 import type { Item, Project, PurchaseDetail, PurchaseDraft, PurchaseInput, Supplier } from '../types';
@@ -35,13 +35,10 @@ interface FormState {
   notes: string;
 }
 
-// Today as yyyy-mm-dd for the date input's default.
-const today = () => new Date().toISOString().slice(0, 10);
-
 let keySeq = 1;
 const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1', unitPrice: '' });
 
-const emptyForm: FormState = { supplierId: '', projectId: '', invoiceNumber: '', date: today(), notes: '' };
+const emptyForm: FormState = { supplierId: '', projectId: '', invoiceNumber: '', date: localDate(), notes: '' };
 
 // Where the form starts: the saved invoice (edit), a pre-filled draft, or blank.
 function startForm(initial: PurchaseDetail | null, draft?: PurchaseDraft | null): FormState {
@@ -58,12 +55,12 @@ function startForm(initial: PurchaseDetail | null, draft?: PurchaseDraft | null)
     // The supplier is a suggestion from the price history (or left to the user).
     return {
       ...emptyForm,
-      date: today(),
+      date: localDate(),
       supplierId: draft.supplierId ? String(draft.supplierId) : '',
       projectId: draft.projectId ? String(draft.projectId) : '',
     };
   }
-  return { ...emptyForm, date: today() };
+  return { ...emptyForm, date: localDate() };
 }
 
 function startLines(initial: PurchaseDetail | null, draft?: PurchaseDraft | null): LineState[] {

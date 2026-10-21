@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatMoney } from '../lib/format';
+import { formatMoney, localDate } from '../lib/format';
 import type { Shortage, StockMovementInput } from '../types';
 import { CheckIcon, SplitIcon, XIcon } from './icons';
 
@@ -13,8 +13,6 @@ interface Props {
   onClose: () => void;
   onSave: (data: StockMovementInput[]) => void; // one send per site, booked together
 }
-
-const today = () => new Date().toISOString().slice(0, 10);
 
 // A fair first guess: the warehouse's stock shared in proportion to what each
 // site still needs. Whole units only — the leftovers go to the biggest fractions.
@@ -44,7 +42,7 @@ function SplitBody({ shortage: s, saving, onClose, onSave }: Omit<Props, 'shorta
   const { t } = useI18n();
   const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [qty, setQty] = useState(() => shareByNeed(s.inWarehouse, s.projects).map(String));
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(localDate);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 

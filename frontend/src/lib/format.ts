@@ -1,5 +1,13 @@
 // Shared formatting helpers.
 
+/**
+ * A local calendar date as yyyy-mm-dd, e.g. today for a date input. (Not
+ * toISOString(), which converts to UTC and gives yesterday's date after
+ * midnight for users east of UTC.)
+ */
+export const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 /** Format an ISO date string as e.g. "22 Sep 2026". */
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });

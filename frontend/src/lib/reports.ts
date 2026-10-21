@@ -1,24 +1,20 @@
 import type { DateRange } from '../api/reports';
+import { localDate } from './format';
 
 // The period presets on the Costs page. Labels come from t(`costs.period.${p}`).
 export const PERIODS = ['month', 'quarter', 'year', 'all'] as const;
 export type Period = (typeof PERIODS)[number];
 
-// A local calendar date as yyyy-mm-dd. (Not toISOString(), which converts to
-// UTC and can land on the previous day for users east of UTC.)
-const ymd = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
 /** The date range a preset covers, ending today. "all" has no bounds. */
 export function periodRange(p: Period, now = new Date()): DateRange {
-  const to = ymd(now);
+  const to = localDate(now);
   switch (p) {
     case 'month':
-      return { from: ymd(new Date(now.getFullYear(), now.getMonth(), 1)), to };
+      return { from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), to };
     case 'quarter': // this month + the two before it
-      return { from: ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1)), to };
+      return { from: localDate(new Date(now.getFullYear(), now.getMonth() - 2, 1)), to };
     case 'year':
-      return { from: ymd(new Date(now.getFullYear(), 0, 1)), to };
+      return { from: localDate(new Date(now.getFullYear(), 0, 1)), to };
     default:
       return {};
   }
