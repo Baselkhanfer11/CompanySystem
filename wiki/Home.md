@@ -14,7 +14,7 @@
 - 🏗️ **Projects** — every site is a project, with a unique code, a status and a **material plan**.
 - 🚚 **Suppliers & Purchases** — who the company buys from, every invoice line, delivered to the warehouse or straight to a site. Purchases can be edited (with a full change history) or deleted, and stock is protected both ways.
 - 💲 **Price history** — what each supplier charged for each item, and who's cheapest right now. New purchases suggest the cheapest supplier.
-- 🔁 **Stock movements** — send material from the warehouse to a site, or return it. Each movement is costed and can be undone.
+- 🔁 **Stock movements** — send material from the warehouse to a site, or return it. Each movement is costed and can be undone, and can be **printed** as a delivery or return note with signature boxes (or saved as PDF).
 - 🛒 **To buy** — what open projects still need, what the warehouse can cover, and what must be bought. You can buy, send or **split** a short item between sites straight from the list.
 - 💰 **Project costs** — what each project has cost, by supplier, item and month (managers only).
 - 📄 **Documents & Approvals** — upload an Excel file and route it **Engineer → Manager → CEO**. Each reviewer can approve, return or reject, and every step is traceable.

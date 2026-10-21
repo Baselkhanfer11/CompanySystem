@@ -63,6 +63,6 @@ bun run dev
 - [x] Excel document approvals with notifications
 - [ ] Sales
 - [x] Export to Excel
-- [ ] Printable stock-movement records
+- [x] Printable stock-movement records
 
 More in the [wiki](wiki/Home.md).

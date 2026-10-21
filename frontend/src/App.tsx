@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { AppLayout } from './layouts/AppLayout';
@@ -18,6 +18,7 @@ const StockMovementsPage = lazy(() => import('./pages/StockMovementsPage').then(
 const ToBuyPage = lazy(() => import('./pages/ToBuyPage').then((m) => ({ default: m.ToBuyPage })));
 const CostsPage = lazy(() => import('./pages/CostsPage').then((m) => ({ default: m.CostsPage })));
 const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })));
+const MovementPrintPage = lazy(() => import('./pages/MovementPrintPage').then((m) => ({ default: m.MovementPrintPage })));
 
 export default function App() {
   return (
@@ -27,6 +28,11 @@ export default function App() {
 
       {/* Protected — must be logged in */}
       <Route element={<RequireAuth />}>
+        {/* A paper record: its own clean page, without the sidebar. */}
+        <Route
+          path="/movements/:id/print"
+          element={<Suspense fallback={<div className="page-loading"><span className="spinner" /></div>}><MovementPrintPage /></Suspense>}
+        />
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/employees" element={<EmployeesPage />} />

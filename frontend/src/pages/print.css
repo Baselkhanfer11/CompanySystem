@@ -1,0 +1,85 @@
+/* ─────────────────────────────────────────────
+   Printable stock-movement record (MovementPrintPage)
+   Always black on white, whatever the app theme, so it prints cleanly.
+   ───────────────────────────────────────────── */
+
+.pr-screen {
+  position: fixed; inset: 0; overflow: auto; z-index: 1;
+  background: #e8eaf0; color: #15171c; padding: 24px 16px 48px;
+}
+
+.pr-toolbar {
+  max-width: 210mm; margin: 0 auto 16px; display: flex; align-items: center; gap: 12px;
+}
+.pr-toolbar .btn-primary { margin-inline-start: auto; }
+.pr-toolbar .btn-ghost { background: #fff; color: #15171c; border-color: #cfd3dc; }
+.pr-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3b3f4a; cursor: pointer; }
+.pr-check input { width: 16px; height: 16px; accent-color: #7c6cff; }
+
+.pr-sheet {
+  max-width: 210mm; min-height: 297mm; margin: 0 auto; padding: 16mm 15mm;
+  background: #fff; box-shadow: 0 6px 30px rgba(20, 24, 40, 0.15); border-radius: 4px;
+  display: flex; flex-direction: column; font-size: 13px; line-height: 1.45;
+}
+.pr-message { min-height: 0; text-align: center; padding: 48px; }
+
+.pr-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 2px solid #15171c; }
+.pr-brand { display: flex; align-items: center; gap: 10px; font-family: 'Sora', sans-serif; font-weight: 800; font-size: 18px; }
+.pr-logo { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #7c6cff; color: #fff; }
+.pr-logo svg { width: 20px; height: 20px; }
+.pr-title { text-align: end; }
+.pr-title h1 { font-size: 24px; letter-spacing: -0.01em; color: #15171c; }
+.pr-number { margin-top: 2px; color: #555b68; }
+.pr-number b { color: #15171c; font-family: ui-monospace, monospace; direction: ltr; unicode-bidi: isolate; }
+
+.pr-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+.pr-facts div { border: 1px solid #d9dce3; border-radius: 6px; padding: 8px 10px; }
+.pr-facts dt { font-size: 11px; color: #6b7180; text-transform: uppercase; letter-spacing: 0.04em; }
+.pr-facts dd { margin: 2px 0 0; font-weight: 600; }
+
+.pr-table { width: 100%; border-collapse: collapse; }
+.pr-table th { text-align: start; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555b68; background: #f2f3f7; padding: 8px; border-bottom: 1px solid #c9cdd6; }
+.pr-table td { padding: 8px; border-bottom: 1px solid #e3e5eb; vertical-align: top; }
+.pr-table tr { break-inside: avoid; }
+/* Browsers repeat a tfoot on every printed page; the total belongs only at the end. */
+.pr-table tfoot { display: table-row-group; }
+.pr-table tfoot td { font-weight: 700; border-top: 2px solid #15171c; border-bottom: none; text-align: end; }
+.pr-n { width: 28px; color: #6b7180; }
+.pr-num { text-align: end !important; white-space: nowrap; direction: ltr; unicode-bidi: isolate; }
+.pr-code { font-family: ui-monospace, monospace; color: #3b3f4a; direction: ltr; unicode-bidi: isolate; }
+
+.pr-notes { margin-top: 18px; border-inline-start: 3px solid #7c6cff; padding: 4px 12px; }
+.pr-notes h3, .pr-sign h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #555b68; }
+.pr-notes p { margin-top: 4px; white-space: pre-wrap; }
+
+/* Pushed to the bottom of the page, so there's room to sign. */
+.pr-signs { margin-top: auto; padding-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; break-inside: avoid; }
+.pr-sign { border: 1px solid #c9cdd6; border-radius: 6px; padding: 12px 14px 4px; }
+.pr-line { display: flex; align-items: flex-end; height: 34px; border-bottom: 1px solid #9ea3ad; margin-bottom: 8px; }
+.pr-line span { font-size: 11px; color: #6b7180; padding-bottom: 2px; }
+
+.pr-foot { display: flex; justify-content: space-between; margin-top: 18px; padding-top: 8px; border-top: 1px solid #e3e5eb; font-size: 11px; color: #6b7180; }
+
+/* Arabic has no capitals, and letter-spacing pulls its joined letters apart. */
+[dir="rtl"] .pr-table th, [dir="rtl"] .pr-facts dt, [dir="rtl"] .pr-notes h3, [dir="rtl"] .pr-sign h3 { text-transform: none; letter-spacing: 0; }
+[dir="rtl"] .pr-brand, [dir="rtl"] .pr-title h1 { font-family: 'Cairo', 'Sora', sans-serif; }
+
+@media (max-width: 700px) {
+  .pr-sheet { min-height: 0; padding: 20px 16px; }
+  .pr-facts { grid-template-columns: 1fr 1fr; }
+  .pr-signs { grid-template-columns: 1fr; }
+}
+
+@page { size: A4; margin: 12mm; }
+
+@media print {
+  /* The app locks the page to the window (overflow: hidden); a long record needs every page. */
+  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  body::before { display: none; } /* the app's background glow */
+  .pr-toolbar { display: none; }
+  .pr-screen { position: static; overflow: visible; padding: 0; background: #fff; }
+  /* One A4 page minus the 12mm margins, less a little slack so rounding never adds a blank page. */
+  .pr-sheet { max-width: none; min-height: calc(297mm - 24mm - 4mm); margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
+  .pr-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pr-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
