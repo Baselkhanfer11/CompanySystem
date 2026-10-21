@@ -11,6 +11,10 @@ const HIDDEN = '—';
 export const formatMoney = (n?: number) =>
   n === undefined ? HIDDEN : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/** A unit price or unit cost: like formatMoney, plus up to 2 more decimals when it has them, e.g. "0.075". */
+export const formatUnitMoney = (n?: number) =>
+  n === undefined ? HIDDEN : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const usdCompact = new Intl.NumberFormat('en-US', {
   style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1,

@@ -74,6 +74,9 @@ export interface ItemInput {
   quantity: number;
   unit: string;
   price: number;
+  // On an edit: the stock the form showed when opened. The server only changes
+  // the count if it was changed here, and only if nobody moved stock meanwhile.
+  quantityWas?: number;
 }
 
 // A project / site the company works on.

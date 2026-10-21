@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useItems } from '../data/ItemsContext';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatUsd } from '../lib/format';
+import { formatDate } from '../lib/format';
+import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, isRecent } from '../lib/prices';
 import type { Supplier } from '../types';
 import { XIcon } from './icons';
@@ -59,15 +60,15 @@ export function SupplierPricesModal({ supplier, onClose }: { supplier: Supplier 
                           <div className="name">{item?.name ?? `#${p.itemId}`}</div>
                           <div className="price-tags">
                             {best?.supplierId === p.supplierId && <span className="badge active"><span className="dot" />{t('prices.best')}</span>}
-                            {cheaper && <span className="price-change warn">{t('prices.cheaperAt', { supplier: cheaper.supplierName, price: formatUsd(cheaper.lastPrice) })}</span>}
+                            {cheaper && <span className="price-change warn">{t('prices.cheaperAt', { supplier: cheaper.supplierName, price: formatPrice(cheaper.lastPrice) })}</span>}
                             {!isRecent(p) && <span className="email">{t('prices.old')}</span>}
                           </div>
                         </td>
                         <td className="num">
-                          <strong>{formatUsd(p.lastPrice)}</strong>
+                          <strong>{formatPrice(p.lastPrice)}</strong>
                           <div className="email">{formatDate(p.lastDate)}</div>
                         </td>
-                        <td className="num">{formatUsd(p.avgPrice)}</td>
+                        <td className="num">{formatPrice(p.avgPrice)}</td>
                         <td className="num" style={{ color: 'var(--text-muted)' }}>
                           {t('prices.boughtTimes', { n: p.timesBought, qty: `${p.totalQuantity} ${item?.unit ?? ''}`.trim() })}
                         </td>

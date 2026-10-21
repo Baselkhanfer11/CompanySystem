@@ -98,4 +98,4 @@ Statuses and types (`ProjectStatuses`, `SupplierStatuses`, `StockMovementTypes`,
 
 ## Money
 
-Prices and paid unit prices are stored with **2 decimals**; movement unit costs with **4** (they can be averages).
+Prices, paid unit prices and movement unit costs are all stored with **4 decimals** (a screw can cost 0.075; return costs are averages). Totals are shown with 2.

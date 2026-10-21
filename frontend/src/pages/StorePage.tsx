@@ -86,7 +86,10 @@ export function StorePage() {
       else { await itemsApi.create(data); toast('success', t('store.added')); }
       setModalOpen(false);
       itemsChanged();
-    } catch (e) { toast('error', (e as Error).message); }
+    } catch (e) {
+      toast('error', (e as Error).message);
+      itemsChanged(); // e.g. the stock moved meanwhile: reopening shows the new count
+    }
     finally { setSaving(false); }
   };
 

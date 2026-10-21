@@ -3,7 +3,8 @@ import { pricesApi } from '../api/prices';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatUsd } from '../lib/format';
+import { formatDate } from '../lib/format';
+import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, isRecent, pctChange } from '../lib/prices';
 import type { Item, PriceHistoryLine } from '../types';
 import { TrendingIcon, XIcon } from './icons';
@@ -45,7 +46,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
         <div className="modal-head with-close">
           <div>
             <h3>{item.name}</h3>
-            <p>{t('prices.title')} · {item.code} · {t('prices.storePrice', { price: formatUsd(item.price) })}</p>
+            <p>{t('prices.title')} · {item.code} · {t('prices.storePrice', { price: formatPrice(item.price) })}</p>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}><XIcon /></button>
         </div>
@@ -67,17 +68,17 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
               <div className="mini-stats">
                 <div>
                   <span className="k">{t('prices.lastPaid')}</span>
-                  <span className="v">{formatUsd(last.unitPrice)}</span>
+                  <span className="v">{formatPrice(last.unitPrice)}</span>
                   <span className="field-hint" style={{ marginTop: 0 }}>{last.supplierName} · {formatDate(last.date)}</span>
                 </div>
                 <div>
                   <span className="k">{t('prices.bestNow')}</span>
-                  <span className="v" style={{ color: best ? 'var(--emerald)' : undefined }}>{best ? formatUsd(best.lastPrice) : '—'}</span>
+                  <span className="v" style={{ color: best ? 'var(--emerald)' : undefined }}>{best ? formatPrice(best.lastPrice) : '—'}</span>
                   <span className="field-hint" style={{ marginTop: 0 }}>{best ? best.supplierName : t('prices.noneRecent')}</span>
                 </div>
                 <div>
                   <span className="k">{t('prices.avgPaid')}</span>
-                  <span className="v">{formatUsd(qty > 0 ? spent / qty : 0)}</span>
+                  <span className="v">{formatPrice(qty > 0 ? spent / qty : 0)}</span>
                   <span className="field-hint" style={{ marginTop: 0 }}>{t('prices.overPurchases', { n: lines.length })}</span>
                 </div>
               </div>
@@ -109,11 +110,11 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
                               </div>
                             </td>
                             <td className="num">
-                              <strong>{formatUsd(p.lastPrice)}</strong>
+                              <strong>{formatPrice(p.lastPrice)}</strong>
                               <div className="email">{formatDate(p.lastDate)}</div>
                             </td>
-                            <td className="num">{formatUsd(p.minPrice)}</td>
-                            <td className="num">{formatUsd(p.avgPrice)}</td>
+                            <td className="num">{formatPrice(p.minPrice)}</td>
+                            <td className="num">{formatPrice(p.avgPrice)}</td>
                             <td className="num" style={{ color: 'var(--text-muted)' }}>
                               {t('prices.boughtTimes', { n: p.timesBought, qty: `${p.totalQuantity} ${item.unit}` })}
                             </td>
@@ -152,7 +153,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
                             <td style={{ color: l.deliveredTo ? undefined : 'var(--text-muted)' }}>{l.deliveredTo ?? t('stock.warehouse')}</td>
                             <td className="num">{l.quantity} {item.unit}</td>
                             <td className="num">
-                              <strong>{formatUsd(l.unitPrice)}</strong>
+                              <strong>{formatPrice(l.unitPrice)}</strong>
                               {change !== 0 && (
                                 <div className={`price-change ${change > 0 ? 'up' : 'down'}`}>
                                   {change > 0 ? '↑' : '↓'} {Math.abs(change)}%

@@ -2,6 +2,7 @@ using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Dtos;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,8 @@ public class ReportsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ProjectCostsReportDto>> ProjectCosts([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         if (from > to) return BadRequest(new { message = "'from' must be on or before 'to'." });
+        if ((InputRules.ReportDateProblem(from) ?? InputRules.ReportDateProblem(to)) is string problem)
+            return BadRequest(new { message = problem });
 
         var entries = await Entries(from, to);
 
@@ -88,6 +91,8 @@ public class ReportsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ProjectCostDetailDto>> ProjectCostDetail(int projectId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         if (from > to) return BadRequest(new { message = "'from' must be on or before 'to'." });
+        if ((InputRules.ReportDateProblem(from) ?? InputRules.ReportDateProblem(to)) is string problem)
+            return BadRequest(new { message = problem });
 
         Project? project = null;
         if (projectId != WarehouseId)

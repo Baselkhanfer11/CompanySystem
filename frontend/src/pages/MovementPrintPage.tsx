@@ -4,7 +4,7 @@ import { stockApi } from '../api/stock';
 import { CubeIcon, PrinterIcon } from '../components/icons';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatDateTime, formatMoney } from '../lib/format';
+import { formatDate, formatDateTime, formatMoney, formatUnitMoney } from '../lib/format';
 import { movementNumber } from '../lib/stock';
 import type { StockMovementDetail } from '../types';
 import './print.css';
@@ -110,7 +110,7 @@ export function MovementPrintPage() {
                 <td className="pr-code">{l.itemCode}</td>
                 <td className="pr-num"><b>{l.quantity}</b></td>
                 <td>{l.unit}</td>
-                {showPrices && <td className="pr-num">{formatMoney(l.unitCost)}</td>}
+                {showPrices && <td className="pr-num">{formatUnitMoney(l.unitCost)}</td>}
                 {showPrices && <td className="pr-num">{formatMoney(l.lineTotal)}</td>}
               </tr>
             ))}

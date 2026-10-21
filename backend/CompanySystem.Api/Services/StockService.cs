@@ -1,6 +1,7 @@
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CompanySystem.Api.Services;
 
@@ -19,6 +20,46 @@ public record SiteBalance(int ProjectId, int ItemId, int Quantity, decimal Value
 /// </summary>
 public class StockService(AppDbContext db)
 {
+    // Stock changes take turns. Without this, two people sending the last 30
+    // at the same moment would both see 30 there and both succeed.
+    // Call it FIRST (before reading anything the change depends on), save, then
+    // commit; leaving without committing undoes everything.
+    public async Task<IDbContextTransaction> BeginChange()
+    {
+        var tx = await db.Database.BeginTransactionAsync();
+        // One lock for all stock, held until the transaction ends. Readers aren't blocked.
+        await db.Database.ExecuteSqlRawAsync("""
+            DECLARE @result int;
+            EXEC @result = sp_getapplock @Resource = 'stock', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
+            IF @result < 0 THROW 50000, 'The stock is busy with another change. Please try again.', 1;
+            """);
+        return tx;
+    }
+
+    // A return takes material back at the site's average cost at that moment.
+    // If a record that average came from changes afterwards (a purchase's price,
+    // an issue undone), the site is left with a cost that no longer adds up —
+    // even below zero. So such a change waits until that later return is undone.
+    // Returns the explanation, or null when no return came after.
+    public async Task<string?> ReturnedSince(DateTime since, IReadOnlyCollection<(int ProjectId, int ItemId)> places)
+    {
+        if (places.Count == 0) return null;
+        var projectIds = places.Select(p => p.ProjectId).Distinct().ToList();
+        var itemIds = places.Select(p => p.ItemId).Distinct().ToList();
+
+        var returned = await db.StockMovementLines
+            .Where(l => l.StockMovement!.Type == StockMovementTypes.Return && l.StockMovement.CreatedAt > since
+                && projectIds.Contains(l.StockMovement.ProjectId) && itemIds.Contains(l.ItemId))
+            .Select(l => new { l.StockMovement!.ProjectId, Site = l.StockMovement.Project!.Name, l.ItemId, Item = l.Item!.Name })
+            .Distinct()
+            .ToListAsync();
+        var hits = returned.Where(r => places.Contains((r.ProjectId, r.ItemId))).ToList();
+        if (hits.Count == 0) return null;
+
+        var what = string.Join(", ", hits.Select(h => $"{h.Item} (the {h.Site} site)"));
+        return $"Some of it was returned to the warehouse afterwards, at the cost worked out then: {what}. Undo that return first, then try again.";
+    }
+
     // Every site balance, optionally narrowed to one project and/or some items.
     public async Task<List<SiteBalance>> SiteBalances(int? projectId = null, IReadOnlyCollection<int>? itemIds = null)
     {
