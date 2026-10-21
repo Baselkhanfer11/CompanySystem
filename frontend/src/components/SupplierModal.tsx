@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { SUPPLIER_STATUSES } from '../lib/suppliers';
 import type { Supplier, SupplierInput } from '../types';
@@ -28,32 +28,30 @@ const empty: FormState = {
   contactPerson: '', phone: '', email: '', address: '', notes: '',
 };
 
-export function SupplierModal({ open, initial, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so the form always starts
+// from the record being edited (or blank).
+export function SupplierModal(props: Props) {
+  if (!props.open) return null;
+  return <SupplierForm key={props.initial?.id ?? 'new'} {...props} />;
+}
+
+function SupplierForm({ initial, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
-  const [form, setForm] = useState<FormState>(empty);
+  const [form, setForm] = useState<FormState>(() =>
+    initial
+      ? {
+          name: initial.name,
+          code: initial.code,
+          status: initial.status,
+          contactPerson: initial.contactPerson ?? '',
+          phone: initial.phone ?? '',
+          email: initial.email ?? '',
+          address: initial.address ?? '',
+          notes: initial.notes ?? '',
+        }
+      : empty,
+  );
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setForm(
-        initial
-          ? {
-              name: initial.name,
-              code: initial.code,
-              status: initial.status,
-              contactPerson: initial.contactPerson ?? '',
-              phone: initial.phone ?? '',
-              email: initial.email ?? '',
-              address: initial.address ?? '',
-              notes: initial.notes ?? '',
-            }
-          : empty,
-      );
-    }
-  }, [open, initial]);
-
-  if (!open) return null;
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 

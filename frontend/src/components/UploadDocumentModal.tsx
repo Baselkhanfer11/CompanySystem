@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatBytes } from '../lib/documents';
 import type { Project } from '../types';
@@ -12,25 +12,21 @@ interface Props {
   onSave: (form: FormData) => void;
 }
 
-export function UploadDocumentModal({ open, projects, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so it always starts empty.
+export function UploadDocumentModal(props: Props) {
+  if (!props.open) return null;
+  return <UploadForm {...props} />;
+}
+
+function UploadForm({ projects, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [title, setTitle] = useState('');
-  const [projectId, setProjectId] = useState('');
+  // Nothing picked yet = the first project (which also works if the list loads after opening).
+  const [picked, setProjectId] = useState('');
+  const projectId = picked || (projects[0] ? String(projects[0].id) : '');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setTitle('');
-      setProjectId(projects[0] ? String(projects[0].id) : '');
-      setFile(null);
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  }, [open, projects]);
-
-  if (!open) return null;
 
   const submit = () => {
     if (!title.trim()) return setError(t('docModal.titleRequired'));

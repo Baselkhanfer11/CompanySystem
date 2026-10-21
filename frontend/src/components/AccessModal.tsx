@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ROLES } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, GrantAccessInput, UpdateAccessInput } from '../types';
@@ -14,29 +14,23 @@ interface Props {
   onRevoke: (employee: Employee) => void;
 }
 
-export function AccessModal({ open, employee, saving, onClose, onGrant, onUpdate, onRevoke }: Props) {
+// Rendered only while open, and fresh each time, so the form always starts
+// from this employee's current login (or blank).
+export function AccessModal(props: Props) {
+  if (!props.open || !props.employee) return null;
+  return <AccessForm key={props.employee.id} {...props} employee={props.employee} />;
+}
+
+function AccessForm({ employee, saving, onClose, onGrant, onUpdate, onRevoke }: Props & { employee: Employee }) {
   const { t } = useI18n();
-  const access = employee?.access ?? null;
+  const access = employee.access ?? null;
   const isManage = !!access; // employee already has a login
 
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(access?.username ?? '');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<string>(ROLES.Employee);
-  const [isActive, setIsActive] = useState(true);
+  const [role, setRole] = useState<string>(access?.role ?? ROLES.Employee);
+  const [isActive, setIsActive] = useState(access?.isActive ?? true);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open && employee) {
-      const a = employee.access ?? null;
-      setError('');
-      setUsername(a?.username ?? '');
-      setPassword('');
-      setRole(a?.role ?? ROLES.Employee);
-      setIsActive(a?.isActive ?? true);
-    }
-  }, [open, employee]);
-
-  if (!open || !employee) return null;
 
   const submit = () => {
     if (isManage) {

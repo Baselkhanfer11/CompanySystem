@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { reportsApi } from '../api/reports';
 import { useAuth } from '../auth/AuthContext';
@@ -11,6 +11,7 @@ import { ProjectCostModal } from '../components/ProjectCostModal';
 import { StatCard } from '../components/StatCard';
 import { LoadError } from '../components/States';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { formatUsd, formatUsdShort } from '../lib/format';
 import { PERIODS, periodRange, type Period } from '../lib/reports';
 import { sheet } from '../lib/xlsx';
@@ -19,32 +20,9 @@ import type { MonthlySpend, ProjectCostRow, ProjectCostsReport } from '../types'
 export function CostsPage() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const allowed = canManage(user?.role);
-
-  const [period, setPeriod] = useState<Period>('all');
-  const range = useMemo(() => periodRange(period), [period]);
-
-  const [report, setReport] = useState<ProjectCostsReport | null>(null);
-  const [loading, setLoading] = useState(true); // first load only (skeletons)
-  const [refreshing, setRefreshing] = useState(false); // later reloads keep the old view, faded
-  const [error, setError] = useState('');
-  const [reloadKey, setReloadKey] = useState(0);
-  const [selected, setSelected] = useState<ProjectCostRow | null>(null);
-
-  useEffect(() => {
-    if (!allowed) return;
-    let active = true;
-    setRefreshing(true);
-    setError('');
-    reportsApi.projectCosts(range)
-      .then((r) => { if (active) setReport(r); })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) { setLoading(false); setRefreshing(false); } });
-    return () => { active = false; };
-  }, [range, allowed, reloadKey]);
 
   // Financial data — managers only (the API enforces this too).
-  if (!allowed) {
+  if (!canManage(user?.role)) {
     return (
       <div className="empty-state" style={{ paddingTop: 100 }}>
         <div className="empty-illus"><ShieldIcon /></div>
@@ -53,6 +31,29 @@ export function CostsPage() {
       </div>
     );
   }
+  return <CostsReport />;
+}
+
+function CostsReport() {
+  const { t } = useI18n();
+  const [period, setPeriod] = useState<Period>('all');
+  const range = useMemo(() => periodRange(period), [period]);
+
+  // Each period is cached on its own: the last copy shows at once, and it's always re-checked.
+  const fetchReport = useCallback(() => reportsApi.projectCosts(range), [range]);
+  const costs = useCached(`costs:${range.from ?? ''}:${range.to ?? ''}`, fetchReport, 0);
+
+  // Switching to a period not loaded yet keeps the last report on screen, faded,
+  // until the new one arrives. (Remembered while rendering, React's way to follow
+  // a changing value — no extra render pass.)
+  const [lastShown, setLastShown] = useState<ProjectCostsReport | null>(null);
+  if (costs.data && costs.data !== lastShown) setLastShown(costs.data);
+  const report = costs.data ?? lastShown;
+  const error = costs.error;
+  const loading = !report && !error; // first load only (skeletons)
+  const refreshing = !costs.data && !error && !!lastShown; // a new period on its way
+
+  const [selected, setSelected] = useState<ProjectCostRow | null>(null);
 
   const periodLabel = t(`costs.period.${period}`);
   const purchasesLabel = (n: number) => (n === 1 ? t('purchase.countOne', { n }) : t('purchase.countMany', { n }));
@@ -158,7 +159,7 @@ export function CostsPage() {
       )}
 
       {!loading && !report && error && (
-        <LoadError icon={<WalletIcon />} title={t('costs.couldntLoad')} error={error} onRetry={() => setReloadKey((k) => k + 1)} />
+        <LoadError icon={<WalletIcon />} title={t('costs.couldntLoad')} error={error} onRetry={() => void costs.refresh()} />
       )}
 
       {report && (

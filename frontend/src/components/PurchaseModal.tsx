@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDate, formatMoney, formatUsd } from '../lib/format';
@@ -42,45 +42,55 @@ const blankLine = (): LineState => ({ key: keySeq++, itemId: '', quantity: '1', 
 
 const emptyForm: FormState = { supplierId: '', projectId: '', invoiceNumber: '', date: today(), notes: '' };
 
-export function PurchaseModal({ open, initial, draft, suppliers, projects, items, saving, onClose, onSave }: Props) {
-  const { t } = useI18n();
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [lines, setLines] = useState<LineState[]>([blankLine()]);
-  const [error, setError] = useState('');
+// Where the form starts: the saved invoice (edit), a pre-filled draft, or blank.
+function startForm(initial: PurchaseDetail | null, draft?: PurchaseDraft | null): FormState {
+  if (initial) {
+    return {
+      supplierId: String(initial.supplierId),
+      projectId: initial.projectId ? String(initial.projectId) : '',
+      invoiceNumber: initial.invoiceNumber ?? '',
+      date: initial.date.slice(0, 10), // stored as a calendar date, so no timezone shift
+      notes: initial.notes ?? '',
+    };
+  }
+  if (draft) {
+    // The supplier is a suggestion from the price history (or left to the user).
+    return {
+      ...emptyForm,
+      date: today(),
+      supplierId: draft.supplierId ? String(draft.supplierId) : '',
+      projectId: draft.projectId ? String(draft.projectId) : '',
+    };
+  }
+  return { ...emptyForm, date: today() };
+}
 
-  useEffect(() => {
-    if (!open) return;
-    setError('');
-    if (initial) {
-      // Edit: start from the saved invoice.
-      setForm({
-        supplierId: String(initial.supplierId),
-        projectId: initial.projectId ? String(initial.projectId) : '',
-        invoiceNumber: initial.invoiceNumber ?? '',
-        date: initial.date.slice(0, 10), // stored as a calendar date, so no timezone shift
-        notes: initial.notes ?? '',
-      });
-      setLines(initial.items.map((li) => ({
-        key: keySeq++,
-        id: li.id,
-        itemId: String(li.itemId),
-        quantity: String(li.quantity),
-        unitPrice: String(li.unitPrice),
-      })));
-    } else if (draft) {
-      // New, pre-filled — the supplier is a suggestion from the price history (or left to the user).
-      setForm({
-        ...emptyForm,
-        date: today(),
-        supplierId: draft.supplierId ? String(draft.supplierId) : '',
-        projectId: draft.projectId ? String(draft.projectId) : '',
-      });
-      setLines(draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity), unitPrice: String(l.unitPrice) })));
-    } else {
-      setForm({ ...emptyForm, date: today() });
-      setLines([blankLine()]);
-    }
-  }, [open, initial, draft]);
+function startLines(initial: PurchaseDetail | null, draft?: PurchaseDraft | null): LineState[] {
+  if (initial) {
+    return initial.items.map((li) => ({
+      key: keySeq++,
+      id: li.id,
+      itemId: String(li.itemId),
+      quantity: String(li.quantity),
+      unitPrice: String(li.unitPrice),
+    }));
+  }
+  if (draft) return draft.lines.map((l) => ({ key: keySeq++, itemId: String(l.itemId), quantity: String(l.quantity), unitPrice: String(l.unitPrice) }));
+  return [blankLine()];
+}
+
+// Rendered only while open, and fresh each time, so the form always starts
+// from the invoice being edited, the draft, or blank.
+export function PurchaseModal(props: Props) {
+  if (!props.open) return null;
+  return <PurchaseForm key={props.initial?.id ?? 'new'} {...props} />;
+}
+
+function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onClose, onSave }: Props) {
+  const { t } = useI18n();
+  const [form, setForm] = useState<FormState>(() => startForm(initial, draft));
+  const [lines, setLines] = useState<LineState[]>(() => startLines(initial, draft));
+  const [error, setError] = useState('');
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -90,8 +100,6 @@ export function PurchaseModal({ open, initial, draft, suppliers, projects, items
 
   const lineTotal = (l: LineState) => (parseFloat(l.quantity) || 0) * (parseFloat(l.unitPrice) || 0);
   const total = useMemo(() => lines.reduce((sum, l) => sum + lineTotal(l), 0), [lines]);
-
-  if (!open) return null;
 
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 

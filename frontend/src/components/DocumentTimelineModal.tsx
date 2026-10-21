@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { documentsApi } from '../api/documents';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { DOC_STATUS_BADGE } from '../lib/documents';
 import { formatDateTime, formatTimeAgo } from '../lib/format';
-import type { DocumentDetail, DocumentEvent } from '../types';
+import type { DocumentEvent } from '../types';
 import { CheckIcon, FileIcon, UndoIcon, UploadIcon, XIcon } from './icons';
 
 interface Props {
@@ -35,26 +36,17 @@ function steps(status: string) {
   }));
 }
 
-export function DocumentTimelineModal({ open, docId, onClose }: Props) {
+// Rendered only while open. Shows the last copy at once (if there is one) and
+// always re-checks the server, through the shared request cache.
+export function DocumentTimelineModal(props: Props) {
+  if (!props.open || props.docId == null) return null;
+  return <DocumentTimelineView key={props.docId} {...props} docId={props.docId} />;
+}
+
+function DocumentTimelineView({ docId, onClose }: Props & { docId: number }) {
   const { t } = useI18n();
-  const [detail, setDetail] = useState<DocumentDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!open || docId == null) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    setDetail(null);
-    documentsApi.getById(docId)
-      .then((d) => { if (active) setDetail(d); })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [open, docId]);
-
-  if (!open) return null;
+  const fetchDetail = useCallback(() => documentsApi.getById(docId), [docId]);
+  const { data: detail, loading, error } = useCached(`document:${docId}`, fetchDetail, 0);
 
   const doc = detail?.document;
   const actionLabel = (e: DocumentEvent) => t(`docTimeline.action.${e.action}`);

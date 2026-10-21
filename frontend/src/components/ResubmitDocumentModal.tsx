@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatBytes } from '../lib/documents';
 import type { ApprovalDocument } from '../types';
@@ -12,21 +12,17 @@ interface Props {
   onSave: (form: FormData) => void;
 }
 
-export function ResubmitDocumentModal({ open, doc, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so it always starts empty.
+export function ResubmitDocumentModal(props: Props) {
+  if (!props.open) return null;
+  return <ResubmitForm key={props.doc?.id} {...props} />;
+}
+
+function ResubmitForm({ doc, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (open) {
-      setFile(null);
-      setError('');
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  }, [open]);
-
-  if (!open) return null;
 
   const submit = () => {
     if (!file) return setError(t('docModal.fileRequired'));

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import type { ApprovalDocument } from '../types';
 import { XIcon } from './icons';
@@ -11,16 +11,16 @@ interface Props {
   onSave: (note: string) => void;
 }
 
-export function ReturnDocumentModal({ open, doc, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so it always starts empty.
+export function ReturnDocumentModal(props: Props) {
+  if (!props.open) return null;
+  return <ReturnForm key={props.doc?.id} {...props} />;
+}
+
+function ReturnForm({ doc, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) { setNote(''); setError(''); }
-  }, [open]);
-
-  if (!open) return null;
 
   const submit = () => {
     if (!note.trim()) return setError(t('docReview.noteRequired'));

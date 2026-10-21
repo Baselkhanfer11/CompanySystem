@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { stockApi } from '../api/stock';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { formatDate, formatDateTime, formatMoney, formatTimeAgo } from '../lib/format';
 import { movementPrintUrl } from '../lib/stock';
-import type { StockMovementDetail } from '../types';
 import { PrinterIcon, SwapIcon, XIcon } from './icons';
 import { MovementBadge } from './MovementBadge';
 
@@ -13,26 +13,17 @@ interface Props {
   onClose: () => void;
 }
 
-export function MovementDetailModal({ open, movementId, onClose }: Props) {
+// Rendered only while open. Shows the last copy at once (if there is one) and
+// always re-checks the server, through the shared request cache.
+export function MovementDetailModal(props: Props) {
+  if (!props.open || props.movementId == null) return null;
+  return <MovementDetailView key={props.movementId} {...props} movementId={props.movementId} />;
+}
+
+function MovementDetailView({ movementId, onClose }: Props & { movementId: number }) {
   const { t } = useI18n();
-  const [detail, setDetail] = useState<StockMovementDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!open || movementId == null) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    setDetail(null);
-    stockApi.getMovement(movementId)
-      .then((d) => { if (active) setDetail(d); })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [open, movementId]);
-
-  if (!open) return null;
+  const fetchDetail = useCallback(() => stockApi.getMovement(movementId), [movementId]);
+  const { data: detail, loading, error } = useCached(`movement:${movementId}`, fetchDetail, 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { PROJECT_STATUSES } from '../lib/projects';
 import type { Project, ProjectInput } from '../types';
@@ -21,23 +21,21 @@ interface FormState {
 
 const empty: FormState = { name: '', code: '', status: 'Active', description: '' };
 
-export function ProjectModal({ open, initial, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so the form always starts
+// from the record being edited (or blank).
+export function ProjectModal(props: Props) {
+  if (!props.open) return null;
+  return <ProjectForm key={props.initial?.id ?? 'new'} {...props} />;
+}
+
+function ProjectForm({ initial, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
-  const [form, setForm] = useState<FormState>(empty);
+  const [form, setForm] = useState<FormState>(() =>
+    initial
+      ? { name: initial.name, code: initial.code, status: initial.status, description: initial.description ?? '' }
+      : empty,
+  );
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setForm(
-        initial
-          ? { name: initial.name, code: initial.code, status: initial.status, description: initial.description ?? '' }
-          : empty,
-      );
-    }
-  }, [open, initial]);
-
-  if (!open) return null;
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 

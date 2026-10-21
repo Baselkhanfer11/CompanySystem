@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
 import { UNITS } from '../lib/units';
 import type { Item, ItemInput } from '../types';
@@ -22,23 +22,21 @@ interface FormState {
 
 const empty: FormState = { name: '', code: '', quantity: '0', unit: 'pcs', price: '0' };
 
-export function ItemModal({ open, initial, saving, onClose, onSave }: Props) {
+// Rendered only while open, and fresh each time, so the form always starts
+// from the record being edited (or blank).
+export function ItemModal(props: Props) {
+  if (!props.open) return null;
+  return <ItemForm key={props.initial?.id ?? 'new'} {...props} />;
+}
+
+function ItemForm({ initial, saving, onClose, onSave }: Props) {
   const { t } = useI18n();
-  const [form, setForm] = useState<FormState>(empty);
+  const [form, setForm] = useState<FormState>(() =>
+    initial
+      ? { name: initial.name, code: initial.code, quantity: String(initial.quantity), unit: initial.unit, price: String(initial.price) }
+      : empty,
+  );
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setForm(
-        initial
-          ? { name: initial.name, code: initial.code, quantity: String(initial.quantity), unit: initial.unit, price: String(initial.price) }
-          : empty,
-      );
-    }
-  }, [open, initial]);
-
-  if (!open) return null;
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 

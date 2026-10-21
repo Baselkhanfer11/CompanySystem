@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { reportsApi, type DateRange } from '../api/reports';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { formatDate, formatUsd } from '../lib/format';
-import type { ProjectCostDetail, ProjectCostRow } from '../types';
+import type { ProjectCostRow } from '../types';
 import { BarList } from './charts/BarList';
 import { MonthlyChart } from './charts/MonthlyChart';
 import { XIcon } from './icons';
@@ -16,26 +17,17 @@ interface Props {
   onClose: () => void;
 }
 
-export function ProjectCostModal({ open, row, range, periodLabel, onClose }: Props) {
+// Rendered only while open. Shows the last copy at once (if there is one) and
+// always re-checks the server, through the shared request cache.
+export function ProjectCostModal(props: Props) {
+  if (!props.open || !props.row) return null;
+  return <ProjectCostView key={`${props.row.projectId ?? 'warehouse'}`} {...props} row={props.row} />;
+}
+
+function ProjectCostView({ row, range, periodLabel, onClose }: Props & { row: ProjectCostRow }) {
   const { t } = useI18n();
-  const [detail, setDetail] = useState<ProjectCostDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!open || !row) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    setDetail(null);
-    reportsApi.projectCostDetail(row.projectId, range)
-      .then((d) => { if (active) setDetail(d); })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [open, row, range]);
-
-  if (!open || !row) return null;
+  const fetchDetail = useCallback(() => reportsApi.projectCostDetail(row.projectId, range), [row.projectId, range]);
+  const { data: detail, loading, error } = useCached(`costDetail:${row.projectId ?? 'warehouse'}:${range.from ?? ''}:${range.to ?? ''}`, fetchDetail, 0);
 
   const isWarehouse = row.projectId === null;
   const title = isWarehouse ? t('costs.viewWarehouse') : row.name;

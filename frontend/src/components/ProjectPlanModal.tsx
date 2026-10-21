@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { plansApi } from '../api/plans';
 import { useI18n } from '../i18n/LanguageContext';
+import { useCached } from '../lib/cache';
 import { formatDateTime, formatTimeAgo, formatUsd } from '../lib/format';
 import type { Item, Project, ProjectPlan } from '../types';
 import { TrashIcon, XIcon } from './icons';
@@ -32,27 +33,30 @@ type Draft = Record<number, string>;
 const draftFrom = (plan: ProjectPlan): Draft =>
   Object.fromEntries(plan.lines.filter((l) => l.inPlan).map((l) => [l.itemId, String(l.planned)]));
 
-export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: Props) {
+// Rendered only while a project is chosen, and fresh for each project.
+export function ProjectPlanModal(props: Props) {
+  if (!props.project) return null;
+  return <PlanEditor key={props.project.id} {...props} project={props.project} />;
+}
+
+function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { project: Project }) {
   const { t } = useI18n();
   const toast = useToast();
-  const [plan, setPlan] = useState<ProjectPlan | null>(null);
-  const [draft, setDraft] = useState<Draft>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  // The plan as loaded (last copy at once, always re-checked), or as just saved.
+  const fetchPlan = useCallback(() => plansApi.get(project.id), [project.id]);
+  const loaded = useCached(`plan:${project.id}`, fetchPlan, 0);
+  const [saved, setSaved] = useState<ProjectPlan | null>(null);
+  const plan = saved ?? loaded.data ?? null;
+  const loading = loaded.loading;
 
-  useEffect(() => {
-    if (!project) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    setPlan(null);
-    plansApi.get(project.id)
-      .then((p) => { if (active) { setPlan(p); setDraft(draftFrom(p)); } })
-      .catch((e) => { if (active) setError((e as Error).message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [project]);
+  // Your edits; null = none yet, so the quantities are the plan's own.
+  const [edits, setEdits] = useState<Draft | null>(null);
+  const planDraft = useMemo(() => (plan ? draftFrom(plan) : {}), [plan]);
+  const draft = edits ?? planDraft;
+
+  const [saveError, setError] = useState('');
+  const error = saveError || loaded.error;
+  const [saving, setSaving] = useState(false);
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -72,8 +76,6 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
     return [...fromPlan, ...added];
   }, [plan, draft, itemsById]);
 
-  if (!project) return null;
-
   // Live totals, so the numbers react while typing.
   const still = (r: Row) => Math.max(0, r.planned - r.onSite);
   const budget = rows.reduce((s, r) => s + r.planned * r.price, 0);
@@ -81,11 +83,11 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
   const covered = rows.reduce((s, r) => s + Math.min(r.onSite, r.planned) * r.price, 0);
   const progress = budget > 0 ? Math.round((covered / budget) * 100) : 0;
 
-  const dirty = plan ? JSON.stringify(draft) !== JSON.stringify(draftFrom(plan)) : false;
+  const dirty = edits !== null && JSON.stringify(edits) !== JSON.stringify(planDraft);
   const addable = items.filter((i) => !(i.id in draft));
 
-  const setQty = (itemId: number, value: string) => setDraft((d) => ({ ...d, [itemId]: value }));
-  const remove = (itemId: number) => setDraft((d) => { const next = { ...d }; delete next[itemId]; return next; });
+  const setQty = (itemId: number, value: string) => setEdits({ ...draft, [itemId]: value });
+  const remove = (itemId: number) => { const next = { ...draft }; delete next[itemId]; setEdits(next); };
 
   const save = async () => {
     const lines = Object.entries(draft).map(([id, v]) => ({ itemId: Number(id), planned: Number(v === '' ? 0 : v) }));
@@ -93,9 +95,9 @@ export function ProjectPlanModal({ project, canEdit, items, onClose, onSaved }: 
     setError('');
     setSaving(true);
     try {
-      const saved = await plansApi.save(project.id, lines);
-      setPlan(saved);
-      setDraft(draftFrom(saved));
+      const result = await plansApi.save(project.id, lines);
+      setSaved(result);
+      setEdits(null);
       toast('success', t('plan.saved'));
       onSaved();
     } catch (e) { setError((e as Error).message); }
