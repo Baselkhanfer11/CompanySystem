@@ -283,6 +283,7 @@ const en: Dict = {
   'acc.signInDisabled': 'Sign-in disabled',
   'acc.usernameRequired': 'Username is required.',
   'acc.passwordRequired': 'Password is required.',
+  'acc.passwordShort': 'The password needs at least {n} characters.',
   'acc.revoke': 'Revoke access',
   'acc.grant': 'Grant access',
 
@@ -1143,6 +1144,7 @@ const ar: Dict = {
   'acc.signInDisabled': 'الدخول معطّل',
   'acc.usernameRequired': 'اسم المستخدم مطلوب.',
   'acc.passwordRequired': 'كلمة المرور مطلوبة.',
+  'acc.passwordShort': 'يجب أن تتكون كلمة المرور من {n} أحرف على الأقل.',
   'acc.revoke': 'إلغاء الصلاحية',
   'acc.grant': 'منح الصلاحية',
 

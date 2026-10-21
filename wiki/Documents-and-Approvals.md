@@ -62,6 +62,7 @@ The bell polls every 20 seconds and also refreshes on window focus and right aft
 ## Key design decisions
 
 - **Fixed 3 steps** — the pipeline is always Engineer → Manager → CEO.
+- **Nobody reviews their own step.** An upload counts as its uploader's sign-off: a Warehouse Manager's document starts at the **CEO** stage, and a document the CEO uploaded is **final** once a manager approves it. Nobody can approve, return or reject their own document, so a document never waits on the person who wrote it.
 - **Every document belongs to a project.**
 - **No special roles** — anyone can upload; reviews use the existing WarehouseManager (Manager stage) and Administrator (CEO stage). The Procurement Officer uploads like an Employee and doesn't review.
 - **Notifications are decoupled** from documents so history and alerts don't disappear when a document is removed.

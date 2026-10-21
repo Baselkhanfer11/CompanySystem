@@ -4,6 +4,8 @@ import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, GrantAccessInput, UpdateAccessInput } from '../types';
 import { KeyIcon, XIcon } from './icons';
 
+const MIN_PASSWORD = 8; // same rule as the API (AccountRules)
+
 interface Props {
   open: boolean;
   employee: Employee | null;
@@ -33,6 +35,8 @@ function AccessForm({ employee, saving, onClose, onGrant, onUpdate, onRevoke }: 
   const [error, setError] = useState('');
 
   const submit = () => {
+    // Same minimum as the API (AccountRules); a reset can be left blank to keep the password.
+    if (password && password.length < MIN_PASSWORD) return setError(t('acc.passwordShort', { n: MIN_PASSWORD }));
     if (isManage) {
       onUpdate(employee.id, { role, isActive, newPassword: password ? password : null });
     } else {

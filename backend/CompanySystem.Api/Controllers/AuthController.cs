@@ -15,7 +15,8 @@ namespace CompanySystem.Api.Controllers;
 public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHasher<User> hasher)
     : ControllerBase
 {
-    // POST /api/auth/login
+    // POST /api/auth/login  (the only endpoint open to everyone)
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest req)
     {
@@ -31,28 +32,22 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
             return Unauthorized(new { message = "Invalid username or password." });
 
         // A login tied to an employee is only valid while that employee is active.
-        if (await IsLinkedToInactiveEmployee(user))
+        if (!await AccountRules.UsableLogins(db).AnyAsync(u => u.Id == user.Id))
             return Unauthorized(new { message = "This account is currently disabled. Contact an administrator." });
 
         var (token, expiresAt) = tokens.Create(user);
         return Ok(new AuthResponse(token, expiresAt, UserDto.From(user)));
     }
 
-    // GET /api/auth/me  → who am I? (requires a valid token)
+    // GET /api/auth/me  → who am I? (A switched-off or changed account never gets
+    // this far: every request re-checks the account, see Program.cs.)
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<UserDto>> Me()
     {
         var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await db.Users.FindAsync(id);
-        if (user is null || !user.IsActive)
-            return Unauthorized();
-
-        // Log out on refresh if the linked employee was deactivated.
-        if (await IsLinkedToInactiveEmployee(user))
-            return Unauthorized();
-
-        return Ok(UserDto.From(user));
+        return user is null ? Unauthorized() : Ok(UserDto.From(user));
     }
 
     // PUT /api/auth/password  → change your own password
@@ -62,24 +57,17 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
     {
         var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await db.Users.FindAsync(id);
-        if (user is null || !user.IsActive)
+        if (user is null)
             return Unauthorized();
 
         // 400, not 401: a wrong current password must not sign the user out.
         if (hasher.VerifyHashedPassword(user, user.PasswordHash, req.CurrentPassword ?? "") == PasswordVerificationResult.Failed)
             return BadRequest(new { message = "Your current password is wrong." });
-        if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < MinPasswordLength)
-            return BadRequest(new { message = $"The new password needs at least {MinPasswordLength} characters." });
+        if (AccountRules.PasswordProblem(req.NewPassword) is { } problem)
+            return BadRequest(new { message = problem });
 
         user.PasswordHash = hasher.HashPassword(user, req.NewPassword);
         await db.SaveChangesAsync();
         return NoContent();
     }
-
-    private const int MinPasswordLength = 8; // same rule as the change-password form
-
-    // True when the user is linked to an employee that no longer exists or is inactive.
-    private async Task<bool> IsLinkedToInactiveEmployee(User user) =>
-        user.EmployeeId is int empId &&
-        !await db.Employees.AnyAsync(e => e.Id == empId && e.IsActive);
 }

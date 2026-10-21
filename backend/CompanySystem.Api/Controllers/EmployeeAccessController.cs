@@ -19,6 +19,8 @@ namespace CompanySystem.Api.Controllers;
 [Route("api/employees/{employeeId:int}/access")]
 public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> hasher) : ControllerBase
 {
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
     // POST → grant a login to this employee
     [HttpPost]
     public async Task<ActionResult<EmployeeAccessDto>> Grant(int employeeId, GrantAccessRequest req)
@@ -30,8 +32,8 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
 
         if (string.IsNullOrWhiteSpace(req.Username))
             return BadRequest(new { message = "Username is required." });
-        if (string.IsNullOrWhiteSpace(req.Password))
-            return BadRequest(new { message = "Password is required." });
+        if (AccountRules.PasswordProblem(req.Password) is { } problem)
+            return BadRequest(new { message = problem });
         if (!Roles.IsValid(req.Role))
             return BadRequest(new { message = "Invalid role." });
         if (await db.Users.AnyAsync(u => u.Username == req.Username))
@@ -60,9 +62,15 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
         if (user is null) return NotFound(new { message = "This employee has no login." });
         if (!Roles.IsValid(req.Role))
             return BadRequest(new { message = "Invalid role." });
+        if (!string.IsNullOrWhiteSpace(req.NewPassword) && AccountRules.PasswordProblem(req.NewPassword) is { } problem)
+            return BadRequest(new { message = problem });
+
+        // Your own role and on/off switch are changed by another administrator, never by yourself.
+        if (user.Id == CurrentUserId && (req.Role != user.Role || !req.IsActive))
+            return BadRequest(new { message = "You cannot change your own role or switch off your own login." });
 
         var demotingAdmin = user.Role == Roles.Administrator && (req.Role != Roles.Administrator || !req.IsActive);
-        if (demotingAdmin && !await HasOtherActiveAdmin(user.Id))
+        if (demotingAdmin && !await AccountRules.HasOtherUsableAdmin(db, user.Id))
             return BadRequest(new { message = "There must be at least one active administrator." });
 
         user.Role = req.Role;
@@ -81,18 +89,14 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
         var user = await db.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
         if (user is null) return NotFound(new { message = "This employee has no login." });
 
-        var currentId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        if (user.Id == currentId)
+        if (user.Id == CurrentUserId)
             return BadRequest(new { message = "You cannot revoke your own access." });
 
-        if (user is { Role: Roles.Administrator, IsActive: true } && !await HasOtherActiveAdmin(user.Id))
+        if (user.Role == Roles.Administrator && !await AccountRules.HasOtherUsableAdmin(db, user.Id))
             return BadRequest(new { message = "There must be at least one active administrator." });
 
         db.Users.Remove(user);
         await db.SaveChangesAsync();
         return NoContent();
     }
-
-    private Task<bool> HasOtherActiveAdmin(int excludeUserId) =>
-        db.Users.AnyAsync(u => u.Role == Roles.Administrator && u.IsActive && u.Id != excludeUserId);
 }

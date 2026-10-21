@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using CompanySystem.Api.Auth;
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -39,8 +41,26 @@ builder.Services
             ValidAudience = jwt["Audience"],
             IssuerSigningKey = signingKey,
         };
+        options.Events = new JwtBearerEvents
+        {
+            // A token is only as good as the account behind it. On every request,
+            // check the login still exists, may still be used, and still has the
+            // role the token claims — so a switched-off or demoted account stops
+            // working at once, not when its token runs out hours later.
+            OnTokenValidated = async ctx =>
+            {
+                var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var id = int.TryParse(ctx.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var n) ? n : 0;
+                var role = ctx.Principal?.FindFirstValue(ClaimTypes.Role);
+                if (!await AccountRules.UsableLogins(db).AnyAsync(u => u.Id == id && u.Role == role))
+                    ctx.Fail("This account was changed or switched off. Please sign in again.");
+            },
+        };
     });
-builder.Services.AddAuthorization();
+// Every endpoint needs a signed-in user unless it says [AllowAnonymous] — so a
+// new controller that forgets [Authorize] is still protected.
+builder.Services.AddAuthorization(options =>
+    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 builder.Services
     .AddControllers()
@@ -66,7 +86,7 @@ using (var scope = app.Services.CreateScope())
 // ---- HTTP pipeline ----
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 }
 
 // Only force HTTPS in production. In development this lets the React dev
@@ -82,3 +102,6 @@ app.UseAuthorization();  // are you allowed? (checks roles)
 app.MapControllers();
 
 app.Run();
+
+// Lets the test project start the real app (WebApplicationFactory<Program>).
+public partial class Program;

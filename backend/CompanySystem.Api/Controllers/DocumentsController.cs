@@ -76,7 +76,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
             StoredName = storedName,
             ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
             FileSize = file.Length,
-            Status = DocumentStatuses.PendingManager,
+            Status = FirstStage(),
             UploadedById = CurrentUserId,
         };
         db.Documents.Add(doc);
@@ -112,8 +112,10 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         if (doc is null) return NotFound();
         if (!CanReview(doc)) return Forbidden("You can't review this document right now.");
 
-        // Manager stage → CEO stage; CEO stage → final Approved.
-        doc.Status = doc.Status == DocumentStatuses.PendingManager
+        // Manager stage → CEO stage; CEO stage → final Approved. Nobody reviews their
+        // own step, so a document the CEO uploaded is final once a manager approves it.
+        var uploadedByAdmin = await db.Users.AnyAsync(u => u.Id == doc.UploadedById && u.Role == Roles.Administrator);
+        doc.Status = doc.Status == DocumentStatuses.PendingManager && !uploadedByAdmin
             ? DocumentStatuses.PendingCEO
             : DocumentStatuses.Approved;
         doc.UpdatedAt = DateTime.UtcNow;
@@ -185,7 +187,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         doc.FileName = Path.GetFileName(file!.FileName);
         doc.ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
         doc.FileSize = file.Length;
-        doc.Status = DocumentStatuses.PendingManager; // starts the pipeline again
+        doc.Status = FirstStage(); // starts the pipeline again
         doc.UpdatedAt = DateTime.UtcNow;
 
         LogEvent(doc.Id, DocumentActions.Resubmitted, null);
@@ -197,10 +199,16 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     // --- helpers ---
 
     // Can the current user review this document at its current stage?
-    // Manager stage → WarehouseManager; CEO stage → Administrator.
+    // Manager stage → WarehouseManager; CEO stage → Administrator. Never your own document.
     private bool CanReview(Document doc) =>
-        (doc.Status == DocumentStatuses.PendingManager && User.IsInRole(Roles.WarehouseManager)) ||
-        (doc.Status == DocumentStatuses.PendingCEO && User.IsInRole(Roles.Administrator));
+        doc.UploadedById != CurrentUserId &&
+        ((doc.Status == DocumentStatuses.PendingManager && User.IsInRole(Roles.WarehouseManager)) ||
+         (doc.Status == DocumentStatuses.PendingCEO && User.IsInRole(Roles.Administrator)));
+
+    // Where the current user's upload starts. Nobody reviews their own step: a
+    // manager's upload already carries the manager's sign-off, so it goes straight to the CEO.
+    private string FirstStage() =>
+        User.IsInRole(Roles.WarehouseManager) ? DocumentStatuses.PendingCEO : DocumentStatuses.PendingManager;
 
     // Validates an uploaded file. Returns an error message, or null when valid.
     private static string? ValidateFile(IFormFile? file)
