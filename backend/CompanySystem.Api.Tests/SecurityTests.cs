@@ -308,6 +308,55 @@ public class SecurityTests(ApiFactory api) : IClassFixture<ApiFactory>
 
     // ---- helpers ----
 
+    // ---- Uploads ----
+
+    // Health check: any file named .xlsx was accepted, and sent back later with
+    // whatever type the browser claimed on upload (a web page could come back as one).
+    [Fact]
+    public async Task Upload_accepts_only_a_real_excel_file_and_never_trusts_the_claimed_type()
+    {
+        var admin = await api.SignInAsAdmin();
+        var project = await (await admin.PostAsJsonAsync("/api/projects", new { name = "Doc project", code = Code(), status = "Active" }))
+            .EnsureSuccessStatusCode().Content.ReadFromJsonAsync<ApiFactory.IdBody>();
+
+        var fake = await admin.PostAsync("/api/documents", Form(project!.Id, "<html>not excel</html>"u8.ToArray()));
+        Assert.Equal(HttpStatusCode.BadRequest, fake.StatusCode);
+
+        var real = await admin.PostAsync("/api/documents", Form(project.Id, XlsxHead));
+        Assert.Equal(HttpStatusCode.Created, real.StatusCode);
+        var doc = await real.Content.ReadFromJsonAsync<ApiFactory.IdBody>();
+
+        var download = await admin.GetAsync($"/api/documents/{doc!.Id}/file");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", download.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("nosniff", download.Headers.GetValues("X-Content-Type-Options").Single());
+
+        static MultipartFormDataContent Form(int projectId, byte[] bytes)
+        {
+            var file = new ByteArrayContent(bytes);
+            file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/html"); // what the browser claims
+            return new MultipartFormDataContent
+            {
+                { new StringContent("Budget"), "title" },
+                { new StringContent(projectId.ToString()), "projectId" },
+                { file, "file", "budget.xlsx" },
+            };
+        }
+    }
+
+    // ---- Typed text ----
+
+    // Health check: text had no length limit, so a pasted document could be saved
+    // as an item's name. Now it's refused with a message, before it reaches the database.
+    [Fact]
+    public async Task Text_that_is_far_too_long_is_refused_with_a_message()
+    {
+        var admin = await api.SignInAsAdmin();
+        var res = await admin.PostAsJsonAsync("/api/items",
+            new { name = new string('x', 201), code = Code(), quantity = 0, unit = "pcs", price = 1m });
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+        Assert.Contains("200", await res.Content.ReadAsStringAsync());
+    }
+
     private static string Code() => $"T-{Guid.NewGuid():N}"[..12];
 
     private async Task<int> Upload(HttpClient client)
@@ -320,12 +369,15 @@ public class SecurityTests(ApiFactory api) : IClassFixture<ApiFactory>
         {
             { new StringContent("Budget"), "title" },
             { new StringContent(project!.Id.ToString()), "projectId" },
-            { new ByteArrayContent([1, 2, 3]), "file", "budget.xlsx" },
+            { new ByteArrayContent(XlsxHead), "file", "budget.xlsx" },
         };
         var res = await client.PostAsync("/api/documents", form);
         res.EnsureSuccessStatusCode();
         return (await res.Content.ReadFromJsonAsync<ApiFactory.IdBody>())!.Id;
     }
+
+    // How a real .xlsx file (a zip) starts.
+    private static readonly byte[] XlsxHead = [0x50, 0x4B, 0x03, 0x04, 0, 0, 0, 0];
 
     private static async Task<string> StatusOf(HttpClient client, int docId)
     {

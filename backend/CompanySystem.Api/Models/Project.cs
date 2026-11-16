@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -8,15 +11,19 @@ public class Project
 {
     public int Id { get; set; }
 
+    [MaxLength(TextLimits.Name)]
     public string Name { get; set; } = string.Empty;
 
     // A short unique code for the project, e.g. "PRJ-001".
+    [MaxLength(TextLimits.Code)]
     public string Code { get; set; } = string.Empty;
 
     // Where the project is in its life cycle. One of Project.Statuses.
+    [MaxLength(TextLimits.Short)]
     public string Status { get; set; } = ProjectStatuses.Active;
 
     // Optional free-text notes about the project.
+    [MaxLength(TextLimits.Notes)]
     public string? Description { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

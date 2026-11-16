@@ -207,7 +207,8 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     }
 
     // DELETE /api/purchases/5  → delete a purchase (managers + procurement). Takes its
-    // material back out of wherever it was delivered.
+    // material back out of wherever it was delivered. The record itself stays, marked
+    // deleted, so the history of what was bought is never lost.
     [Authorize(Roles = Roles.Procurement)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
@@ -229,7 +230,14 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         if (shortfall is not null)
             return Conflict(new { message = $"Can't delete — some of this material has already been moved or used. {shortfall}" });
 
-        db.Purchases.Remove(purchase); // cascade removes its lines and history
+        purchase.DeletedAt = DateTime.UtcNow;
+        purchase.DeletedById = CurrentUserId;
+        db.PurchaseEvents.Add(new PurchaseEvent
+        {
+            PurchaseId = purchase.Id,
+            Action = PurchaseActions.Deleted,
+            ActorId = CurrentUserId,
+        });
         await db.SaveChangesAsync();
         await change.CommitAsync();
         return NoContent();
@@ -295,10 +303,12 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
     // Loads one purchase and shapes it into the detail DTO (null if not found).
     private async Task<PurchaseDetailDto?> LoadDetail(int id)
     {
-        var p = await db.Purchases.AsNoTracking()
+        // A deleted purchase can still be opened (its history says who deleted it).
+        var p = await db.Purchases.AsNoTracking().IgnoreQueryFilters()
             .Include(x => x.Supplier)
             .Include(x => x.Project)
             .Include(x => x.CreatedBy)
+            .Include(x => x.DeletedBy)
             .Include(x => x.Items).ThenInclude(li => li.Item)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return null;
@@ -313,7 +323,7 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
             li.UnitPrice,
             li.Quantity * li.UnitPrice)).ToList();
 
-        var events = await db.PurchaseEvents.AsNoTracking()
+        var events = await db.PurchaseEvents.AsNoTracking().IgnoreQueryFilters()
             .Where(e => e.PurchaseId == id)
             .Include(e => e.Actor)
             .OrderBy(e => e.Id)
@@ -341,7 +351,9 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
             lines,
             last?.ActorName,
             last?.CreatedAt,
-            history);
+            history,
+            p.DeletedBy?.FullName,
+            p.DeletedAt);
     }
 
     private static string? Clean(string? value) =>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import type { ApprovalDocument } from '../types';
 import { XIcon } from './icons';
@@ -18,6 +19,7 @@ export function ReturnDocumentModal(props: Props) {
 }
 
 function ReturnForm({ doc, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ function ReturnForm({ doc, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('docReview.returnTitle')}</h3>

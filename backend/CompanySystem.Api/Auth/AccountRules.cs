@@ -1,6 +1,8 @@
 using CompanySystem.Api.Data;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CompanySystem.Api.Auth;
 
@@ -11,6 +13,15 @@ namespace CompanySystem.Api.Auth;
 public static class AccountRules
 {
     public const int MinPasswordLength = 8;
+
+    /// <summary>
+    /// Changes to logins take turns (one lock, held until the change is saved).
+    /// Without it, two administrators demoting each other at the same moment
+    /// would each see the other still in place, and both would succeed — leaving
+    /// nobody. Call it first, save, then commit.
+    /// </summary>
+    public static Task<IDbContextTransaction> BeginChange(AppDbContext db) =>
+        AppLock.Take(db, "accounts", "Logins are busy with another change. Please try again.");
 
     /// <summary>
     /// Logins that may be used right now: switched on, and — when linked to an

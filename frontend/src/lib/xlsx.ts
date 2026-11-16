@@ -6,7 +6,9 @@
 
 import { localDate } from './format';
 
-export type CellType = 'text' | 'number' | 'money' | 'date';
+// 'date' is a timestamp (shown as the local day); 'day' a calendar date the API
+// stores as midnight UTC (a purchase or movement date), shown as that day.
+export type CellType = 'text' | 'number' | 'money' | 'date' | 'day';
 export type CellValue = string | number | null | undefined; // dates as ISO strings
 
 export interface Column<T> {
@@ -95,8 +97,8 @@ function worksheet(s: Sheet, rtl: boolean): string {
 
 function cell(ref: string, v: CellValue, type: CellType): string {
   if (v === null || v === undefined || v === '') return '';
-  if (type === 'date' && typeof v === 'string') {
-    const serial = excelDate(v);
+  if ((type === 'date' || type === 'day') && typeof v === 'string') {
+    const serial = excelDate(v, type === 'day');
     return serial === null ? textCell(ref, v, STYLE.text) : `<c r="${ref}" s="${STYLE.date}"><v>${serial}</v></c>`;
   }
   if ((type === 'number' || type === 'money') && typeof v === 'number' && Number.isFinite(v)) {
@@ -109,15 +111,21 @@ function cell(ref: string, v: CellValue, type: CellType): string {
 const textCell = (ref: string, text: string, style: number) =>
   `<c r="${ref}" t="inlineStr"${style ? ` s="${style}"` : ''}><is><t xml:space="preserve">${esc(text)}</t></is></c>`;
 
-/** Excel stores a date as days since 30 Dec 1899. Uses the local calendar day, like the app. */
-function excelDate(iso: string): number | null {
+/**
+ * Excel stores a date as days since 30 Dec 1899. A timestamp becomes the local
+ * calendar day, like the app shows it; a calendar date keeps its own day.
+ */
+function excelDate(iso: string, calendarDay: boolean): number | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86_400_000);
+  const day = calendarDay
+    ? Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+    : Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((day - Date.UTC(1899, 11, 30)) / 86_400_000);
 }
 
 function columnWidth(header: string, values: CellValue[], type: CellType): number {
-  const len = (v: CellValue) => (type === 'date' ? 11 : type === 'money' ? String(v ?? '').length + 4 : String(v ?? '').length);
+  const len = (v: CellValue) => (type === 'date' || type === 'day' ? 11 : type === 'money' ? String(v ?? '').length + 4 : String(v ?? '').length);
   const longest = Math.max(header.length + 2, ...values.slice(0, 500).map(len)); // +2 for the filter arrow
   return Math.min(Math.max(longest + 2, 8), 60);
 }

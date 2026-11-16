@@ -244,6 +244,33 @@ public class StockSafetyTests(ApiFactory api) : IClassFixture<ApiFactory>, IAsyn
 
     // ---- helpers ----
 
+    // ---- deleting a purchase ----
+
+    // Health check: deleting a purchase erased it, lines and edit history included.
+    // Now the stock goes back, and the record stays — marked deleted, counting for nothing.
+    [Fact]
+    public async Task Deleting_a_purchase_takes_its_stock_back_but_keeps_the_record()
+    {
+        var item = await NewItem(quantity: 0);
+        var purchase = await Id(Buy(null, item, 10, 2m));
+        Assert.Equal(10, await WarehouseQty(item));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await _admin.DeleteAsync($"/api/purchases/{purchase}")).StatusCode);
+
+        Assert.Equal(0, await WarehouseQty(item));
+        var list = await GetJson("/api/purchases");
+        Assert.DoesNotContain(list.EnumerateArray(), p => p.GetProperty("id").GetInt32() == purchase);
+
+        // It can still be opened, and its history says who deleted it.
+        var detail = await GetJson($"/api/purchases/{purchase}");
+        Assert.Equal("System Administrator", detail.GetProperty("deletedByName").GetString());
+        Assert.Equal("Deleted", detail.GetProperty("history").EnumerateArray().Last().GetProperty("action").GetString());
+        Assert.Equal(10, detail.GetProperty("items")[0].GetProperty("quantity").GetInt32());
+
+        // But it's gone for every other purpose: it can't be edited or deleted again.
+        Assert.Equal(HttpStatusCode.NotFound, (await _admin.DeleteAsync($"/api/purchases/{purchase}")).StatusCode);
+    }
+
     private static string Code() => $"S-{Guid.NewGuid():N}"[..12];
 
     private Task<int> NewItem(int quantity, decimal price = 5m) =>

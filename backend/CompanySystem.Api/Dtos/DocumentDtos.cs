@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Dtos;
 
 // What the frontend sees for a document in the list. The physical file is
@@ -16,7 +19,7 @@ public record DocumentDto(
     DateTime UpdatedAt);
 
 // Body for returning a document to the engineer (the note is required there).
-public record ReviewNoteDto(string? Note);
+public record ReviewNoteDto([MaxLength(TextLimits.Notes)] string? Note);
 
 // One entry in a document's history (who did what, when).
 public record DocumentEventDto(

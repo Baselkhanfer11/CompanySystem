@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -9,6 +12,7 @@ public class Document
 {
     public int Id { get; set; }
 
+    [MaxLength(TextLimits.Name)]
     public string Title { get; set; } = string.Empty;
 
     // The project this document is for.
@@ -16,17 +20,21 @@ public class Document
     public Project? Project { get; set; }
 
     // The original file name the user uploaded, e.g. "budget-q1.xlsx".
+    [MaxLength(TextLimits.FileName)]
     public string FileName { get; set; } = string.Empty;
 
     // The (unique, safe) name the file is actually saved under on disk. Internal.
+    [MaxLength(TextLimits.Short)]
     public string StoredName { get; set; } = string.Empty;
 
+    [MaxLength(TextLimits.Short)]
     public string ContentType { get; set; } = string.Empty;
 
     // File size in bytes.
     public long FileSize { get; set; }
 
     // Where it is in the pipeline. One of DocumentStatuses.
+    [MaxLength(TextLimits.Short)]
     public string Status { get; set; } = DocumentStatuses.PendingManager;
 
     // Who uploaded it (the engineer).

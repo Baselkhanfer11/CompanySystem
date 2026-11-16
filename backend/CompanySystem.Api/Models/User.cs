@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -6,13 +9,16 @@ namespace CompanySystem.Api.Models;
 public class User
 {
     public int Id { get; set; }
+    [MaxLength(TextLimits.Short)]
     public string Username { get; set; } = string.Empty;
+    [MaxLength(TextLimits.Name)]
     public string FullName { get; set; } = string.Empty;
 
     // The hashed password (produced by PasswordHasher). Never the plain text.
     public string PasswordHash { get; set; } = string.Empty;
 
     // The user's role. See the Roles class for the allowed values.
+    [MaxLength(TextLimits.Short)]
     public string Role { get; set; } = Auth.Roles.Employee;
 
     public bool IsActive { get; set; } = true;

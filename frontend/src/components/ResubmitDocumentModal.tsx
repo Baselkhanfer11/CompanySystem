@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatBytes } from '../lib/documents';
 import type { ApprovalDocument } from '../types';
@@ -19,6 +20,7 @@ export function ResubmitDocumentModal(props: Props) {
 }
 
 function ResubmitForm({ doc, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
@@ -36,7 +38,7 @@ function ResubmitForm({ doc, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('docReview.resubmitTitle')}</h3>

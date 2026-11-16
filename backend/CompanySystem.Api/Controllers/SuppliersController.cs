@@ -87,7 +87,7 @@ public class SuppliersController(AppDbContext db) : ControllerBase
         if (supplier is null) return NotFound();
 
         // Block deleting a supplier that still has purchases (keeps cost history intact).
-        var hasPurchases = await db.Purchases.AnyAsync(p => p.SupplierId == id);
+        var hasPurchases = await db.Purchases.IgnoreQueryFilters().AnyAsync(p => p.SupplierId == id); // deleted ones too
         if (hasPurchases)
             return Conflict(new { message = "This supplier has purchases and can't be deleted." });
 

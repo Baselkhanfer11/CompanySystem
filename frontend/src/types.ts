@@ -208,6 +208,9 @@ export interface PurchaseDetail {
   lastEditedByName?: string | null;
   lastEditedAt?: string | null;
   history: PurchaseEvent[]; // oldest first
+  // Set when the purchase was deleted: it's kept as history, but counts for nothing.
+  deletedByName?: string | null;
+  deletedAt?: string | null;
 }
 
 // One change inside an edit. `kind` says which fields are filled in.
@@ -227,7 +230,7 @@ export interface PurchaseChange {
 // One entry in a purchase's edit history.
 export interface PurchaseEvent {
   id: number;
-  action: string; // Edited
+  action: 'Edited' | 'Deleted';
   actorName: string;
   createdAt: string;
   changes: PurchaseChange[];

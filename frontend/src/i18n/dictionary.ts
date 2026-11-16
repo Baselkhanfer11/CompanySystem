@@ -535,6 +535,7 @@ const en: Dict = {
   'purchaseDetail.lineTotal': 'Total',
   'purchaseDetail.total': 'Total',
   'purchaseDetail.lastEdited': 'Last edited',
+  'purchaseDetail.deleted': 'Deleted',
   'purchaseDetail.history': 'History',
 
   // Editing a purchase + its history
@@ -545,6 +546,7 @@ const en: Dict = {
   'purchaseModal.editHint': 'Changing quantities or where it was delivered moves stock by the difference. Every change is saved in the history.',
   'purchaseHistory.recorded': 'Recorded',
   'purchaseHistory.edited': 'Edited',
+  'purchaseHistory.deleted': 'Deleted — its material was taken back',
   'purchaseHistory.lineAdded': 'Added {item} · {qty} × {price}',
   'purchaseHistory.lineRemoved': 'Removed {item} · {qty} × {price}',
   'purchaseHistory.price': 'price {change}',
@@ -1397,6 +1399,7 @@ const ar: Dict = {
   'purchaseDetail.lineTotal': 'الإجمالي',
   'purchaseDetail.total': 'الإجمالي',
   'purchaseDetail.lastEdited': 'آخر تعديل',
+  'purchaseDetail.deleted': 'حُذف',
   'purchaseDetail.history': 'السجل',
 
   // Editing a purchase + its history
@@ -1407,6 +1410,7 @@ const ar: Dict = {
   'purchaseModal.editHint': 'تغيير الكميات أو مكان التسليم ينقل المخزون بمقدار الفرق. يُحفظ كل تغيير في السجل.',
   'purchaseHistory.recorded': 'تم التسجيل',
   'purchaseHistory.edited': 'تم التعديل',
+  'purchaseHistory.deleted': 'تم الحذف — وأُعيدت موادّه',
   'purchaseHistory.lineAdded': 'أُضيف {item} · {qty} × {price}',
   'purchaseHistory.lineRemoved': 'حُذف {item} · {qty} × {price}',
   'purchaseHistory.price': 'السعر {change}',

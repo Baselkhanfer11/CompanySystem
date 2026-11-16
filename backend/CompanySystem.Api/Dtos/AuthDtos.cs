@@ -1,9 +1,14 @@
+using System.ComponentModel.DataAnnotations;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Services;
 
 namespace CompanySystem.Api.Dtos;
 
-// What the frontend sends to log in.
-public record LoginRequest(string Username, string Password);
+// What the frontend sends to log in. (Passwords are capped too: hashing a
+// megabyte of text would keep the server busy for nothing.)
+public record LoginRequest(
+    [MaxLength(TextLimits.Name)] string Username,
+    [MaxLength(TextLimits.Name)] string Password);
 
 // A safe view of a user (NO password hash) returned to the frontend.
 public record UserDto(int Id, string Username, string FullName, string Role, bool IsActive, DateTime CreatedAt, int? EmployeeId)
@@ -15,4 +20,6 @@ public record UserDto(int Id, string Username, string FullName, string Role, boo
 public record AuthResponse(string Token, DateTime ExpiresAt, UserDto User);
 
 // Changing your own password: the current one proves it's really you.
-public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record ChangePasswordRequest(
+    [MaxLength(TextLimits.Name)] string CurrentPassword,
+    [MaxLength(TextLimits.Name)] string NewPassword);

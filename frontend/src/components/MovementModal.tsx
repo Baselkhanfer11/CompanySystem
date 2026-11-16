@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney, localDate } from '../lib/format';
@@ -34,6 +35,7 @@ export function MovementModal(props: Props) {
 }
 
 function MovementForm({ initialType, draft, projects, items, siteStock, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [type, setType] = useState<MovementType>(draft ? 'Issue' : initialType);
@@ -102,7 +104,7 @@ function MovementForm({ initialType, draft, projects, items, siteStock, saving, 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{isIssue ? t('movementModal.sendTitle') : t('movementModal.returnTitle')}</h3>

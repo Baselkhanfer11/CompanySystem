@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using CompanySystem.Api.Models;
 using CompanySystem.Api.Json;
+using CompanySystem.Api.Services;
 
 namespace CompanySystem.Api.Dtos;
 
@@ -10,10 +12,10 @@ public record StockMovementLineInputDto(int ItemId, int Quantity);
 
 // Type is "Issue" (warehouse → site) or "Return" (site → warehouse).
 public record StockMovementInputDto(
-    string Type,
+    [MaxLength(TextLimits.Short)] string Type,
     int ProjectId,
     DateTime Date,
-    string? Notes,
+    [MaxLength(TextLimits.Notes)] string? Notes,
     List<StockMovementLineInputDto> Items);
 
 // ---- What the API returns ----

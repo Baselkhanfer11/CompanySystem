@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -12,6 +15,7 @@ public class DocumentEvent
     public Document? Document { get; set; }
 
     // What happened. One of DocumentActions.
+    [MaxLength(TextLimits.Short)]
     public string Action { get; set; } = string.Empty;
 
     // Who did it.
@@ -19,6 +23,7 @@ public class DocumentEvent
     public User? Actor { get; set; }
 
     // Optional note (required when returning a document for edits).
+    [MaxLength(TextLimits.Notes)]
     public string? Note { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

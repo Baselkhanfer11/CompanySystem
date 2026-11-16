@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -14,9 +17,11 @@ public class Notification
     public User? Recipient { get; set; }
 
     // What happened. One of NotificationTypes.
+    [MaxLength(TextLimits.Short)]
     public string Type { get; set; } = string.Empty;
 
     // The document's title at the time (snapshot — survives deletion).
+    [MaxLength(TextLimits.Name)]
     public string Title { get; set; } = string.Empty;
 
     // Loose reference to the document (may point to a now-deleted one). No FK,
@@ -24,6 +29,7 @@ public class Notification
     public int? DocumentId { get; set; }
 
     // Optional extra text (e.g. the reviewer's note when a document is returned).
+    [MaxLength(TextLimits.Notes)]
     public string? Note { get; set; }
 
     public bool IsRead { get; set; }

@@ -15,7 +15,7 @@ import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { movementsChanged, NONE, useMovements, useProjects, useSiteStock } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney } from '../lib/format';
+import { formatDay, formatMoney } from '../lib/format';
 import { movementPrintUrl } from '../lib/stock';
 import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
@@ -59,7 +59,7 @@ export function StockMovementsPage() {
   type ExportLine = { m: StockMovementListItem; line: StockMovementListItem['lines'][number] };
   const exportSheets = () => [
     sheet<StockMovementListItem>(t('stock.title'), [
-      { header: t('stock.colDate'), type: 'date', value: (m) => m.date },
+      { header: t('stock.colDate'), type: 'day', value: (m) => m.date },
       { header: t('stock.colType'), value: (m) => t(`stock.type.${m.type}`) },
       { header: t('stock.colSite'), value: (m) => m.projectName },
       { header: t('xl.projectCode'), value: (m) => m.projectCode },
@@ -69,7 +69,7 @@ export function StockMovementsPage() {
       { header: t('xl.notes'), value: (m) => m.notes },
     ], filtered),
     sheet<ExportLine>(t('xl.itemsSheet'), [
-      { header: t('stock.colDate'), type: 'date', value: (r) => r.m.date },
+      { header: t('stock.colDate'), type: 'day', value: (r) => r.m.date },
       { header: t('stock.colType'), value: (r) => t(`stock.type.${r.m.type}`) },
       { header: t('stock.colSite'), value: (r) => r.m.projectName },
       { header: t('toBuy.colItem'), value: (r) => r.line.itemName },
@@ -164,7 +164,7 @@ export function StockMovementsPage() {
               <tbody>
                 {filtered.map((m) => (
                   <tr key={m.id}>
-                    <td style={{ color: 'var(--text-muted)' }}>{formatDate(m.date)}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{formatDay(m.date)}</td>
                     <td><MovementBadge type={m.type} /></td>
                     <td><div className="name">{m.projectName}</div><div className="email">{m.createdByName}</div></td>
                     <td className="cell-clip" title={m.itemNames.join(', ')}>{m.itemNames.join(', ')}</td>

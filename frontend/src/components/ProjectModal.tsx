@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { PROJECT_STATUSES } from '../lib/projects';
 import type { Project, ProjectInput } from '../types';
@@ -29,6 +30,7 @@ export function ProjectModal(props: Props) {
 }
 
 function ProjectForm({ initial, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [form, setForm] = useState<FormState>(() =>
     initial
@@ -53,7 +55,7 @@ function ProjectForm({ initial, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('projectModal.editTitle') : t('projectModal.newTitle')}</h3>

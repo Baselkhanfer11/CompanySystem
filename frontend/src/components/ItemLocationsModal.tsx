@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/LanguageContext';
+import { useDialog } from '../lib/useDialog';
 import type { Item, SiteStock } from '../types';
 import { XIcon } from './icons';
 
@@ -10,6 +11,7 @@ interface Props {
 
 // "Where is it?" — one item's stock: the warehouse, then each site.
 export function ItemLocationsModal({ item, sites, onClose }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   if (!item) return null;
 
@@ -17,7 +19,7 @@ export function ItemLocationsModal({ item, sites, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{item.name}</h3>

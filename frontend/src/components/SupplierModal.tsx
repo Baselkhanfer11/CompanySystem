@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { SUPPLIER_STATUSES } from '../lib/suppliers';
 import type { Supplier, SupplierInput } from '../types';
@@ -36,6 +37,7 @@ export function SupplierModal(props: Props) {
 }
 
 function SupplierForm({ initial, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [form, setForm] = useState<FormState>(() =>
     initial
@@ -73,7 +75,7 @@ function SupplierForm({ initial, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('supplierModal.editTitle') : t('supplierModal.newTitle')}</h3>

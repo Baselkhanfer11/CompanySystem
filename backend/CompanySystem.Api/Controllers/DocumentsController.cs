@@ -15,9 +15,17 @@ namespace CompanySystem.Api.Controllers;
 [Route("api/[controller]")] // → /api/documents
 public class DocumentsController(AppDbContext db, FileStorage storage) : ControllerBase
 {
-    // Only Excel files, up to 10 MB.
-    private static readonly string[] AllowedExtensions = { ".xlsx", ".xls" };
+    // Only Excel files, up to 10 MB. The name's extension isn't trusted on its own:
+    // the file must start the way a real Excel file does (.xlsx is a zip, .xls an
+    // OLE compound file), and the type we store and send back comes from that —
+    // never from what the browser claimed.
     private const long MaxFileSize = 10 * 1024 * 1024;
+    private const long MaxUploadRequest = MaxFileSize + 1024 * 1024; // the file plus the form fields around it
+    private static readonly Dictionary<string, (byte[] Magic, string ContentType)> ExcelTypes = new()
+    {
+        [".xlsx"] = ([0x50, 0x4B, 0x03, 0x04], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        [".xls"] = ([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1], "application/vnd.ms-excel"),
+    };
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -55,12 +63,15 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
 
     // POST /api/documents  → upload a new document (any signed-in user = engineer)
     [HttpPost]
+    [RequestSizeLimit(MaxUploadRequest)] // refused before it's read, not after 100 MB arrived
     public async Task<ActionResult<DocumentDto>> Upload([FromForm] string title, [FromForm] int projectId, IFormFile? file)
     {
         if (string.IsNullOrWhiteSpace(title))
             return BadRequest(new { message = "Title is required." });
+        if (title.Trim().Length > TextLimits.Name)
+            return BadRequest(new { message = $"The title can't be longer than {TextLimits.Name} characters." });
 
-        var fileError = ValidateFile(file);
+        var (fileError, contentType) = await CheckFile(file);
         if (fileError is not null) return BadRequest(new { message = fileError });
 
         var project = await db.Projects.FindAsync(projectId);
@@ -74,7 +85,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
             ProjectId = projectId,
             FileName = Path.GetFileName(file!.FileName),
             StoredName = storedName,
-            ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+            ContentType = contentType,
             FileSize = file.Length,
             Status = FirstStage(),
             UploadedById = CurrentUserId,
@@ -101,7 +112,13 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         var stream = storage.OpenRead(doc.StoredName);
         if (stream is null) return NotFound(new { message = "The file is missing from storage." });
 
-        return File(stream, doc.ContentType, doc.FileName);
+        // The type comes from the file's extension, not from what was stored with
+        // older uploads (which echoed whatever the browser said); and the browser
+        // must take it as is, never guess from the content.
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        var ext = Path.GetExtension(doc.FileName).ToLowerInvariant();
+        var contentType = ExcelTypes.TryGetValue(ext, out var excel) ? excel.ContentType : "application/octet-stream";
+        return File(stream, contentType, doc.FileName);
     }
 
     // POST /api/documents/5/approve  → approve at the current stage (moves it up)
@@ -170,6 +187,7 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
 
     // POST /api/documents/5/resubmit  → engineer re-uploads a returned document
     [HttpPost("{id:int}/resubmit")]
+    [RequestSizeLimit(MaxUploadRequest)]
     public async Task<IActionResult> Resubmit(int id, IFormFile? file)
     {
         var doc = await db.Documents.FindAsync(id);
@@ -179,13 +197,13 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
         if (doc.Status != DocumentStatuses.Returned)
             return BadRequest(new { message = "Only a returned document can be resubmitted." });
 
-        var fileError = ValidateFile(file);
+        var (fileError, contentType) = await CheckFile(file);
         if (fileError is not null) return BadRequest(new { message = fileError });
 
         storage.Delete(doc.StoredName); // drop the old file
         doc.StoredName = await storage.SaveAsync(file!);
         doc.FileName = Path.GetFileName(file!.FileName);
-        doc.ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
+        doc.ContentType = contentType;
         doc.FileSize = file.Length;
         doc.Status = FirstStage(); // starts the pipeline again
         doc.UpdatedAt = DateTime.UtcNow;
@@ -210,14 +228,22 @@ public class DocumentsController(AppDbContext db, FileStorage storage) : Control
     private string FirstStage() =>
         User.IsInRole(Roles.WarehouseManager) ? DocumentStatuses.PendingCEO : DocumentStatuses.PendingManager;
 
-    // Validates an uploaded file. Returns an error message, or null when valid.
-    private static string? ValidateFile(IFormFile? file)
+    // Checks an uploaded file: present, not too big, an Excel extension, and content
+    // that really starts like that kind of file. Returns the error to show, or the
+    // content type to store when it's fine.
+    private static async Task<(string? Error, string ContentType)> CheckFile(IFormFile? file)
     {
-        if (file is null || file.Length == 0) return "A file is required.";
-        if (file.Length > MaxFileSize) return "File is too large (max 10 MB).";
+        if (file is null || file.Length == 0) return ("A file is required.", "");
+        if (file.Length > MaxFileSize) return ("File is too large (max 10 MB).", "");
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (Array.IndexOf(AllowedExtensions, ext) < 0) return "Only Excel files (.xlsx, .xls) are allowed.";
-        return null;
+        if (!ExcelTypes.TryGetValue(ext, out var excel)) return ("Only Excel files (.xlsx, .xls) are allowed.", "");
+
+        var head = new byte[excel.Magic.Length];
+        await using var stream = file.OpenReadStream();
+        var read = await stream.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false);
+        if (read < head.Length || !head.AsSpan().SequenceEqual(excel.Magic))
+            return ($"This isn't a real {ext} file. Save it from Excel and try again.", "");
+        return (null, excel.ContentType);
     }
 
     // Adds a history entry (call SaveChangesAsync afterwards).

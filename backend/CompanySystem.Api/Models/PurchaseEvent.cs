@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
 using CompanySystem.Api.Json;
 
 namespace CompanySystem.Api.Models;
@@ -15,6 +17,7 @@ public class PurchaseEvent
     public Purchase? Purchase { get; set; }
 
     // What happened. One of PurchaseActions.
+    [MaxLength(TextLimits.Short)]
     public string Action { get; set; } = PurchaseActions.Edited;
 
     // Who did it.
@@ -33,6 +36,7 @@ public class PurchaseEvent
 public static class PurchaseActions
 {
     public const string Edited = "Edited";
+    public const string Deleted = "Deleted"; // the purchase was deleted (its stock taken back)
 }
 
 /// <summary>
