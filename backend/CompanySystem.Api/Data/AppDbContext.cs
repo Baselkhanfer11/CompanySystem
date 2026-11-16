@@ -219,6 +219,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<StockMovementLine>()
             .Property(l => l.UnitCost)
             .HasPrecision(18, 4);
+        modelBuilder.Entity<StockMovementLine>()
+            .Property(l => l.Value)
+            .HasPrecision(18, 4);
 
         // A material plan has at most one line per item. The plan goes with its
         // project (Cascade); an item that's planned can't be deleted (Restrict).

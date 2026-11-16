@@ -37,9 +37,15 @@ public class StockMovement
 }
 
 /// <summary>
-/// One item on a movement. UnitCost is a snapshot taken when the movement was
-/// recorded: the item's price for an Issue, and the average cost of that item
-/// on the site for a Return — so returning everything cancels the cost out.
+/// One item on a movement. Value and UnitCost are snapshots taken when the
+/// movement was recorded, so later price changes never rewrite the past.
+///   Issue  → the item's price today; Value = Quantity × UnitCost.
+///   Return → Value is the exact share of what that item on the site is worth
+///            (returning everything takes off exactly that worth, to the cent),
+///            and UnitCost is just Value ÷ Quantity, for display.
+/// Every cost figure is summed from Value, never from Quantity × UnitCost:
+/// a unit cost is rounded to 4 decimals, and rounding × quantity leaves cents
+/// behind — or takes too many, leaving a site worth less than nothing.
 /// </summary>
 public class StockMovementLine
 {
@@ -54,6 +60,9 @@ public class StockMovementLine
     public int Quantity { get; set; }
 
     public decimal UnitCost { get; set; }
+
+    // What this line cost (Issue) or credited (Return) the project, in total.
+    public decimal Value { get; set; }
 }
 
 public static class StockMovementTypes

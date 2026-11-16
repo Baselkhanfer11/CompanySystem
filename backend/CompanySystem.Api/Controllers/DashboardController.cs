@@ -68,7 +68,7 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
             .SumAsync(li => li.Quantity * li.UnitPrice);
         var moved = await db.StockMovementLines
             .Where(l => l.StockMovement!.Date >= start && l.StockMovement.Date < end)
-            .SumAsync(l => l.StockMovement!.Type == StockMovementTypes.Return ? -(l.Quantity * l.UnitCost) : l.Quantity * l.UnitCost);
+            .SumAsync(l => l.StockMovement!.Type == StockMovementTypes.Return ? -l.Value : l.Value);
         return delivered + moved;
     }
 
@@ -128,7 +128,7 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
                 null,
                 m.Project!.Name,
                 m.Lines.Select(l => l.Item!.Name).ToList(),
-                m.Lines.Sum(l => l.Quantity * l.UnitCost),
+                m.Lines.Sum(l => l.Value),
                 m.CreatedAt))
             .ToListAsync();
 

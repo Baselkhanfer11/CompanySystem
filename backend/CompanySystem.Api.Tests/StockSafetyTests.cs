@@ -110,6 +110,63 @@ public class StockSafetyTests(ApiFactory api) : IClassFixture<ApiFactory>, IAsyn
 
     // ---- a site's cost can't go below zero ----
 
+    // Review finding: a return was credited quantity × the ROUNDED average cost,
+    // so returning everything left the site at 0 pcs worth -50 (or +0.5).
+    [Fact]
+    public async Task Returning_everything_leaves_the_site_worth_exactly_nothing()
+    {
+        var item = await NewItem(quantity: 0);
+        var site = await NewSite();
+        (await Buy(site, item, 500_000, 1.0002m)).EnsureSuccessStatusCode();
+        (await Buy(site, item, 500_000, 1.0001m)).EnsureSuccessStatusCode(); // 1,000,000 pcs worth 1,000,150
+        Assert.Equal((1_000_000, 1_000_150m), await OnSite(site, item));
+
+        // The average, 1.00015, rounds to 1.0002 — times a million is 50 too many.
+        (await Return(site, item, 1_000_000)).EnsureSuccessStatusCode();
+        Assert.Equal((0, 0m), await OnSite(site, item));
+
+        // The other way round too: 999,999 @ 1 + 1 @ 1.5 averages 1.0000005, which rounds down.
+        (await Buy(site, item, 999_999, 1m)).EnsureSuccessStatusCode();
+        (await Buy(site, item, 1, 1.5m)).EnsureSuccessStatusCode();
+        (await Return(site, item, 1_000_000)).EnsureSuccessStatusCode();
+        Assert.Equal((0, 0m), await OnSite(site, item));
+    }
+
+    [Fact]
+    public async Task Returning_in_parts_adds_up_to_exactly_the_sites_worth()
+    {
+        var item = await NewItem(quantity: 0);
+        var site = await NewSite();
+        (await Buy(site, item, 3, 1m)).EnsureSuccessStatusCode(); // 3 pcs worth 3
+
+        // A third of 3 is 1, but a third of the worth of 7 @ 1 wouldn't be round — use that.
+        (await Buy(site, item, 4, 1m)).EnsureSuccessStatusCode(); // 7 pcs worth 7
+        (await Return(site, item, 2)).EnsureSuccessStatusCode();  // 2/7 of 7 = 2
+        Assert.Equal((5, 5m), await OnSite(site, item));
+        (await Buy(site, item, 2, 1.5m)).EnsureSuccessStatusCode(); // 7 pcs worth 8
+        (await Return(site, item, 3)).EnsureSuccessStatusCode();  // 3/7 of 8 = 3.4286 (rounded)
+        var (qty, value) = await OnSite(site, item);
+        Assert.Equal(4, qty);
+        Assert.Equal(4.5714m, value);
+        (await Return(site, item, 4)).EnsureSuccessStatusCode();  // the rest: exactly what's left
+        Assert.Equal((0, 0m), await OnSite(site, item));
+    }
+
+    [Fact]
+    public async Task One_return_with_the_same_item_on_two_lines_takes_off_exactly_the_sites_worth()
+    {
+        var item = await NewItem(quantity: 0);
+        var site = await NewSite();
+        (await Buy(site, item, 7, 1m)).EnsureSuccessStatusCode(); // 7 pcs worth 7
+        var res = await _admin.PostAsJsonAsync("/api/stock/movements", new
+        {
+            type = "Return", projectId = site, date = Today,
+            items = new[] { new { itemId = item, quantity = 3 }, new { itemId = item, quantity = 4 } },
+        });
+        res.EnsureSuccessStatusCode();
+        Assert.Equal((0, 0m), await OnSite(site, item));
+    }
+
     [Fact]
     public async Task A_price_change_after_a_return_is_refused()
     {

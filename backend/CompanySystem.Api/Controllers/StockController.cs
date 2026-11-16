@@ -139,6 +139,26 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
         if (items.Count != itemIds.Count)
             return Fail(BadRequest(new { message = "One or more items were not found." }));
 
+        // What a return takes back off a project: the exact share of what that
+        // item on that site is worth. The site's worth is read once, then each
+        // returned line takes its share and leaves the rest — so returning
+        // everything (in one line or several) takes off exactly that worth,
+        // and a site that is empty is worth exactly nothing.
+        var returnSites = inputs.Where(i => i.Type == StockMovementTypes.Return).Select(i => i.ProjectId).Distinct().ToList();
+        var leftOnSite = new Dictionary<(int ProjectId, int ItemId), (int Quantity, decimal Value)>();
+        foreach (var projectId in returnSites)
+            foreach (var b in await stock.SiteBalances(projectId, itemIds))
+                leftOnSite[(b.ProjectId, b.ItemId)] = (b.Quantity, b.Value);
+
+        decimal TakeShare(int projectId, int itemId, int quantity)
+        {
+            var (left, worth) = leftOnSite.GetValueOrDefault((projectId, itemId));
+            if (left <= 0) return 0m; // nothing there: Apply refuses this return below
+            var value = quantity >= left ? worth : Math.Round(worth * quantity / left, 4);
+            leftOnSite[(projectId, itemId)] = (left - quantity, worth - value);
+            return value;
+        }
+
         // Every movement goes into ONE delta, so two sends of the same item are
         // checked against the warehouse together (not each against the full stock).
         var delta = new Dictionary<StockKey, int>();
@@ -146,18 +166,6 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
         foreach (var input in inputs)
         {
             var isIssue = input.Type == StockMovementTypes.Issue;
-
-            // What each unit costs the project:
-            //   Issue  → the item's price today.
-            //   Return → the average cost of that item on the site, so returning
-            //            everything takes exactly its cost back off the project.
-            var unitCost = items.Values.ToDictionary(i => i.Id, i => i.Price);
-            if (!isIssue)
-            {
-                var onSite = await stock.SiteBalances(input.ProjectId, input.Items.Select(l => l.ItemId).Distinct().ToList());
-                foreach (var b in onSite.Where(b => b.Quantity > 0))
-                    unitCost[b.ItemId] = Math.Round(b.Value / b.Quantity, 4);
-            }
 
             // Issue: warehouse → site. Return: site → warehouse.
             var sign = isIssue ? 1 : -1;
@@ -167,6 +175,21 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
                 StockService.Add(delta, null, l.ItemId, -sign * l.Quantity);
             }
 
+            // What the line costs the project: a send at the item's price today,
+            // a return at its share of the site's worth (see TakeShare).
+            var lines = new List<StockMovementLine>();
+            foreach (var l in input.Items)
+            {
+                var value = isIssue ? l.Quantity * items[l.ItemId].Price : TakeShare(input.ProjectId, l.ItemId, l.Quantity);
+                lines.Add(new StockMovementLine
+                {
+                    ItemId = l.ItemId,
+                    Quantity = l.Quantity,
+                    Value = value,
+                    UnitCost = isIssue ? items[l.ItemId].Price : Math.Round(value / l.Quantity, 4),
+                });
+            }
+
             movements.Add(new StockMovement
             {
                 Type = input.Type,
@@ -174,12 +197,7 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
                 Date = input.Date,
                 Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
                 CreatedById = CurrentUserId,
-                Lines = input.Items.Select(l => new StockMovementLine
-                {
-                    ItemId = l.ItemId,
-                    Quantity = l.Quantity,
-                    UnitCost = unitCost[l.ItemId],
-                }).ToList(),
+                Lines = lines,
             });
         }
 
@@ -254,7 +272,7 @@ public class StockController(AppDbContext db, StockService stock) : ControllerBa
             l.Item?.Unit ?? "",
             l.Quantity,
             l.UnitCost,
-            l.Quantity * l.UnitCost)).ToList();
+            l.Value)).ToList();
 
         return new StockMovementDetailDto(
             m.Id,

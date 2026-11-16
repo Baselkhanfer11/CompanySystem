@@ -77,9 +77,9 @@ A movement moves material between the warehouse and **one** site:
 | Type | Direction | Effect on the project's cost |
 |------|-----------|------------------------------|
 | `Issue` | warehouse → site ("send") | **Charged** at the item's price today |
-| `Return` | site → warehouse | **Credited** at the item's **average cost on that site** |
+| `Return` | site → warehouse | **Credited** its **share of what that item on the site is worth** |
 
-Using the site's average cost for returns means that returning **everything** takes exactly its cost back off the project — no rounding leftovers. That cost is saved on each line (`UnitCost`) when the movement is recorded, so later price changes never rewrite the past.
+A return of 20 out of the 50 on a site takes back 20/50 of what those 50 are worth; returning **everything** takes back exactly its worth — no rounding leftovers, and a site with nothing on it is worth exactly nothing. The total (`Value`) and the unit cost (`UnitCost`, the average, for display) are saved on each line when the movement is recorded, so later price changes never rewrite the past. Every cost figure is summed from the lines' `Value`, never from quantity × a rounded unit cost.
 
 The movement form only offers what makes sense: sending can use any item (checked against the warehouse), returning only lists what's on that site. The same item on two lines is checked as one total.
 
