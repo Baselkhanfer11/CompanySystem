@@ -8,6 +8,12 @@
 export const localDate = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+/**
+ * A typed number, or NaN when the box is blank. (Number('') is 0, which would
+ * turn a forgotten price into a free one.)
+ */
+export const numberOrNaN = (s: string) => (s.trim() === '' ? NaN : Number(s));
+
 /** Format an ISO date string as e.g. "22 Sep 2026". */
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });

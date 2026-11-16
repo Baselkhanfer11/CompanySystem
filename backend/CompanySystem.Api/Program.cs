@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,26 +46,56 @@ builder.Services
         options.Events = new JwtBearerEvents
         {
             // A token is only as good as the account behind it. On every request,
-            // check the login still exists, may still be used, and still has the
-            // role the token claims — so a switched-off or demoted account stops
-            // working at once, not when its token runs out hours later.
+            // check the login still exists, may still be used, still has the role
+            // the token claims, and still has the password the token was issued
+            // under — so a switched-off or demoted account, or a sign-in made
+            // before a password change, stops working at once, not when its token
+            // runs out hours later.
             OnTokenValidated = async ctx =>
             {
                 var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
                 var id = int.TryParse(ctx.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var n) ? n : 0;
                 var role = ctx.Principal?.FindFirstValue(ClaimTypes.Role);
-                if (!await AccountRules.UsableLogins(db).AnyAsync(u => u.Id == id && u.Role == role))
+                var passwordVersion = ctx.Principal?.FindFirstValue(JwtTokenService.PasswordVersionClaim);
+                var passwordHash = await AccountRules.UsableLogins(db)
+                    .Where(u => u.Id == id && u.Role == role)
+                    .Select(u => u.PasswordHash)
+                    .FirstOrDefaultAsync();
+                if (passwordHash is null || JwtTokenService.PasswordVersion(passwordHash) != passwordVersion)
                     ctx.Fail("This account was changed or switched off. Please sign in again.");
             },
         };
     });
+
+// Sign-in attempts are limited per address, so a password can't be guessed by
+// trying thousands. The limit is a setting so the tests can lift it.
+var loginAttemptsPerMinute = builder.Configuration.GetValue("RateLimits:LoginPerMinute", 20);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (ctx, cancel) =>
+    {
+        ctx.HttpContext.Response.ContentType = "application/json";
+        await ctx.HttpContext.Response.WriteAsync(
+            """{"message":"Too many sign-in attempts. Please wait a minute and try again."}""", cancel);
+    };
+    options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = loginAttemptsPerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
 // Every endpoint needs a signed-in user unless it says [AllowAnonymous] — so a
 // new controller that forgets [Authorize] is still protected.
 builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 builder.Services
-    .AddControllers()
+    // A stock change that couldn't get its turn is a 409 "try again", not a 500.
+    .AddControllers(options => options.Filters.Add<CompanySystem.Api.Services.StockBusyFilter>())
     .AddJsonOptions(options =>
     {
         // Money fields are left out for people who may not see them (see Json/MoneyVisibility.cs).
@@ -103,6 +135,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseRateLimiter();    // too many sign-in attempts? (see the "login" policy above)
 app.UseAuthentication(); // who are you? (reads the token)
 app.UseAuthorization();  // are you allowed? (checks roles)
 

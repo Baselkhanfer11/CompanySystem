@@ -96,6 +96,117 @@ public class SecurityTests(ApiFactory api) : IClassFixture<ApiFactory>
         Assert.Equal(HttpStatusCode.OK, (await boss.Client.GetAsync("/api/users")).StatusCode);
     }
 
+    // Review finding: a manager could rename an admin, or switch a dismissed admin back on.
+    [Fact]
+    public async Task Manager_cannot_rename_or_switch_on_an_admin()
+    {
+        var admin = await api.SignInAsAdmin();
+        var manager = await api.CreatePerson(Roles.WarehouseManager, "Helpful manager");
+        var former = await api.CreatePerson(Roles.Administrator, "Former admin");
+
+        var off = await admin.PutAsJsonAsync($"/api/employees/{former.EmployeeId}",
+            new { fullName = "Former admin", email = (string?)null, position = (string?)null, isActive = false });
+        Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await former.Client.GetAsync("/api/users")).StatusCode);
+
+        var on = await manager.Client.PutAsJsonAsync($"/api/employees/{former.EmployeeId}",
+            new { fullName = "Former admin", email = (string?)null, position = (string?)null, isActive = true });
+        Assert.Equal(HttpStatusCode.Forbidden, on.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await former.Client.GetAsync("/api/users")).StatusCode);
+
+        var boss = await api.CreatePerson(Roles.Administrator, "Boss");
+        var rename = await manager.Client.PutAsJsonAsync($"/api/employees/{boss.EmployeeId}",
+            new { fullName = "Someone else", email = (string?)null, position = (string?)null, isActive = true });
+        Assert.Equal(HttpStatusCode.Forbidden, rename.StatusCode);
+    }
+
+    // Review finding: a stolen sign-in kept working for hours after the password was changed.
+    [Fact]
+    public async Task Changing_the_password_ends_every_other_sign_in()
+    {
+        var person = await api.CreatePerson(Roles.Employee, "Careful person");
+        var stolen = await api.SignIn(person.Username, person.Password);
+        Assert.Equal(HttpStatusCode.OK, (await stolen.GetAsync("/api/auth/me")).StatusCode);
+
+        var change = await person.Client.PutAsJsonAsync("/api/auth/password",
+            new { currentPassword = person.Password, newPassword = "brand-new-password" });
+        Assert.Equal(HttpStatusCode.OK, change.StatusCode);
+
+        // The copy made earlier is refused; the session that changed it carries on with the new token.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await stolen.GetAsync("/api/auth/me")).StatusCode);
+        var fresh = await change.Content.ReadFromJsonAsync<TokenBody>();
+        person.Client.DefaultRequestHeaders.Authorization = new("Bearer", fresh!.Token);
+        Assert.Equal(HttpStatusCode.OK, (await person.Client.GetAsync("/api/auth/me")).StatusCode);
+
+        // An admin's reset does the same.
+        var admin = await api.SignInAsAdmin();
+        var reset = await admin.PutAsJsonAsync($"/api/employees/{person.EmployeeId}/access",
+            new { role = Roles.Employee, isActive = true, newPassword = "reset-by-admin" });
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await person.Client.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    // Review finding: a disabled account's correct password was confirmed with a different message.
+    [Fact]
+    public async Task A_refused_sign_in_never_says_why()
+    {
+        var admin = await api.SignInAsAdmin();
+        var person = await api.CreatePerson(Roles.Employee, "Leaver");
+        (await admin.PutAsJsonAsync($"/api/employees/{person.EmployeeId}/access",
+            new { role = Roles.Employee, isActive = false, newPassword = (string?)null })).EnsureSuccessStatusCode();
+
+        var client = api.Anonymous();
+        var attempts = new[]
+        {
+            new { username = "nobody-" + Guid.NewGuid().ToString("N"), password = "whatever-123" },
+            new { username = person.Username, password = "wrong-password" },
+            new { username = person.Username, password = person.Password },
+        };
+        foreach (var attempt in attempts)
+        {
+            var res = await client.PostAsJsonAsync("/api/auth/login", attempt);
+            Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+            Assert.Equal("Invalid username or password.", (await res.Content.ReadFromJsonAsync<MessageBody>())!.Message);
+        }
+    }
+
+    // Review finding: removing a login that is named on history crashed with a 500.
+    [Fact]
+    public async Task Removing_a_login_with_history_is_refused_not_crashed()
+    {
+        var admin = await api.SignInAsAdmin();
+        var uploader = await api.CreatePerson(Roles.Employee, "Uploader");
+        await Upload(uploader.Client); // the upload names this login on the document
+
+        var revoke = await admin.DeleteAsync($"/api/employees/{uploader.EmployeeId}/access");
+        Assert.Equal(HttpStatusCode.Conflict, revoke.StatusCode);
+        var remove = await admin.DeleteAsync($"/api/users/{uploader.UserId}");
+        Assert.Equal(HttpStatusCode.Conflict, remove.StatusCode);
+
+        // Switching off still works, and takes effect at once.
+        var off = await admin.PutAsJsonAsync($"/api/employees/{uploader.EmployeeId}/access",
+            new { role = Roles.Employee, isActive = false, newPassword = (string?)null });
+        Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await uploader.Client.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    // Review finding: deleting a project silently took its documents (and their approval history) with it.
+    [Fact]
+    public async Task A_project_with_documents_cannot_be_deleted()
+    {
+        var admin = await api.SignInAsAdmin();
+        var doc = await Upload(admin);
+        var docs = await admin.GetFromJsonAsync<List<DocProjectRow>>("/api/documents");
+        var projectId = docs!.Single(d => d.Id == doc).ProjectId;
+
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.DeleteAsync($"/api/projects/{projectId}")).StatusCode);
+        Assert.Equal("PendingManager", await StatusOf(admin, doc)); // still there
+    }
+
+    private record TokenBody(string Token);
+    private record MessageBody(string Message);
+    private record DocProjectRow(int Id, int ProjectId);
+
     [Fact]
     public async Task Manager_can_still_switch_off_an_ordinary_employee()
     {

@@ -38,6 +38,7 @@ function EmployeeForm({ initial, saving, onClose, onSave }: Props) {
     setForm((f) => ({ ...f, [k]: v }));
 
   const submit = () => {
+    if (saving) return; // Enter can arrive again before the save is done
     if (!form.fullName.trim()) {
       setError(t('empModal.nameRequired'));
       return;

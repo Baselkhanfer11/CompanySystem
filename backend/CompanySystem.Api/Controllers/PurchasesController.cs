@@ -78,7 +78,9 @@ public class PurchasesController(AppDbContext db, StockService stock) : Controll
         // Put the material where it was delivered.
         var delta = new Dictionary<StockKey, int>();
         foreach (var l in input.Items) StockService.Add(delta, input.ProjectId, l.ItemId, l.Quantity);
-        await stock.Apply(delta);
+        var shortfall = await stock.Apply(delta);
+        if (shortfall is not null) // only possible if the totals overflow — never save a purchase the stock didn't take
+            return Conflict(new { message = $"Can't save — the stock can't take this delivery. {shortfall}" });
 
         await db.SaveChangesAsync();
         await change.CommitAsync();

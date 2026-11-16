@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney, localDate } from '../lib/format';
+import { formatDate, formatMoney, localDate, numberOrNaN } from '../lib/format';
 import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, lastFrom, pctChange } from '../lib/prices';
 import type { Item, Project, PurchaseDetail, PurchaseDraft, PurchaseInput, Supplier } from '../types';
@@ -147,15 +147,17 @@ function PurchaseForm({ initial, draft, suppliers, projects, items, saving, onCl
     setLines((ls) => (ls.length === 1 ? ls : ls.filter((l) => l.key !== key)));
 
   const submit = () => {
+    if (saving) return;
     if (!form.supplierId) return setError(t('purchaseModal.supplierRequired'));
     if (!form.date) return setError(t('purchaseModal.dateRequired'));
 
+    // A blank box is not a number: Number('') is 0, which would save a free purchase.
     const parsed = lines
       .filter((l) => l.itemId) // ignore blank rows
-      .map((l) => ({ id: l.id ?? null, itemId: Number(l.itemId), quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) }));
+      .map((l) => ({ id: l.id ?? null, itemId: Number(l.itemId), quantity: numberOrNaN(l.quantity), unitPrice: numberOrNaN(l.unitPrice) }));
 
     if (parsed.length === 0) return setError(t('purchaseModal.noLines'));
-    if (parsed.some((l) => !Number.isFinite(l.quantity) || l.quantity <= 0))
+    if (parsed.some((l) => !Number.isInteger(l.quantity) || l.quantity <= 0))
       return setError(t('purchaseModal.badQuantity'));
     if (parsed.some((l) => !Number.isFinite(l.unitPrice) || l.unitPrice < 0))
       return setError(t('purchaseModal.badPrice'));

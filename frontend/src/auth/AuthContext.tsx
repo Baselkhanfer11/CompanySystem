@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authApi } from '../api/auth';
-import { getToken, setToken } from '../api/http';
+import { TOKEN_KEY, getToken, setToken } from '../api/http';
 import { clearCache } from '../lib/cache';
 import type { User } from '../types';
 
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     authApi.me()
       .then((u) => { if (active) setUser(u); })
-      .catch(() => { /* invalid/expired token — stay logged out */ })
+      .catch(() => { if (active) { setToken(null); setUser(null); } }) // invalid/expired token — start signed out
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -41,6 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handler = () => { clearCache(); setUser(null); };
     window.addEventListener('auth:logout', handler);
     return () => window.removeEventListener('auth:logout', handler);
+  }, []);
+
+  // Another tab signed in or out (the saved token changed there): follow it, so
+  // this tab never keeps the old user's role and cached data with the new token.
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key !== TOKEN_KEY) return;
+      clearCache();
+      if (!e.newValue) { setUser(null); return; }
+      authApi.me().then(setUser).catch(() => setUser(null));
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {

@@ -36,12 +36,15 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
             return BadRequest(new { message = problem });
         if (!Roles.IsValid(req.Role))
             return BadRequest(new { message = "Invalid role." });
-        if (await db.Users.AnyAsync(u => u.Username == req.Username))
+        // Check the name exactly as it will be saved (trimmed), or " admin" would
+        // pass the check and then hit the unique index.
+        var username = req.Username.Trim();
+        if (await db.Users.AnyAsync(u => u.Username == username))
             return Conflict(new { message = "That username is already taken." });
 
         var user = new User
         {
-            Username = req.Username.Trim(),
+            Username = username,
             FullName = employee.FullName, // name mirrors the employee
             Role = req.Role,
             IsActive = req.IsActive,
@@ -96,7 +99,16 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
             return BadRequest(new { message = "There must be at least one active administrator." });
 
         db.Users.Remove(user);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The login is named on purchases, movements, documents or notifications,
+            // which are kept as history (Restrict). It can be switched off instead.
+            return Conflict(new { message = "Can't revoke — this login has history (records it created or was notified about). Switch it off instead." });
+        }
         return NoContent();
     }
 }

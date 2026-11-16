@@ -301,8 +301,8 @@ const en: Dict = {
   'itemModal.price': 'Price (USD)',
   'itemModal.nameRequired': 'Name is required.',
   'itemModal.codeRequired': 'Code is required.',
-  'itemModal.qtyInvalid': 'Quantity must be 0 or more.',
-  'itemModal.priceInvalid': 'Price must be 0 or more.',
+  'itemModal.qtyInvalid': 'Quantity must be a whole number, 0 or more.',
+  'itemModal.priceInvalid': 'Price is required (0 or more).',
   'itemModal.create': 'Create item',
 
   // Projects page
@@ -518,8 +518,8 @@ const en: Dict = {
   'purchaseModal.supplierRequired': 'Please choose a supplier.',
   'purchaseModal.dateRequired': 'Please pick a date.',
   'purchaseModal.noLines': 'Add at least one item.',
-  'purchaseModal.badQuantity': 'Every item needs a quantity greater than zero.',
-  'purchaseModal.badPrice': 'Unit price can’t be negative.',
+  'purchaseModal.badQuantity': 'Every item needs a whole-number quantity greater than zero.',
+  'purchaseModal.badPrice': 'Every item needs a unit price (0 or more).',
 
   // Purchase detail
   'purchaseDetail.title': 'Purchase',
@@ -1163,8 +1163,8 @@ const ar: Dict = {
   'itemModal.price': 'السعر (دولار)',
   'itemModal.nameRequired': 'الاسم مطلوب.',
   'itemModal.codeRequired': 'الرمز مطلوب.',
-  'itemModal.qtyInvalid': 'يجب أن تكون الكمية 0 أو أكثر.',
-  'itemModal.priceInvalid': 'يجب أن يكون السعر 0 أو أكثر.',
+  'itemModal.qtyInvalid': 'يجب أن تكون الكمية عددًا صحيحًا، 0 أو أكثر.',
+  'itemModal.priceInvalid': 'السعر مطلوب (0 أو أكثر).',
   'itemModal.create': 'إنشاء الصنف',
 
   // Projects page
@@ -1380,8 +1380,8 @@ const ar: Dict = {
   'purchaseModal.supplierRequired': 'الرجاء اختيار مورّد.',
   'purchaseModal.dateRequired': 'الرجاء اختيار التاريخ.',
   'purchaseModal.noLines': 'أضف صنفًا واحدًا على الأقل.',
-  'purchaseModal.badQuantity': 'كل صنف يحتاج كمية أكبر من صفر.',
-  'purchaseModal.badPrice': 'سعر الوحدة لا يمكن أن يكون سالبًا.',
+  'purchaseModal.badQuantity': 'كل صنف يحتاج كمية صحيحة أكبر من صفر.',
+  'purchaseModal.badPrice': 'كل صنف يحتاج سعر وحدة (0 أو أكثر).',
 
   // Purchase detail
   'purchaseDetail.title': 'المشترى',

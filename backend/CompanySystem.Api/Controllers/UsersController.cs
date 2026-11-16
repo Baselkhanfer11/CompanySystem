@@ -40,7 +40,16 @@ public class UsersController(AppDbContext db) : ControllerBase
             return BadRequest(new { message = "There must be at least one active administrator." });
 
         db.Users.Remove(user);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The login is named on purchases, movements, documents or notifications,
+            // which are kept as history (Restrict). It can be switched off instead.
+            return Conflict(new { message = "Can't remove — this login has history (records it created or was notified about). Switch it off instead." });
+        }
         return NoContent();
     }
 }
