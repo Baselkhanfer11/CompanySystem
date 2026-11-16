@@ -68,8 +68,9 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
 
-        // Switching an employee off also switches off their login, so it follows the login rules.
-        if (employee.IsActive && !input.IsActive && await CannotSwitchOffLogin(employee.User) is { } refusal)
+        // The employee record controls their login (its name, and whether it works),
+        // so changing it follows the login rules.
+        if (await CannotChangeLogin(employee.User, switchingOff: employee.IsActive && !input.IsActive) is { } refusal)
             return refusal;
 
         employee.FullName = input.FullName.Trim();
@@ -94,26 +95,37 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         if (employee is null) return NotFound();
 
         // Deleting an employee also deletes their login, so it follows the login rules.
-        if (await CannotSwitchOffLogin(employee.User) is { } refusal)
+        if (await CannotChangeLogin(employee.User, switchingOff: true) is { } refusal)
             return refusal;
 
         db.Employees.Remove(employee);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Their login is named on purchases, movements, documents or notifications,
+            // which are kept as history (Restrict). The record stays; switch it off instead.
+            return Conflict(new { message = "Can't delete — this employee's login has history (records they created or were notified about). Switch the employee off instead." });
+        }
         return NoContent();
     }
 
-    // Why this login can't be switched off or deleted through its employee record —
-    // or null when it can. Yourself: never. An administrator: only by another
-    // administrator, and never the last one.
-    private async Task<ActionResult?> CannotSwitchOffLogin(User? login)
+    // Why this login can't be changed through its employee record — or null when
+    // it can. Switching off (or deleting) yourself: never. An administrator's record,
+    // in any way: only by another administrator, and never switching off the last one.
+    // (Without this, a manager could rename an administrator, or switch a dismissed
+    // administrator back on.)
+    private async Task<ActionResult?> CannotChangeLogin(User? login, bool switchingOff)
     {
         if (login is null) return null;
-        if (login.Id == CurrentUserId)
+        if (switchingOff && login.Id == CurrentUserId)
             return BadRequest(new { message = "You cannot switch off or delete your own employee record." });
         if (login.Role != Roles.Administrator) return null;
         if (!User.IsInRole(Roles.Administrator))
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only an administrator can switch off or delete an administrator." });
-        if (!await AccountRules.HasOtherUsableAdmin(db, login.Id))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only an administrator can change an administrator's record." });
+        if (switchingOff && !await AccountRules.HasOtherUsableAdmin(db, login.Id))
             return BadRequest(new { message = "There must be at least one active administrator." });
         return null;
     }

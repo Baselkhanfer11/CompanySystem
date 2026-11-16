@@ -6,6 +6,7 @@ using CompanySystem.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace CompanySystem.Api.Controllers;
@@ -15,25 +16,30 @@ namespace CompanySystem.Api.Controllers;
 public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHasher<User> hasher)
     : ControllerBase
 {
+    private const string WrongLogin = "Invalid username or password.";
+
+    // A real hash of a throw-away password. Checking a password against it takes
+    // as long as checking against a real one, so a sign-in for a username that
+    // doesn't exist is as slow as a wrong password — and can't be told apart.
+    private static string? _dummyHash;
+
     // POST /api/auth/login  (the only endpoint open to everyone)
     [AllowAnonymous]
+    [EnableRateLimiting("login")] // a few attempts a minute per address, see Program.cs
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest req)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Username == req.Username);
 
-        // Same generic message whether the user is missing or the password is wrong
-        // (so attackers can't tell which usernames exist).
-        if (user is null || !user.IsActive)
-            return Unauthorized(new { message = "Invalid username or password." });
+        var hash = user?.PasswordHash ?? (_dummyHash ??= hasher.HashPassword(new User(), Guid.NewGuid().ToString()));
+        var result = hasher.VerifyHashedPassword(user ?? new User(), hash, req.Password ?? "");
 
-        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
-        if (result == PasswordVerificationResult.Failed)
-            return Unauthorized(new { message = "Invalid username or password." });
-
-        // A login tied to an employee is only valid while that employee is active.
-        if (!await AccountRules.UsableLogins(db).AnyAsync(u => u.Id == user.Id))
-            return Unauthorized(new { message = "This account is currently disabled. Contact an administrator." });
+        // One message for every refusal — missing username, wrong password, or a
+        // switched-off login — so nobody learns which usernames exist, or whether
+        // a disabled account's password was right.
+        if (user is null || result == PasswordVerificationResult.Failed
+            || !await AccountRules.UsableLogins(db).AnyAsync(u => u.Id == user.Id))
+            return Unauthorized(new { message = WrongLogin });
 
         var (token, expiresAt) = tokens.Create(user);
         return Ok(new AuthResponse(token, expiresAt, UserDto.From(user)));
@@ -50,10 +56,13 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
         return user is null ? Unauthorized() : Ok(UserDto.From(user));
     }
 
-    // PUT /api/auth/password  → change your own password
+    // PUT /api/auth/password  → change your own password. Every sign-in made with
+    // the old password stops working (the token carries the password's version),
+    // so this is also the way to throw out a stolen sign-in. The reply holds a
+    // fresh token for this session, so the user stays signed in here.
     [Authorize]
     [HttpPut("password")]
-    public async Task<IActionResult> ChangePassword(ChangePasswordRequest req)
+    public async Task<ActionResult<AuthResponse>> ChangePassword(ChangePasswordRequest req)
     {
         var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await db.Users.FindAsync(id);
@@ -68,6 +77,8 @@ public class AuthController(AppDbContext db, JwtTokenService tokens, IPasswordHa
 
         user.PasswordHash = hasher.HashPassword(user, req.NewPassword);
         await db.SaveChangesAsync();
-        return NoContent();
+
+        var (token, expiresAt) = tokens.Create(user);
+        return Ok(new AuthResponse(token, expiresAt, UserDto.From(user)));
     }
 }

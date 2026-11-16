@@ -25,6 +25,20 @@ public class JwtTokenService(IConfiguration config)
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
     }
 
+    /// <summary>
+    /// The name of the claim that ties a token to the password it was issued under.
+    /// </summary>
+    public const string PasswordVersionClaim = "pwv";
+
+    /// <summary>
+    /// A short fingerprint of the stored password hash. It changes whenever the
+    /// password does (every hash has a fresh salt), so a token issued under the old
+    /// password can be told apart on every request — see Program.cs. It reveals
+    /// nothing about the password: it's a one-way hash of a one-way hash.
+    /// </summary>
+    public static string PasswordVersion(string passwordHash) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(passwordHash)))[..16];
+
     public (string token, DateTime expiresAt) Create(User user)
     {
         var jwt = config.GetSection("Jwt");
@@ -39,6 +53,7 @@ public class JwtTokenService(IConfiguration config)
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim("fullName", user.FullName),
+            new Claim(PasswordVersionClaim, PasswordVersion(user.PasswordHash)),
         };
 
         var token = new JwtSecurityToken(

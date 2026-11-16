@@ -24,6 +24,12 @@ public static class DbSeeder
 
         var password = config["Seed:AdminPassword"];
         var hasPassword = !string.IsNullOrWhiteSpace(password);
+        // The admin follows the same password rule as everyone else.
+        if (hasPassword && AccountRules.PasswordProblem(password) is { } problem)
+        {
+            logger.LogWarning("Seed:AdminPassword was ignored: {Problem}", problem);
+            hasPassword = false;
+        }
 
         if (db.Users.Any())
         {

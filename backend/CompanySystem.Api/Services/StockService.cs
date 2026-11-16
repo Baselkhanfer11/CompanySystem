@@ -28,11 +28,20 @@ public class StockService(AppDbContext db)
     {
         var tx = await db.Database.BeginTransactionAsync();
         // One lock for all stock, held until the transaction ends. Readers aren't blocked.
-        await db.Database.ExecuteSqlRawAsync("""
-            DECLARE @result int;
-            EXEC @result = sp_getapplock @Resource = 'stock', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
-            IF @result < 0 THROW 50000, 'The stock is busy with another change. Please try again.', 1;
-            """);
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                DECLARE @result int;
+                EXEC @result = sp_getapplock @Resource = 'stock', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
+                IF @result < 0 THROW 50000, 'The stock is busy with another change. Please try again.', 1;
+                """);
+        }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50000)
+        {
+            // Waited 15 s and the lock was still taken. StockBusyFilter makes this a 409.
+            await tx.DisposeAsync();
+            throw new StockBusyException();
+        }
         return tx;
     }
 

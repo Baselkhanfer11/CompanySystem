@@ -53,7 +53,7 @@ public class PricesController(AppDbContext db) : ControllerBase
             return new SupplierPriceDto(
                 g.ItemId, g.SupplierId, s.Name, s.Code, s.Active,
                 latest[(g.ItemId, g.SupplierId)], g.LastDate, g.MinPrice,
-                g.Quantity > 0 ? Math.Round(g.Spent / g.Quantity, 2) : g.MinPrice,
+                g.Quantity > 0 ? Math.Round(g.Spent / g.Quantity, Services.InputRules.PriceDecimals) : g.MinPrice,
                 g.Times, g.Quantity);
         })
         .OrderBy(r => r.ItemId).ThenBy(r => r.LastPrice);

@@ -27,6 +27,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:DefaultConnection", _connection);
         builder.UseSetting("Jwt:Key", "a-test-only-signing-key-that-is-long-enough-0123456789");
         builder.UseSetting("Seed:AdminPassword", AdminPassword);
+        // The tests sign in far more often than a person would.
+        builder.UseSetting("RateLimits:LoginPerMinute", "100000");
     }
 
     public override async ValueTask DisposeAsync()

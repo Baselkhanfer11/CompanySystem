@@ -20,6 +20,7 @@ export function MovementPrintPage() {
   const [detail, setDetail] = useState<StockMovementDetail | null>(null);
   const [error, setError] = useState('');
   const [pricesTicked, setShowPrices] = useState(true);
+  const [printedAt] = useState(() => new Date().toISOString()); // fixed when the page opens
   const showPrices = costs && pricesTicked;
 
   useEffect(() => {
@@ -147,7 +148,7 @@ export function MovementPrintPage() {
         </section>
 
         <footer className="pr-foot">
-          <span>{t('print.printedOn', { date: formatDateTime(new Date().toISOString()) })}</span>
+          <span>{t('print.printedOn', { date: formatDateTime(printedAt) })}</span>
           <span>{movementNumber(detail.id)}</span>
         </footer>
       </article>

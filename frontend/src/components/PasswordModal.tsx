@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { authApi } from '../api/auth';
+import { setToken } from '../api/http';
 import { useI18n } from '../i18n/LanguageContext';
 import { KeyIcon, XIcon } from './icons';
 import { useToast } from './toast';
@@ -25,7 +26,10 @@ export function PasswordModal({ onClose }: { onClose: () => void }) {
     setError('');
     setSaving(true);
     try {
-      await authApi.changePassword(current, next);
+      // The old sign-in is thrown out everywhere (including any stolen copy);
+      // keep this session on the new one.
+      const fresh = await authApi.changePassword(current, next);
+      setToken(fresh.token);
       toast('success', t('pw.saved'));
       onClose();
     } catch (err) {

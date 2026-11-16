@@ -82,6 +82,11 @@ public class ProjectsController(AppDbContext db) : ControllerBase
         if (await db.Purchases.AnyAsync(p => p.ProjectId == id) || await db.StockMovements.AnyAsync(m => m.ProjectId == id))
             return Conflict(new { message = "Can't delete — this project has purchases or stock movements. Set it to Completed instead." });
 
+        // Its documents (and their approval history) would go with it, and their
+        // files would be left behind on disk. Remove the documents first.
+        if (await db.Documents.AnyAsync(d => d.ProjectId == id))
+            return Conflict(new { message = "Can't delete — this project has documents. Delete them first, or set the project to Completed instead." });
+
         db.Projects.Remove(project);
         await db.SaveChangesAsync();
         return NoContent();

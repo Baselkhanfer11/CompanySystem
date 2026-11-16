@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n/LanguageContext';
+import { numberOrNaN } from '../lib/format';
 import { UNITS } from '../lib/units';
 import type { Item, ItemInput } from '../types';
 import { XIcon } from './icons';
@@ -41,11 +42,13 @@ function ItemForm({ initial, saving, onClose, onSave }: Props) {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = () => {
+    if (saving) return;
     if (!form.name.trim()) return setError(t('itemModal.nameRequired'));
     if (!form.code.trim()) return setError(t('itemModal.codeRequired'));
-    const quantity = Number(form.quantity);
-    const price = Number(form.price);
-    if (!Number.isFinite(quantity) || quantity < 0) return setError(t('itemModal.qtyInvalid'));
+    // A blank box is not a number (Number('') is 0), and the count is whole units.
+    const quantity = numberOrNaN(form.quantity);
+    const price = numberOrNaN(form.price);
+    if (!Number.isInteger(quantity) || quantity < 0) return setError(t('itemModal.qtyInvalid'));
     if (!Number.isFinite(price) || price < 0) return setError(t('itemModal.priceInvalid'));
 
     onSave({ name: form.name.trim(), code: form.code.trim(), quantity, unit: form.unit, price, quantityWas: initial?.quantity });
