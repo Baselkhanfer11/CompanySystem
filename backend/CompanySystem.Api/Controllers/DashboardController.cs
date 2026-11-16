@@ -112,10 +112,27 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
                 p.Id,
                 p.CreatedBy!.FullName,
                 p.Supplier!.Name,
+                null,
                 p.Project != null ? p.Project.Name : null,
                 p.Items.Select(li => li.Item!.Name).ToList(),
                 p.Items.Sum(li => li.Quantity * li.UnitPrice),
                 p.CreatedAt))
+            .ToListAsync();
+
+        // A sale shows up when it's recorded (an order), under its customer.
+        var sales = await db.Sales.AsNoTracking()
+            .OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
+            .Take(ActivityCount)
+            .Select(s => new ActivityDto(
+                "Sale",
+                s.Id,
+                s.CreatedBy!.FullName,
+                null,
+                s.Customer!.Name,
+                null,
+                s.Items.Select(li => li.Item!.Name).ToList(),
+                s.Items.Sum(li => li.Quantity * li.UnitPrice),
+                s.CreatedAt))
             .ToListAsync();
 
         var movements = await db.StockMovements.AsNoTracking()
@@ -126,13 +143,14 @@ public class DashboardController(AppDbContext db, StockService stock) : Controll
                 m.Id,
                 m.CreatedBy!.FullName,
                 null,
+                null,
                 m.Project!.Name,
                 m.Lines.Select(l => l.Item!.Name).ToList(),
                 m.Lines.Sum(l => l.Value),
                 m.CreatedAt))
             .ToListAsync();
 
-        return purchases.Concat(movements)
+        return purchases.Concat(sales).Concat(movements)
             .OrderByDescending(a => a.CreatedAt)
             .Take(ActivityCount)
             .Select(a => a with { Items = a.Items.Distinct().ToList() })

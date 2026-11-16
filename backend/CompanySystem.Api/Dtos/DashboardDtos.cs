@@ -27,13 +27,14 @@ public record ProjectProgressDto(
     [property: CostFigure] decimal StillToSpend,
     int ItemsOnSite);
 
-// One recent purchase or stock movement, newest first.
-// Kind: "Purchase", "Issue" (sent to a site) or "Return".
+// One recent purchase, sale or stock movement, newest first.
+// Kind: "Purchase", "Sale", "Issue" (sent to a site) or "Return".
 public record ActivityDto(
     string Kind,
     int Id,
     string ActorName,
     string? SupplierName, // purchases
+    string? CustomerName, // sales
     string? ProjectName,  // the site (null = a purchase delivered to the warehouse)
     IReadOnlyList<string> Items,
     [property: CostFigure] decimal Total,

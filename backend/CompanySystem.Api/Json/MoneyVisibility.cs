@@ -21,6 +21,14 @@ public sealed class CostFigureAttribute : Attribute;
 public sealed class BuyingPriceAttribute : Attribute;
 
 /// <summary>
+/// What customers pay us — selling prices, sale totals, payments received.
+/// The same people as buying prices: managers and the Procurement Officer.
+/// On a record, write it as <c>[property: SellingPrice]</c>.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class SellingPriceAttribute : Attribute;
+
+/// <summary>
 /// Leaves money out of every API answer for people who may not see it. Tagging a
 /// field is all it takes, so a new endpoint can't forget to hide it. (Only what the
 /// API sends is affected; what it receives and what it stores are not.)
@@ -42,6 +50,7 @@ public static class MoneyVisibility
             var allowed =
                 member?.GetCustomAttribute<CostFigureAttribute>() is not null ? SeeCosts :
                 member?.GetCustomAttribute<BuyingPriceAttribute>() is not null ? SeePrices :
+                member?.GetCustomAttribute<SellingPriceAttribute>() is not null ? SeePrices :
                 null;
             if (allowed is null) continue;
 

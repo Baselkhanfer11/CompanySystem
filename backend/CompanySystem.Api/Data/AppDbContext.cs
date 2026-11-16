@@ -51,6 +51,15 @@ public class AppDbContext : DbContext
     // The "ProjectMaterials" table (each project's material plan).
     public DbSet<ProjectMaterial> ProjectMaterials => Set<ProjectMaterial>();
 
+    // The "Customers" table (who we sell to).
+    public DbSet<Customer> Customers => Set<Customer>();
+
+    // The "Sales" table (orders → deliveries), their lines, payments and history.
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+    public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+    public DbSet<SaleEvent> SaleEvents => Set<SaleEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -257,6 +266,75 @@ public class AppDbContext : DbContext
             .HasOne(m => m.UpdatedBy)
             .WithMany()
             .HasForeignKey(m => m.UpdatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Customer codes must be unique.
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.Code)
+            .IsUnique();
+
+        // A sale belongs to a customer; a customer with sales can't be deleted
+        // (Restrict). The people on it are history too.
+        modelBuilder.Entity<Sale>()
+            .HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Sale>()
+            .HasOne(s => s.CreatedBy)
+            .WithMany()
+            .HasForeignKey(s => s.CreatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Sale>()
+            .HasOne(s => s.DeliveredBy)
+            .WithMany()
+            .HasForeignKey(s => s.DeliveredById)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Sale>()
+            .HasOne(s => s.CancelledBy)
+            .WithMany()
+            .HasForeignKey(s => s.CancelledById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Lines, payments and history are part of the sale (Cascade); an item
+        // that was sold can't be deleted (Restrict).
+        modelBuilder.Entity<SaleItem>()
+            .HasOne(li => li.Sale)
+            .WithMany(s => s.Items)
+            .HasForeignKey(li => li.SaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SaleItem>()
+            .HasOne(li => li.Item)
+            .WithMany()
+            .HasForeignKey(li => li.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<SaleItem>()
+            .Property(li => li.UnitPrice)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<SalePayment>()
+            .HasOne(p => p.Sale)
+            .WithMany(s => s.Payments)
+            .HasForeignKey(p => p.SaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SalePayment>()
+            .HasOne(p => p.RecordedBy)
+            .WithMany()
+            .HasForeignKey(p => p.RecordedById)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<SalePayment>()
+            .Property(p => p.Amount)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<SaleEvent>()
+            .HasOne(e => e.Sale)
+            .WithMany()
+            .HasForeignKey(e => e.SaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SaleEvent>()
+            .HasOne(e => e.Actor)
+            .WithMany()
+            .HasForeignKey(e => e.ActorId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
