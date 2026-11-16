@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useItems } from '../data/ItemsContext';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate } from '../lib/format';
+import { formatDay } from '../lib/format';
 import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, isRecent } from '../lib/prices';
 import type { Supplier } from '../types';
@@ -11,6 +12,7 @@ import { XIcon } from './icons';
 // "What we buy from this supplier": item by item, their last and average
 // price — and whether someone else is cheaper right now.
 export function SupplierPricesModal({ supplier, onClose }: { supplier: Supplier | null; onClose: () => void }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const prices = usePrices();
   const { items } = useItems();
@@ -24,7 +26,7 @@ export function SupplierPricesModal({ supplier, onClose }: { supplier: Supplier 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('prices.supplierTitle', { name: supplier.name })}</h3>
@@ -66,7 +68,7 @@ export function SupplierPricesModal({ supplier, onClose }: { supplier: Supplier 
                         </td>
                         <td className="num">
                           <strong>{formatPrice(p.lastPrice)}</strong>
-                          <div className="email">{formatDate(p.lastDate)}</div>
+                          <div className="email">{formatDay(p.lastDate)}</div>
                         </td>
                         <td className="num">{formatPrice(p.avgPrice)}</td>
                         <td className="num" style={{ color: 'var(--text-muted)' }}>

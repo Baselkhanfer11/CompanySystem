@@ -14,9 +14,21 @@ export const localDate = (d = new Date()) =>
  */
 export const numberOrNaN = (s: string) => (s.trim() === '' ? NaN : Number(s));
 
-/** Format an ISO date string as e.g. "22 Sep 2026". */
-export const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+const DAY_FORMAT = { day: '2-digit', month: 'short', year: 'numeric' } as const;
+
+/** Format a timestamp (when something was recorded) as the local date, e.g. "22 Sep 2026". */
+export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', DAY_FORMAT);
+
+/**
+ * Format a calendar date — a purchase or movement date, which the API stores
+ * as midnight UTC — as e.g. "22 Sep 2026". Reads the date part only, so the
+ * day never shifts for someone west of UTC, where "2026-09-22T00:00:00Z" is
+ * still the evening of 21 Sep. Also accepts a plain "2026-09-22".
+ */
+export const formatDay = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', DAY_FORMAT);
+};
 
 // Money the API left out (the person may not see it) shows as "—".
 const HIDDEN = '—';

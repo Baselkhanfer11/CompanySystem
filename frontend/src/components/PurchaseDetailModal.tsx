@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { purchasesApi } from '../api/purchases';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
+import { formatDay, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
 import type { PurchaseChange, PurchaseDetail } from '../types';
-import { EditIcon, ReceiptIcon, XIcon } from './icons';
+import { EditIcon, ReceiptIcon, TrashIcon, XIcon } from './icons';
 
 interface Props {
   open: boolean;
@@ -15,12 +16,6 @@ interface Props {
 }
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
-
-// "2026-09-10" → "10 Sep 2026", built from the parts so no timezone can shift the day.
-const ymdLabel = (ymd: string) => {
-  const [y, m, d] = ymd.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-};
 
 // Wraps a value in Unicode "first strong isolate" marks. Without this, in Arabic
 // two English values plus the arrow between them merge into one left-to-right
@@ -47,7 +42,7 @@ function describeChange(c: PurchaseChange, t: T, arrow: string): string {
       if (c.field === 'notes') return t('purchaseHistory.notesChanged');
       const show = (v?: string | null) => {
         if (c.field === 'project') return v ?? t('purchase.general');
-        if (c.field === 'date' && v) return ymdLabel(v);
+        if (c.field === 'date' && v) return formatDay(v);
         return v ?? '—';
       };
       const label = t(`purchaseHistory.field.${c.field}`);
@@ -64,6 +59,7 @@ export function PurchaseDetailModal(props: Props) {
 }
 
 function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseId: number }) {
+  const dialog = useDialog(onClose);
   const { t, dir } = useI18n();
   const { prices } = useMoney(); // employees see no prices
   const fetchDetail = useCallback(() => purchasesApi.getById(purchaseId), [purchaseId]);
@@ -74,7 +70,7 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('purchaseDetail.title')}</h3>
@@ -93,14 +89,22 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
               <div className="detail-grid">
                 <div><span className="k">{t('purchaseDetail.supplier')}</span><span className="v">{detail.supplierName}</span></div>
                 <div><span className="k">{t('purchaseDetail.project')}</span><span className="v">{detail.projectName ?? t('purchase.general')}</span></div>
-                <div><span className="k">{t('purchaseDetail.date')}</span><span className="v">{formatDate(detail.date)}</span></div>
+                <div><span className="k">{t('purchaseDetail.date')}</span><span className="v">{formatDay(detail.date)}</span></div>
                 <div><span className="k">{t('purchaseDetail.invoiceNumber')}</span><span className="v">{detail.invoiceNumber ?? '—'}</span></div>
                 <div><span className="k">{t('purchaseDetail.recordedBy')}</span><span className="v">{detail.createdByName}</span></div>
-                {detail.lastEditedAt && (
+                {detail.lastEditedAt && !detail.deletedAt && (
                   <div>
                     <span className="k">{t('purchaseDetail.lastEdited')}</span>
                     <span className="v" title={formatDateTime(detail.lastEditedAt)}>
                       {detail.lastEditedByName} · {formatTimeAgo(detail.lastEditedAt, t)}
+                    </span>
+                  </div>
+                )}
+                {detail.deletedAt && (
+                  <div>
+                    <span className="k">{t('purchaseDetail.deleted')}</span>
+                    <span className="v" style={{ color: 'var(--rose)' }} title={formatDateTime(detail.deletedAt)}>
+                      {detail.deletedByName} · {formatTimeAgo(detail.deletedAt, t)}
                     </span>
                   </div>
                 )}
@@ -159,10 +163,12 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
 
                   {detail.history.map((e) => (
                     <div key={e.id} className="tl-item">
-                      <span className="tl-dot warn"><EditIcon /></span>
+                      <span className={`tl-dot ${e.action === 'Deleted' ? 'danger' : 'warn'}`}>
+                        {e.action === 'Deleted' ? <TrashIcon /> : <EditIcon />}
+                      </span>
                       <div className="tl-body">
                         <div className="tl-head">
-                          <span className="tl-action">{t('purchaseHistory.edited')}</span>
+                          <span className="tl-action">{t(e.action === 'Deleted' ? 'purchaseHistory.deleted' : 'purchaseHistory.edited')}</span>
                           <span className="tl-time" title={formatDateTime(e.createdAt)}>{formatTimeAgo(e.createdAt, t)}</span>
                         </div>
                         <div className="tl-actor">{t('docTimeline.by', { name: e.actorName })}</div>
@@ -184,7 +190,7 @@ function PurchaseDetailView({ purchaseId, onClose, onEdit }: Props & { purchaseI
 
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
-          {onEdit && detail && (
+          {onEdit && detail && !detail.deletedAt && (
             <button className="btn btn-primary" onClick={() => onEdit(detail)}>
               <EditIcon /> {t('purchase.edit')}
             </button>

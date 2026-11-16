@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { TrashIcon } from './icons';
 
@@ -14,11 +15,12 @@ interface Props {
 }
 
 export function ConfirmDialog({ open, title, message, busy, onCancel, onConfirm, confirmLabel, icon }: Props) {
+  const dialog = useDialog(onCancel);
   const { t } = useI18n();
   if (!open) return null;
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-label={title}>
+      <div className="modal" style={{ maxWidth: 420 }} ref={dialog} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-label={title}>
         <div className="modal-body" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 32 }}>
           <div className="empty-illus danger confirm-illus">
             {icon ?? <TrashIcon />}

@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -9,10 +12,13 @@ public class Employee
     public int Id { get; set; }
 
     // Required text. "= string.Empty" avoids null-warnings (Nullable is enabled).
+    [MaxLength(TextLimits.Name)]
     public string FullName { get; set; } = string.Empty;
 
     // Optional fields — the "?" means they are allowed to be null (empty).
+    [MaxLength(TextLimits.Email)]
     public string? Email { get; set; }
+    [MaxLength(TextLimits.Short)]
     public string? Position { get; set; }
 
     // When the employee was hired. Defaults to "now" if not provided.

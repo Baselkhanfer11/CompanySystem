@@ -4,7 +4,7 @@ import { stockApi } from '../api/stock';
 import { CubeIcon, PrinterIcon } from '../components/icons';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatDateTime, formatMoney, formatUnitMoney } from '../lib/format';
+import { formatDay, formatDateTime, formatMoney, formatUnitMoney } from '../lib/format';
 import { movementNumber } from '../lib/stock';
 import type { StockMovementDetail } from '../types';
 import './print.css';
@@ -85,7 +85,7 @@ export function MovementPrintPage() {
         </header>
 
         <dl className="pr-facts">
-          <div><dt>{t('print.date')}</dt><dd>{formatDate(detail.date)}</dd></div>
+          <div><dt>{t('print.date')}</dt><dd>{formatDay(detail.date)}</dd></div>
           <div><dt>{t('print.from')}</dt><dd>{issue ? warehouse : site}</dd></div>
           <div><dt>{t('print.to')}</dt><dd>{issue ? site : warehouse}</dd></div>
           <div><dt>{t('print.recordedBy')}</dt><dd>{detail.createdByName}</dd></div>

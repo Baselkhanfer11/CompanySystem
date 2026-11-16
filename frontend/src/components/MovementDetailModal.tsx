@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { stockApi } from '../api/stock';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
+import { formatDay, formatDateTime, formatMoney, formatTimeAgo, formatUnitMoney } from '../lib/format';
 import { movementPrintUrl } from '../lib/stock';
 import { PrinterIcon, SwapIcon, XIcon } from './icons';
 import { MovementBadge } from './MovementBadge';
@@ -22,6 +23,7 @@ export function MovementDetailModal(props: Props) {
 }
 
 function MovementDetailView({ movementId, onClose }: Props & { movementId: number }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const { costs } = useMoney(); // what a movement was worth: managers only
   const fetchDetail = useCallback(() => stockApi.getMovement(movementId), [movementId]);
@@ -29,7 +31,7 @@ function MovementDetailView({ movementId, onClose }: Props & { movementId: numbe
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{detail ? t(detail.type === 'Issue' ? 'movementModal.sendTitle' : 'movementModal.returnTitle') : t('stock.title')}</h3>
@@ -47,7 +49,7 @@ function MovementDetailView({ movementId, onClose }: Props & { movementId: numbe
               <div className="detail-grid">
                 <div><span className="k">{t('stock.colType')}</span><span className="v"><MovementBadge type={detail.type} /></span></div>
                 <div><span className="k">{t('movementDetail.site')}</span><span className="v">{detail.projectName} · {detail.projectCode}</span></div>
-                <div><span className="k">{t('purchaseDetail.date')}</span><span className="v">{formatDate(detail.date)}</span></div>
+                <div><span className="k">{t('purchaseDetail.date')}</span><span className="v">{formatDay(detail.date)}</span></div>
                 <div>
                   <span className="k">{t('purchaseDetail.recordedBy')}</span>
                   <span className="v" title={formatDateTime(detail.createdAt)}>{detail.createdByName} · {formatTimeAgo(detail.createdAt, t)}</span>

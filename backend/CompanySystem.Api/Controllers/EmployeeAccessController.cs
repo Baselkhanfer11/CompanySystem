@@ -61,6 +61,7 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
     [HttpPut]
     public async Task<IActionResult> Update(int employeeId, UpdateAccessRequest req)
     {
+        await using var change = await AccountRules.BeginChange(db);
         var user = await db.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
         if (user is null) return NotFound(new { message = "This employee has no login." });
         if (!Roles.IsValid(req.Role))
@@ -82,6 +83,7 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
             user.PasswordHash = hasher.HashPassword(user, req.NewPassword);
 
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return NoContent();
     }
 
@@ -89,6 +91,7 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
     [HttpDelete]
     public async Task<IActionResult> Revoke(int employeeId)
     {
+        await using var change = await AccountRules.BeginChange(db);
         var user = await db.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
         if (user is null) return NotFound(new { message = "This employee has no login." });
 
@@ -102,6 +105,7 @@ public class EmployeeAccessController(AppDbContext db, IPasswordHasher<User> has
         try
         {
             await db.SaveChangesAsync();
+            await change.CommitAsync();
         }
         catch (DbUpdateException)
         {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney, localDate } from '../lib/format';
@@ -39,6 +40,7 @@ export function SplitModal({ shortage, ...rest }: Props) {
 }
 
 function SplitBody({ shortage: s, saving, onClose, onSave }: Omit<Props, 'shortage'> & { shortage: Shortage }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const { costs } = useMoney(); // what material is worth is a cost figure: managers only
   const [qty, setQty] = useState(() => shareByNeed(s.inWarehouse, s.projects).map(String));
@@ -79,7 +81,7 @@ function SplitBody({ shortage: s, saving, onClose, onSave }: Omit<Props, 'shorta
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('split.title', { item: s.name })}</h3>

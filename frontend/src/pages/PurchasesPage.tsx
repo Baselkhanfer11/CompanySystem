@@ -14,7 +14,7 @@ import { useToast } from '../components/toast';
 import { useItems } from '../data/ItemsContext';
 import { NONE, purchasesChanged, useProjects, usePurchases, useSuppliers } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
-import { formatDate, formatMoney } from '../lib/format';
+import { formatDay, formatMoney } from '../lib/format';
 import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Project, PurchaseDetail, PurchaseInput, PurchaseListItem, Supplier } from '../types';
@@ -54,7 +54,7 @@ export function PurchasesPage() {
 
   // The Excel file: the same purchases as the table.
   const exportSheets = () => [sheet<PurchaseListItem>(t('purchase.title'), [
-    { header: t('purchase.colDate'), type: 'date', value: (p) => p.date },
+    { header: t('purchase.colDate'), type: 'day', value: (p) => p.date },
     { header: t('purchase.colSupplier'), value: (p) => p.supplierName },
     { header: t('purchase.colProject'), value: (p) => p.projectName ?? t('purchase.general') },
     { header: t('purchase.colInvoice'), value: (p) => p.invoiceNumber },
@@ -160,7 +160,7 @@ export function PurchasesPage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id}>
-                    <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{formatDay(p.date)}</td>
                     <td><div className="name">{p.supplierName}</div><div className="email">{p.createdByName}</div></td>
                     <td>{p.projectName ?? <span style={{ color: 'var(--text-dim)' }}>{t('purchase.general')}</span>}</td>
                     <td><span className="cell-code">{p.invoiceNumber ?? '—'}</span></td>

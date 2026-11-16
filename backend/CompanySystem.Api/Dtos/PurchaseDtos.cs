@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using CompanySystem.Api.Models;
 using CompanySystem.Api.Json;
+using CompanySystem.Api.Services;
 
 namespace CompanySystem.Api.Dtos;
 
@@ -14,9 +16,9 @@ public record PurchaseItemInputDto(int ItemId, int Quantity, decimal UnitPrice, 
 public record PurchaseInputDto(
     int SupplierId,
     int? ProjectId,
-    string? InvoiceNumber,
+    [MaxLength(TextLimits.Short)] string? InvoiceNumber,
     DateTime Date,
-    string? Notes,
+    [MaxLength(TextLimits.Notes)] string? Notes,
     List<PurchaseItemInputDto> Items);
 
 // ---- What the API returns ----
@@ -71,6 +73,7 @@ public record PurchaseEventDto(
     IReadOnlyList<PurchaseChange> Changes);
 
 // The full purchase with all its lines and its edit history (oldest first).
+// A deleted purchase can still be opened (DeletedAt is set), but counts for nothing.
 public record PurchaseDetailDto(
     int Id,
     int SupplierId,
@@ -86,4 +89,6 @@ public record PurchaseDetailDto(
     IReadOnlyList<PurchaseItemDto> Items,
     string? LastEditedByName,
     DateTime? LastEditedAt,
-    IReadOnlyList<PurchaseEventDto> History);
+    IReadOnlyList<PurchaseEventDto> History,
+    string? DeletedByName,
+    DateTime? DeletedAt);

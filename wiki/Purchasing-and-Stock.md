@@ -30,7 +30,7 @@ All stock changes go through **`StockService.Apply`**. It adds up every change, 
 
 **Editing an item never moves stock.** The item window sends the count it showed when it was opened. The warehouse count only changes when you changed it there (a stock-count correction), and only if nobody moved stock in the meantime — otherwise you're asked to reopen the form.
 
-**Typos are refused**, not saved: dates before 2000 or after tomorrow, quantities over 1,000,000, prices over 1,000,000,000 or with more than 4 decimals (`InputRules`).
+**Typos are refused**, not saved: dates before 2000 or after tomorrow, quantities over 1,000,000, prices over 1,000,000,000 or with more than 4 decimals (`InputRules`). Text has a length too — 200 characters for a name, 50 for a code, 2,000 for notes (`TextLimits`) — checked on the request and enforced by the database columns.
 
 ## Suppliers
 
@@ -54,6 +54,8 @@ Every edit writes a **history entry** (`PurchaseEvent`) listing exactly what cha
 ### Deleting a purchase
 
 Deleting takes the material back out of wherever it was delivered — and is **blocked** if some of it has already moved on.
+
+The record itself is **kept**, marked with who deleted it and when (`Purchase.DeletedAt`), with its lines and its edit history, and a *Deleted* entry is added to that history. A deleted purchase is left out of every list, price, cost and stock figure (a query filter in `AppDbContext`), but it can still be opened by its id, so what was bought is never lost.
 
 ## Price history
 

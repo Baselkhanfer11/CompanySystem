@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -16,6 +19,7 @@ public class StockMovement
     public int Id { get; set; }
 
     // One of StockMovementTypes.
+    [MaxLength(TextLimits.Short)]
     public string Type { get; set; } = StockMovementTypes.Issue;
 
     // The site the material went to (Issue) or came back from (Return).
@@ -25,6 +29,7 @@ public class StockMovement
     // When the material actually moved (entered by the user).
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
+    [MaxLength(TextLimits.Notes)]
     public string? Notes { get; set; }
 
     // Who recorded the movement.

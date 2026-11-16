@@ -154,6 +154,21 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.DeletedBy)
+            .WithMany()
+            .HasForeignKey(p => p.DeletedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // A deleted purchase keeps its row (and lines) as history, but is left out
+        // of every query — lists, prices, costs and the stock on a site — unless a
+        // query says IgnoreQueryFilters() (opening it, or checking for history).
+        modelBuilder.Entity<Purchase>()
+            .HasQueryFilter(p => p.DeletedAt == null);
+        modelBuilder.Entity<PurchaseItem>()
+            .HasQueryFilter(li => li.Purchase!.DeletedAt == null);
+        modelBuilder.Entity<PurchaseEvent>()
+            .HasQueryFilter(e => e.Purchase!.DeletedAt == null);
 
         // A purchase's line items are part of the invoice — deleting the purchase
         // removes its lines (Cascade).

@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { reportsApi, type DateRange } from '../api/reports';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate, formatUsd } from '../lib/format';
+import { formatDay, formatUsd } from '../lib/format';
 import type { ProjectCostRow } from '../types';
 import { BarList } from './charts/BarList';
 import { MonthlyChart } from './charts/MonthlyChart';
@@ -25,6 +26,7 @@ export function ProjectCostModal(props: Props) {
 }
 
 function ProjectCostView({ row, range, periodLabel, onClose }: Props & { row: ProjectCostRow }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const fetchDetail = useCallback(() => reportsApi.projectCostDetail(row.projectId, range), [row.projectId, range]);
   const { data: detail, loading, error } = useCached(`costDetail:${row.projectId ?? 'warehouse'}:${range.from ?? ''}:${range.to ?? ''}`, fetchDetail, 0);
@@ -36,7 +38,7 @@ function ProjectCostView({ row, range, periodLabel, onClose }: Props & { row: Pr
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{title}</h3>
@@ -120,7 +122,7 @@ function ProjectCostView({ row, range, periodLabel, onClose }: Props & { row: Pr
                           <tbody>
                             {detail.recentPurchases.map((p) => (
                               <tr key={p.id}>
-                                <td style={{ color: 'var(--text-muted)' }}>{formatDate(p.date)}</td>
+                                <td style={{ color: 'var(--text-muted)' }}>{formatDay(p.date)}</td>
                                 <td>{p.supplierName}</td>
                                 <td><span className="cell-code">{p.invoiceNumber ?? '—'}</span></td>
                                 <td className="num" style={{ fontWeight: 600 }}>{formatUsd(p.total)}</td>
@@ -148,7 +150,7 @@ function ProjectCostView({ row, range, periodLabel, onClose }: Props & { row: Pr
                           <tbody>
                             {detail.recentMovements.map((m) => (
                               <tr key={m.id}>
-                                <td style={{ color: 'var(--text-muted)' }}>{formatDate(m.date)}</td>
+                                <td style={{ color: 'var(--text-muted)' }}>{formatDay(m.date)}</td>
                                 <td><MovementBadge type={m.type} /></td>
                                 <td>{m.itemNames.join(', ')}</td>
                                 <td className="num" style={{ fontWeight: 600 }}>{m.type === 'Return' ? '−' : ''}{formatUsd(m.total)}</td>

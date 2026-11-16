@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { authApi } from '../api/auth';
 import { setToken } from '../api/http';
 import { useI18n } from '../i18n/LanguageContext';
@@ -9,6 +10,7 @@ const MIN_PASSWORD = 8; // same rule as the API (AuthController)
 
 // Change your own password. Rendered only while open, so it always starts empty.
 export function PasswordModal({ onClose }: { onClose: () => void }) {
+  const dialog = useDialog<HTMLFormElement>(onClose);
   const { t } = useI18n();
   const toast = useToast();
   const [current, setCurrent] = useState('');
@@ -41,7 +43,7 @@ export function PasswordModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+      <form className="modal" ref={dialog} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('pw.title')}</h3>

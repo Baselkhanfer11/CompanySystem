@@ -25,6 +25,7 @@ function errorMessage(text: string, status: number): string {
     }
     if (typeof body.title === 'string') return body.title;
   } catch { /* not JSON */ }
+  if (status === 413) return 'The file is too large.'; // refused by the server before it was read
   return text || `Request failed (${status})`;
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { plansApi } from '../api/plans';
 import { useMoney } from '../auth/useMoney';
 import { useI18n } from '../i18n/LanguageContext';
@@ -41,6 +42,7 @@ export function ProjectPlanModal(props: Props) {
 }
 
 function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { project: Project }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const { costs } = useMoney(); // budgets and what's been spent: managers only
   const toast = useToast();
@@ -111,7 +113,7 @@ function PlanEditor({ project, canEdit, items, onClose, onSaved }: Props & { pro
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('project.plan')} · {project.name}</h3>

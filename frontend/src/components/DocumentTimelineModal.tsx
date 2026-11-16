@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { documentsApi } from '../api/documents';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
@@ -44,6 +45,7 @@ export function DocumentTimelineModal(props: Props) {
 }
 
 function DocumentTimelineView({ docId, onClose }: Props & { docId: number }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const fetchDetail = useCallback(() => documentsApi.getById(docId), [docId]);
   const { data: detail, loading, error } = useCached(`document:${docId}`, fetchDetail, 0);
@@ -53,7 +55,7 @@ function DocumentTimelineView({ docId, onClose }: Props & { docId: number }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('docTimeline.title')}</h3>

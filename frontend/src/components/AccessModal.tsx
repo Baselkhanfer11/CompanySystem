@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { ROLES } from '../auth/roles';
 import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, GrantAccessInput, UpdateAccessInput } from '../types';
@@ -24,6 +25,7 @@ export function AccessModal(props: Props) {
 }
 
 function AccessForm({ employee, saving, onClose, onGrant, onUpdate, onRevoke }: Props & { employee: Employee }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const access = employee.access ?? null;
   const isManage = !!access; // employee already has a login
@@ -48,7 +50,7 @@ function AccessForm({ employee, saving, onClose, onGrant, onUpdate, onRevoke }: 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{isManage ? t('acc.manageTitle') : t('acc.grantTitle')}</h3>

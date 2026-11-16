@@ -1,9 +1,10 @@
 import { useCallback, useMemo } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { pricesApi } from '../api/prices';
 import { usePrices } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { useCached } from '../lib/cache';
-import { formatDate } from '../lib/format';
+import { formatDay } from '../lib/format';
 import { formatPrice } from '../lib/units';
 import { bestRecent, indexPrices, isRecent, pctChange } from '../lib/prices';
 import type { Item, PriceHistoryLine } from '../types';
@@ -17,6 +18,7 @@ export function PriceHistoryModal({ item, onClose }: { item: Item | null; onClos
 }
 
 function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const prices = usePrices();
   // Re-checked every time it opens (maxAge 0), showing the last copy meanwhile.
@@ -42,7 +44,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{item.name}</h3>
@@ -69,7 +71,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
                 <div>
                   <span className="k">{t('prices.lastPaid')}</span>
                   <span className="v">{formatPrice(last.unitPrice)}</span>
-                  <span className="field-hint" style={{ marginTop: 0 }}>{last.supplierName} · {formatDate(last.date)}</span>
+                  <span className="field-hint" style={{ marginTop: 0 }}>{last.supplierName} · {formatDay(last.date)}</span>
                 </div>
                 <div>
                   <span className="k">{t('prices.bestNow')}</span>
@@ -111,7 +113,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
                             </td>
                             <td className="num">
                               <strong>{formatPrice(p.lastPrice)}</strong>
-                              <div className="email">{formatDate(p.lastDate)}</div>
+                              <div className="email">{formatDay(p.lastDate)}</div>
                             </td>
                             <td className="num">{formatPrice(p.minPrice)}</td>
                             <td className="num">{formatPrice(p.avgPrice)}</td>
@@ -145,7 +147,7 @@ function PriceHistoryBody({ item, onClose }: { item: Item; onClose: () => void }
                         const change = changeOf(i);
                         return (
                           <tr key={`${l.purchaseId}-${i}`}>
-                            <td style={{ color: 'var(--text-muted)' }}>{formatDate(l.date)}</td>
+                            <td style={{ color: 'var(--text-muted)' }}>{formatDay(l.date)}</td>
                             <td>
                               <div className="name">{l.supplierName}</div>
                               {l.invoiceNumber && <div className="email">{l.invoiceNumber}</div>}

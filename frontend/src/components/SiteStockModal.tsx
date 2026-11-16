@@ -1,4 +1,5 @@
 import { useMoney } from '../auth/useMoney';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatMoney } from '../lib/format';
 import type { Project, SiteStock } from '../types';
@@ -12,6 +13,7 @@ interface Props {
 
 // What's on one project's site right now.
 export function SiteStockModal({ project, rows, onClose }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const { costs } = useMoney(); // what's on a site cost the project: managers only
   if (!project) return null;
@@ -20,7 +22,7 @@ export function SiteStockModal({ project, rows, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('stock.siteOf', { name: project.name })}</h3>

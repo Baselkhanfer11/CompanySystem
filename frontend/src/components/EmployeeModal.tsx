@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import type { Employee, EmployeeInput } from '../types';
 import { XIcon } from './icons';
@@ -21,6 +22,7 @@ export function EmployeeModal(props: Props) {
 }
 
 function EmployeeForm({ initial, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [form, setForm] = useState<EmployeeInput>(() =>
     initial
@@ -48,7 +50,7 @@ function EmployeeForm({ initial, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{initial ? t('empModal.editTitle') : t('empModal.newTitle')}</h3>

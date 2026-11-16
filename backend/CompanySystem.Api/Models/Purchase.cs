@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using CompanySystem.Api.Services;
+
 namespace CompanySystem.Api.Models;
 
 /// <summary>
@@ -22,12 +25,14 @@ public class Purchase
     public Project? Project { get; set; }
 
     // The supplier's own invoice / reference number, if any.
+    [MaxLength(TextLimits.Short)]
     public string? InvoiceNumber { get; set; }
 
     // When the purchase actually happened (entered by the user, may differ from CreatedAt).
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
     // Optional free-text notes about the purchase.
+    [MaxLength(TextLimits.Notes)]
     public string? Notes { get; set; }
 
     // Who recorded this purchase in the system.
@@ -35,6 +40,13 @@ public class Purchase
     public User? CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Set when the purchase was deleted. The row stays, with its lines and history,
+    // so what was bought (and that it was taken back) is never lost — but a deleted
+    // purchase is left out of every query (see AppDbContext) and counts for nothing.
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedById { get; set; }
+    public User? DeletedBy { get; set; }
 
     // The invoice lines.
     public List<PurchaseItem> Items { get; set; } = new();

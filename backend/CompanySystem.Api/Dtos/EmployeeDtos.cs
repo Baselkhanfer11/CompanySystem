@@ -1,4 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using CompanySystem.Api.Models;
+using CompanySystem.Api.Services;
 
 namespace CompanySystem.Api.Dtos;
 
@@ -21,10 +23,21 @@ public record EmployeeDto(
 }
 
 // What the frontend sends to create/update an employee's core fields.
-public record EmployeeInputDto(string FullName, string? Email, string? Position, bool IsActive);
+public record EmployeeInputDto(
+    [MaxLength(TextLimits.Name)] string FullName,
+    [MaxLength(TextLimits.Email)] string? Email,
+    [MaxLength(TextLimits.Short)] string? Position,
+    bool IsActive);
 
 // Grant a login to an employee.
-public record GrantAccessRequest(string Username, string Password, string Role, bool IsActive);
+public record GrantAccessRequest(
+    [MaxLength(TextLimits.Short)] string Username,
+    [MaxLength(TextLimits.Name)] string Password,
+    [MaxLength(TextLimits.Short)] string Role,
+    bool IsActive);
 
 // Update an employee's existing login (password optional).
-public record UpdateAccessRequest(string Role, bool IsActive, string? NewPassword);
+public record UpdateAccessRequest(
+    [MaxLength(TextLimits.Short)] string Role,
+    bool IsActive,
+    [MaxLength(TextLimits.Name)] string? NewPassword);

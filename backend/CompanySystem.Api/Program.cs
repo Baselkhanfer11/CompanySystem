@@ -95,7 +95,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services
     // A stock change that couldn't get its turn is a 409 "try again", not a 500.
-    .AddControllers(options => options.Filters.Add<CompanySystem.Api.Services.StockBusyFilter>())
+    .AddControllers(options => options.Filters.Add<CompanySystem.Api.Services.BusyFilter>())
     .AddJsonOptions(options =>
     {
         // Money fields are left out for people who may not see them (see Json/MoneyVisibility.cs).

@@ -65,6 +65,10 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, EmployeeInputDto input)
     {
+        if (string.IsNullOrWhiteSpace(input.FullName))
+            return BadRequest(new { message = "Full name is required." });
+
+        await using var change = await AccountRules.BeginChange(db); // switching off can affect who is an administrator
         var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
 
@@ -83,6 +87,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
             employee.User.FullName = employee.FullName;
 
         await db.SaveChangesAsync();
+        await change.CommitAsync();
         return NoContent();
     }
 
@@ -91,6 +96,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
+        await using var change = await AccountRules.BeginChange(db);
         var employee = await db.Employees.Include(e => e.User).FirstOrDefaultAsync(e => e.Id == id);
         if (employee is null) return NotFound();
 
@@ -102,6 +108,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync();
+            await change.CommitAsync();
         }
         catch (DbUpdateException)
         {

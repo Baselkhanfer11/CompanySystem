@@ -33,6 +33,7 @@ public class UsersController(AppDbContext db) : ControllerBase
         if (id == currentId)
             return BadRequest(new { message = "You cannot remove your own login." });
 
+        await using var change = await AccountRules.BeginChange(db);
         var user = await db.Users.FindAsync(id);
         if (user is null) return NotFound();
 
@@ -43,6 +44,7 @@ public class UsersController(AppDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync();
+            await change.CommitAsync();
         }
         catch (DbUpdateException)
         {

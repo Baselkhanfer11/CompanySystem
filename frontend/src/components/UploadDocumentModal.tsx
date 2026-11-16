@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useDialog } from '../lib/useDialog';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatBytes } from '../lib/documents';
 import type { Project } from '../types';
@@ -19,6 +20,7 @@ export function UploadDocumentModal(props: Props) {
 }
 
 function UploadForm({ projects, saving, onClose, onSave }: Props) {
+  const dialog = useDialog(onClose);
   const { t } = useI18n();
   const [title, setTitle] = useState('');
   // Nothing picked yet = the first project (which also works if the list loads after opening).
@@ -44,7 +46,7 @@ function UploadForm({ projects, saving, onClose, onSave }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head with-close">
           <div>
             <h3>{t('docModal.title')}</h3>
