@@ -45,6 +45,13 @@ The first run creates the `admin` account with that password. The API won't star
 cd backend/CompanySystem.Api
 dotnet run
 ```
+Migrations are applied automatically at start-up. To add one after changing a model, the EF tool is
+pinned in `backend/.config/dotnet-tools.json`:
+```bash
+cd backend
+dotnet tool restore
+dotnet ef migrations add <Name> --project CompanySystem.Api
+```
 
 ### Run the tests
 The backend has automated tests (`backend/CompanySystem.Api.Tests`). Each run starts the real API on a

@@ -93,7 +93,7 @@ public class StockService(AppDbContext db)
             .ToListAsync();
         var moved = await movementLines
             .GroupBy(l => new { l.StockMovement!.ProjectId, l.ItemId, l.StockMovement.Type })
-            .Select(g => new { g.Key.ProjectId, g.Key.ItemId, g.Key.Type, Qty = g.Sum(l => l.Quantity), Value = g.Sum(l => l.Quantity * l.UnitCost) })
+            .Select(g => new { g.Key.ProjectId, g.Key.ItemId, g.Key.Type, Qty = g.Sum(l => l.Quantity), Value = g.Sum(l => l.Value) })
             .ToListAsync();
 
         var totals = new Dictionary<(int ProjectId, int ItemId), (int Qty, decimal Value)>();

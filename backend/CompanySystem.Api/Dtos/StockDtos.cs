@@ -52,7 +52,7 @@ public record StockMovementListDto(
         m.Notes,
         m.Lines.Count,
         m.Lines.OrderBy(l => l.Id).Select(l => new MovementLineBriefDto(l.Item!.Name, l.Item.Unit, l.Quantity)).ToList(),
-        m.Lines.Sum(l => l.Quantity * l.UnitCost),
+        m.Lines.Sum(l => l.Value),
         m.CreatedBy!.FullName,
         m.CreatedAt);
 }

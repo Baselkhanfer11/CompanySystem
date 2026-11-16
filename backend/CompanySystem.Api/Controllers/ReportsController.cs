@@ -188,7 +188,7 @@ public class ReportsController(AppDbContext db) : ControllerBase
             {
                 g.Key.ProjectId, g.Key.Type, g.Key.ItemId, g.Key.Year, g.Key.Month,
                 Qty = g.Sum(l => l.Quantity),
-                Value = g.Sum(l => l.Quantity * l.UnitCost),
+                Value = g.Sum(l => l.Value),
             })
             .ToListAsync();
 
