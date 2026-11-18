@@ -62,6 +62,15 @@ dotnet test
 ```
 Stop the API first (or it locks its files). In Visual Studio: **Test → Run All Tests**.
 
+The tests use the SQL Server `.\SQL2025` with Windows sign-in. To use another one, set
+`COMPANYSYSTEM_TEST_SQL` (e.g. `(localdb)\MSSQLLocalDB`); to sign in with a SQL login instead,
+also set `COMPANYSYSTEM_TEST_SQL_USER` and `COMPANYSYSTEM_TEST_SQL_PASSWORD`.
+
+### Automatic checks (CI)
+Every pull request runs `.github/workflows/ci.yml` on GitHub: the backend is built and all its tests
+run against a SQL Server in a container, and the frontend is installed with Bun, linted and built.
+The pull request shows a green tick when both pass, and a red cross with the failing step otherwise.
+
 ### Run the frontend
 ```bash
 cd frontend

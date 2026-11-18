@@ -1,0 +1,102 @@
+# Checks every pull request (and every change to main) before it's merged:
+#   backend  — builds the API and runs all its tests against a real SQL Server
+#   frontend — installs with Bun, lints, type-checks and builds the React app
+# Both must pass for a pull request to show a green tick.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same pull request cancels the run that's still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # The tests start the real API on a brand-new database each run, so they
+    # need a SQL Server. This one lives only for the length of the job.
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Ci-Only-Throwaway-Pw-2026
+        ports:
+          - 1433:1433
+
+    env:
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      # Read by backend/CompanySystem.Api.Tests/ApiFactory.cs.
+      COMPANYSYSTEM_TEST_SQL: localhost,1433
+      COMPANYSYSTEM_TEST_SQL_USER: sa
+      COMPANYSYSTEM_TEST_SQL_PASSWORD: Ci-Only-Throwaway-Pw-2026
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore backend/CompanySystem.sln
+
+      - name: Build
+        run: dotnet build backend/CompanySystem.sln --configuration Release --no-restore
+
+      # SQL Server takes a little while to start inside its container.
+      - name: Wait for SQL Server
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+                 -S localhost -U sa -P "$COMPANYSYSTEM_TEST_SQL_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server is ready"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "SQL Server did not start in time"
+          exit 1
+
+      - name: Test
+        run: dotnet test backend/CompanySystem.sln --configuration Release --no-build --logger "console;verbosity=normal"
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The newest Bun: bun.lock is written by a recent Bun (lockfile version 2),
+      # which older releases can't read.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # --frozen-lockfile: fail instead of quietly changing bun.lock.
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type-check and build
+        run: bun run build
