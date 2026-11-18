@@ -44,7 +44,7 @@ Who the company sells to. The same fields as a supplier: `Name`, unique `Code`, 
 One order to a customer. Fields: `CustomerId`, optional `Reference`, `Date`, optional `Notes`, `Status` (`Ordered` / `Delivered` / `Cancelled`), `DeliveredAt` / `DeliveredById` (set while delivered), `CancelledAt` / `CancelledById`, `CreatedById`, `CreatedAt`, its `Items` and its `Payments`. The payment status (`Unpaid` / `PartlyPaid` / `Paid`) is **never stored** — it's worked out from the total and the payments. See [[Sales]].
 
 ### SaleItem
-One order line: `SaleId`, `ItemId`, `Quantity`, `UnitPrice` (the selling price typed on the sale, 4 decimals).
+One order line: `SaleId`, `ItemId`, `Quantity`, `UnitPrice` (the selling price typed on the sale, 4 decimals), `UnitCost` (the item's price when the sale was delivered — a snapshot for profit in the sales report; 0 until delivered).
 
 ### SalePayment
 Money received against a sale: `SaleId`, `Date`, `Amount` (4 decimals), optional `Note`, `RecordedById`, `CreatedAt`.

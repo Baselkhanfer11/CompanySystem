@@ -171,6 +171,11 @@ public class SalesController(AppDbContext db, StockService stock) : ControllerBa
         if (shortfall is not null)
             return Conflict(new { message = $"Can't deliver — not enough stock. {shortfall}" });
 
+        // What the material cost us, as of now (for profit in the sales report).
+        var itemIds = sale.Items.Select(li => li.ItemId).Distinct().ToList();
+        var costs = await db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id, i => i.Price);
+        foreach (var li in sale.Items) li.UnitCost = costs[li.ItemId];
+
         sale.Status = SaleStatuses.Delivered;
         sale.DeliveredAt = DateTime.UtcNow;
         sale.DeliveredById = CurrentUserId;

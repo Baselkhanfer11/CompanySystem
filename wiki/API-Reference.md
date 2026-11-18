@@ -148,6 +148,7 @@ Selling prices, totals and payment amounts are left out of every answer for the 
 |--------|------|--------|---------|
 | GET | `/api/reports/project-costs?from=&to=` | Managers | Every project's cost (most expensive first), the warehouse bucket, and the monthly trend. Dates optional and inclusive |
 | GET | `/api/reports/project-costs/{projectId}?from=&to=` | Managers | One project's drill-down: by supplier, top items, latest activity. Use `0` for the warehouse |
+| GET | `/api/reports/sales?from=&to=` | Managers | Sales delivered in the period: revenue, cost, profit and margin, money collected; by month, by customer (with what's owed) and by item |
 
 ## Documents & approvals
 

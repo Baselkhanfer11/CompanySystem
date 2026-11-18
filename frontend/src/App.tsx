@@ -16,6 +16,7 @@ const SuppliersPage = lazy(() => import('./pages/SuppliersPage').then((m) => ({ 
 const PurchasesPage = lazy(() => import('./pages/PurchasesPage').then((m) => ({ default: m.PurchasesPage })));
 const CustomersPage = lazy(() => import('./pages/CustomersPage').then((m) => ({ default: m.CustomersPage })));
 const SalesPage = lazy(() => import('./pages/SalesPage').then((m) => ({ default: m.SalesPage })));
+const SalesReportPage = lazy(() => import('./pages/SalesReportPage').then((m) => ({ default: m.SalesReportPage })));
 const StockMovementsPage = lazy(() => import('./pages/StockMovementsPage').then((m) => ({ default: m.StockMovementsPage })));
 const ToBuyPage = lazy(() => import('./pages/ToBuyPage').then((m) => ({ default: m.ToBuyPage })));
 const CostsPage = lazy(() => import('./pages/CostsPage').then((m) => ({ default: m.CostsPage })));
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/movements" element={<StockMovementsPage />} />
           <Route path="/to-buy" element={<ToBuyPage />} />
           <Route path="/costs" element={<CostsPage />} />
+          <Route path="/sales-report" element={<SalesReportPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

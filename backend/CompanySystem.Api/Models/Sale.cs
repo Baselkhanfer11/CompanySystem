@@ -70,6 +70,11 @@ public class SaleItem
 
     // The selling price per unit on this sale.
     public decimal UnitPrice { get; set; }
+
+    // What one unit cost the company, taken from the item's price at the moment
+    // the sale was delivered (like a send to a site). A snapshot, so a later price
+    // change never rewrites past profit. 0 until the sale is delivered.
+    public decimal UnitCost { get; set; }
 }
 
 /// <summary>Money received against a sale. Several are allowed (a deposit, the rest later).</summary>

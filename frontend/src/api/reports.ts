@@ -1,4 +1,4 @@
-import type { ProjectCostDetail, ProjectCostsReport } from '../types';
+import type { ProjectCostDetail, ProjectCostsReport, SalesReport } from '../types';
 import { api } from './http';
 
 const BASE = '/api/reports/project-costs';
@@ -24,4 +24,5 @@ export const reportsApi = {
   projectCosts: (range: DateRange) => api.get<ProjectCostsReport>(`${BASE}${query(range)}`),
   projectCostDetail: (projectId: number | null, range: DateRange) =>
     api.get<ProjectCostDetail>(`${BASE}/${projectId ?? WAREHOUSE_ID}${query(range)}`),
+  sales: (range: DateRange) => api.get<SalesReport>(`/api/reports/sales${query(range)}`),
 };

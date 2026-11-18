@@ -519,6 +519,49 @@ export interface ProjectCostRow {
   movementCount: number;
 }
 
+// ---- Sales report (managers only) ----
+
+export interface SalesMonth {
+  year: number;
+  month: number; // 1-12
+  revenue: number;
+  cost: number;
+  profit: number;
+}
+
+export interface CustomerSales {
+  customerId: number;
+  name: string;
+  code: string;
+  saleCount: number;
+  revenue: number;
+  profit: number;
+  owed: number;
+}
+
+export interface ItemSales {
+  itemId: number;
+  name: string;
+  code: string;
+  unit: string;
+  quantity: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+}
+
+export interface SalesReport {
+  revenue: number;
+  cost: number;
+  profit: number;
+  marginPercent: number | null;
+  saleCount: number;
+  collected: number;
+  monthly: SalesMonth[];
+  byCustomer: CustomerSales[]; // most revenue first
+  byItem: ItemSales[]; // most revenue first
+}
+
 export interface MonthlySpend {
   year: number;
   month: number; // 1-12

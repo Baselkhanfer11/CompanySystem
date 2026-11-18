@@ -584,6 +584,10 @@ namespace CompanySystem.Api.Migrations
                     b.Property<int>("SaleId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");

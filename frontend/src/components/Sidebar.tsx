@@ -6,7 +6,7 @@ import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import {
   BoxesIcon, BriefcaseIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, KeyIcon, LogoutIcon,
-  ProjectsIcon, ShieldIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
+  ProjectsIcon, ShieldIcon, SparkIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
 import { PasswordModal } from './PasswordModal';
@@ -93,10 +93,16 @@ export function Sidebar({ open }: { open: boolean }) {
       </NavLink>
       {/* Spending reports — managers only (CEO + head manager) */}
       {canManage(user?.role) && (
-        <NavLink to="/costs" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <WalletIcon />
-          <span>{t('nav.costs')}</span>
-        </NavLink>
+        <>
+          <NavLink to="/costs" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <WalletIcon />
+            <span>{t('nav.costs')}</span>
+          </NavLink>
+          <NavLink to="/sales-report" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <SparkIcon />
+            <span>{t('nav.salesReport')}</span>
+          </NavLink>
+        </>
       )}
       <div className="sidebar-footer">
         <div className="user-chip">
