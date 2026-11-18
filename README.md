@@ -77,7 +77,7 @@ bun run dev
 - [x] Stock movements (send / return / split between sites)
 - [x] To-buy list, project costs and a home dashboard
 - [x] Excel document approvals with notifications
-- [ ] Sales
+- [x] Customers and sales (orders, deliveries, payments)
 - [x] Export to Excel
 - [x] Printable stock-movement records
 

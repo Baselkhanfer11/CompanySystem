@@ -295,6 +295,148 @@ export interface PurchaseInput {
   items: PurchaseLineInput[];
 }
 
+// ---- Customers and sales ----
+
+// Someone the company sells warehouse material to.
+export interface Customer {
+  id: number;
+  name: string;
+  code: string;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status: string; // one of CUSTOMER_STATUSES
+  createdAt: string;
+}
+
+export interface CustomerInput {
+  name: string;
+  code: string;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status: string;
+}
+
+export type SaleStatus = 'Ordered' | 'Delivered' | 'Cancelled';
+export type PaymentStatus = 'Unpaid' | 'PartlyPaid' | 'Paid';
+
+// A sale as shown in the list — summary only.
+export interface SaleListItem {
+  id: number;
+  customerId: number;
+  customerName: string;
+  reference?: string | null;
+  date: string;
+  status: SaleStatus;
+  paymentStatus: PaymentStatus;
+  lineCount: number;
+  total?: number;
+  paid?: number;
+  createdByName: string;
+  createdAt: string;
+}
+
+// One line on a sale, expanded with item details.
+export interface SaleLine {
+  id: number;
+  itemId: number;
+  itemName: string;
+  itemCode: string;
+  unit: string;
+  quantity: number;
+  unitPrice?: number;
+  lineTotal?: number;
+}
+
+// Money received against a sale.
+export interface SalePayment {
+  id: number;
+  date: string;
+  amount?: number;
+  note?: string | null;
+  recordedByName: string;
+  createdAt: string;
+}
+
+// One change inside a sale's history entry. `kind` says which fields are filled in.
+export interface SaleChange {
+  kind: 'Field' | 'LineAdded' | 'LineRemoved' | 'LineChanged' | 'Payment';
+  field?: 'customer' | 'date' | 'reference' | 'notes';
+  from?: string | null;
+  to?: string | null;
+  item?: string;
+  unit?: string;
+  fromQty?: number;
+  toQty?: number;
+  fromPrice?: number;
+  toPrice?: number;
+  amount?: number;
+  note?: string | null;
+}
+
+export type SaleAction = 'Edited' | 'Delivered' | 'DeliveryUndone' | 'Cancelled' | 'PaymentAdded' | 'PaymentRemoved';
+
+// One entry in a sale's history.
+export interface SaleEvent {
+  id: number;
+  action: SaleAction;
+  actorName: string;
+  createdAt: string;
+  changes: SaleChange[];
+}
+
+// A full sale: header, where it is, its lines, payments and history.
+export interface SaleDetail {
+  id: number;
+  customerId: number;
+  customerName: string;
+  reference?: string | null;
+  date: string;
+  notes?: string | null;
+  status: SaleStatus;
+  paymentStatus: PaymentStatus;
+  createdByName: string;
+  createdAt: string;
+  deliveredByName?: string | null;
+  deliveredAt?: string | null;
+  cancelledByName?: string | null;
+  cancelledAt?: string | null;
+  total?: number;
+  paid?: number;
+  remaining?: number;
+  items: SaleLine[];
+  payments: SalePayment[];
+  history: SaleEvent[]; // oldest first
+}
+
+// What we send to create or edit a sale. When editing, `id` marks an
+// existing line; leave it out for a new line.
+export interface SaleLineInput {
+  id?: number | null;
+  itemId: number;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface SaleInput {
+  customerId: number;
+  reference?: string | null;
+  date: string;
+  notes?: string | null;
+  items: SaleLineInput[];
+}
+
+export interface PaymentInput {
+  date: string;
+  amount: number;
+  note?: string | null;
+}
+
 // ---- Stock by location ----
 
 // Warehouse stock is Item.quantity; this is what's on one site.
@@ -484,12 +626,13 @@ export interface ProjectProgress {
   itemsOnSite: number;
 }
 
-// A recent purchase or stock movement.
+// A recent purchase, sale or stock movement.
 export interface Activity {
-  kind: 'Purchase' | 'Issue' | 'Return';
+  kind: 'Purchase' | 'Sale' | 'Issue' | 'Return';
   id: number;
   actorName: string;
   supplierName?: string | null;
+  customerName?: string | null;
   projectName?: string | null; // null on a purchase = delivered to the warehouse
   items: string[];
   total?: number;

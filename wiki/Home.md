@@ -14,6 +14,7 @@
 - 🏗️ **Projects** — every site is a project, with a unique code, a status and a **material plan**.
 - 🚚 **Suppliers & Purchases** — who the company buys from, every invoice line, delivered to the warehouse or straight to a site. Purchases can be edited (with a full change history) or deleted, and stock is protected both ways.
 - 💲 **Price history** — what each supplier charged for each item, and who's cheapest right now. New purchases suggest the cheapest supplier.
+- 🤝 **Customers & Sales** — who the company sells to, and every order: recorded first, delivered from the warehouse in one go (stock protected like every other move), paid in one or more payments with a running balance, and a full history.
 - 🔁 **Stock movements** — send material from the warehouse to a site, or return it. Each movement is costed and can be undone, and can be **printed** as a delivery or return note with signature boxes (or saved as PDF).
 - 🛒 **To buy** — what open projects still need, what the warehouse can cover, and what must be bought. You can buy, send or **split** a short item between sites straight from the list.
 - 💰 **Project costs** — what each project has cost, by supplier, item and month (managers only).
@@ -44,6 +45,7 @@
 | [[Architecture]] | How the pieces fit together and the key patterns |
 | [[Roles and Permissions]] | The four roles and who can do what |
 | [[Purchasing and Stock]] | Suppliers, purchases, price history, stock movements |
+| [[Sales]] | Customers, orders, deliveries, payments |
 | [[Material Plans and To Buy]] | Project plans, shortages, buy / send / split |
 | [[Project Costs]] | How a project's cost is worked out, and the cost report |
 | [[Documents and Approvals]] | The approval pipeline explained in full |

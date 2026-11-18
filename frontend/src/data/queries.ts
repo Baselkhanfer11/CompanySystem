@@ -1,9 +1,11 @@
+import { customersApi } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
 import { documentsApi } from '../api/documents';
 import { employeesApi } from '../api/employees';
 import { pricesApi } from '../api/prices';
 import { projectsApi } from '../api/projects';
 import { purchasesApi } from '../api/purchases';
+import { salesApi } from '../api/sales';
 import { stockApi } from '../api/stock';
 import { suppliersApi } from '../api/suppliers';
 import { usersApi } from '../api/users';
@@ -23,6 +25,8 @@ export const KEYS = {
   dashboard: 'dashboard',
   stock: 'stock', // store items + shortages (see ItemsContext)
   prices: 'prices', // what each supplier charged for each item
+  customers: 'customers',
+  sales: 'sales',
 } as const;
 
 // The fetchers live at module level so their identity never changes.
@@ -37,6 +41,8 @@ export const useEmployees = () => useCached(KEYS.employees, employeesApi.getAll)
 export const useUsers = () => useCached(KEYS.users, usersApi.getAll);
 export const useDocuments = () => useCached(KEYS.documents, documentsApi.getAll);
 export const usePrices = () => useCached(KEYS.prices, pricesApi.getAll);
+export const useCustomers = () => useCached(KEYS.customers, customersApi.getAll);
+export const useSales = () => useCached(KEYS.sales, salesApi.getAll);
 // The dashboard mixes everything, so it re-checks on every visit (maxAge 0) —
 // but still shows the last copy instantly while it does.
 export const useDashboard = () => useCached(KEYS.dashboard, dashboardApi.get, 0);
@@ -51,8 +57,12 @@ export const NONE: never[] = [];
 export const purchasesChanged = () => invalidate(KEYS.purchases, KEYS.stock, KEYS.siteStock, KEYS.prices);
 /** A stock movement was recorded or undone. */
 export const movementsChanged = () => invalidate(KEYS.movements, KEYS.stock, KEYS.siteStock);
+/** A sale was recorded, edited, delivered, undone, cancelled or paid: a delivery moves warehouse stock. */
+export const salesChanged = () => invalidate(KEYS.sales, KEYS.stock);
+/** A customer was added, edited or deleted. */
+export const customersChanged = () => invalidate(KEYS.customers, KEYS.sales);
 /** A store item was added, edited or deleted (its name/price shows in many lists). */
-export const itemsChanged = () => invalidate(KEYS.stock, KEYS.siteStock, KEYS.purchases, KEYS.movements, KEYS.prices);
+export const itemsChanged = () => invalidate(KEYS.stock, KEYS.siteStock, KEYS.purchases, KEYS.movements, KEYS.prices, KEYS.sales);
 /** A project was added, edited or deleted (its name/status shows almost everywhere). */
 export const projectsChanged = () =>
   invalidate(KEYS.projects, KEYS.stock, KEYS.siteStock, KEYS.purchases, KEYS.movements, KEYS.documents);

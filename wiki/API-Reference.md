@@ -98,6 +98,32 @@ See [[Roles and Permissions]] for the roles themselves.
 | PUT | `/api/purchases/{id}` | Procurement | Edit; stock moves by the difference and the change is recorded (409 if stock already moved on) |
 | DELETE | `/api/purchases/{id}` | Procurement | Delete; takes its material back out (409 if some already moved on) |
 
+## Customers
+
+| Method | Path | Access | Purpose |
+|--------|------|--------|---------|
+| GET | `/api/customers` | Any | List customers |
+| GET | `/api/customers/{id}` | Any | One customer |
+| POST | `/api/customers` | Procurement | Create (code must be unique) |
+| PUT | `/api/customers/{id}` | Procurement | Update |
+| DELETE | `/api/customers/{id}` | Procurement | Delete (refused if they have sales) |
+
+## Sales
+
+| Method | Path | Access | Purpose |
+|--------|------|--------|---------|
+| GET | `/api/sales` | Any | List sales, newest first, with status, payment status, total and paid |
+| GET | `/api/sales/{id}` | Any | One sale with its lines, payments, totals and history |
+| POST | `/api/sales` | Procurement | Record an order (nothing moves) |
+| PUT | `/api/sales/{id}` | Procurement | Edit an order (409 once delivered or cancelled) |
+| POST | `/api/sales/{id}/deliver` | Procurement | The lines leave the warehouse (409 with the reason if not enough stock) |
+| POST | `/api/sales/{id}/undo-delivery` | Procurement | The lines come back; the sale is an order again (409 if it has payments) |
+| POST | `/api/sales/{id}/cancel` | Procurement | Call off an order (409 if delivered or if it has payments) |
+| POST | `/api/sales/{id}/payments` | Procurement | Record money received (400 if more than what remains) |
+| DELETE | `/api/sales/{id}/payments/{paymentId}` | Procurement | Remove a payment recorded by mistake |
+
+Selling prices, totals and payment amounts are left out of every answer for the Employee role.
+
 ## Prices
 
 | Method | Path | Access | Purpose |
