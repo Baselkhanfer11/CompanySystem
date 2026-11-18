@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using CompanySystem.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,9 +18,31 @@ public class ApiFactory : WebApplicationFactory<Program>
 {
     public const string AdminPassword = "test-admin-password";
 
-    private readonly string _connection =
-        $"Server={Environment.GetEnvironmentVariable("COMPANYSYSTEM_TEST_SQL") ?? @".\SQL2025"};" +
-        $"Database=CompanySystemDb_Test_{Guid.NewGuid():N};Trusted_Connection=True;TrustServerCertificate=True;";
+    private readonly string _connection = TestConnection();
+
+    // The server comes from COMPANYSYSTEM_TEST_SQL (default .\SQL2025). Locally the
+    // tests sign in with Windows; where that isn't possible (the Linux machines that
+    // run CI), COMPANYSYSTEM_TEST_SQL_USER and _PASSWORD give a SQL login instead.
+    private static string TestConnection()
+    {
+        var builder = new SqlConnectionStringBuilder
+        {
+            DataSource = Environment.GetEnvironmentVariable("COMPANYSYSTEM_TEST_SQL") ?? @".\SQL2025",
+            InitialCatalog = $"CompanySystemDb_Test_{Guid.NewGuid():N}",
+            TrustServerCertificate = true,
+        };
+        var user = Environment.GetEnvironmentVariable("COMPANYSYSTEM_TEST_SQL_USER");
+        if (string.IsNullOrEmpty(user))
+        {
+            builder.IntegratedSecurity = true;
+        }
+        else
+        {
+            builder.UserID = user;
+            builder.Password = Environment.GetEnvironmentVariable("COMPANYSYSTEM_TEST_SQL_PASSWORD");
+        }
+        return builder.ConnectionString;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
