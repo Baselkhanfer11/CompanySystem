@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMoney } from '../auth/useMoney';
 import { Avatar } from '../components/Avatar';
 import {
-  AlertIcon, BoxesIcon, CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SwapIcon, UndoIcon, UsersIcon, WalletIcon,
+  AlertIcon, BoxesIcon, CartIcon, CheckIcon, ClipboardIcon, ProjectsIcon, SwapIcon, TrendingIcon, UndoIcon, UsersIcon, WalletIcon,
 } from '../components/icons';
 import { StatCard } from '../components/StatCard';
 import { useItems } from '../data/ItemsContext';
@@ -58,12 +58,13 @@ export function DashboardPage() {
   const itemList = (names: string[]) =>
     names.length <= 2 ? names.join(', ') : t('dash.andMore', { list: names.slice(0, 2).join(', '), n: names.length - 2 });
   const describe = (a: Activity) => {
-    const vars = { actor: iso(a.actorName), items: iso(itemList(a.items)), supplier: iso(a.supplierName ?? ''), site: iso(a.projectName ?? '') };
+    const vars = { actor: iso(a.actorName), items: iso(itemList(a.items)), supplier: iso(a.supplierName ?? ''), customer: iso(a.customerName ?? ''), site: iso(a.projectName ?? '') };
     if (a.kind === 'Purchase') return t(a.projectName ? 'dash.act.purchaseSite' : 'dash.act.purchaseWarehouse', vars);
     return t(`dash.act.${a.kind}`, vars);
   };
-  const activityIcon = { Purchase: <CartIcon />, Issue: <SwapIcon />, Return: <UndoIcon /> };
-  const activityTone = { Purchase: 'ok', Issue: 'info', Return: 'warn' };
+  const activityIcon = { Purchase: <CartIcon />, Sale: <TrendingIcon />, Issue: <SwapIcon />, Return: <UndoIcon /> };
+  const activityTone = { Purchase: 'ok', Sale: 'ok', Issue: 'info', Return: 'warn' };
+  const activityLink = { Purchase: '/purchases', Sale: '/sales', Issue: '/movements', Return: '/movements' };
 
   const firstName = user?.fullName?.split(' ')[0] ?? '';
 
@@ -185,7 +186,7 @@ export function DashboardPage() {
             {loading && <Skeletons />}
             {data && data.activity.length === 0 && <div className="dash-empty">{t('dash.noActivity')}</div>}
             {data?.activity.map((a) => (
-              <Link key={`${a.kind}-${a.id}`} to={a.kind === 'Purchase' ? '/purchases' : '/movements'} className="dash-item">
+              <Link key={`${a.kind}-${a.id}`} to={activityLink[a.kind]} className="dash-item">
                 <span className={`act-ic ${activityTone[a.kind]}`}>{activityIcon[a.kind]}</span>
                 <div className="grow">
                   <div className="dash-sentence">{describe(a)}</div>

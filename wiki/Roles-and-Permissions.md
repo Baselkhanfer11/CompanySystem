@@ -20,14 +20,16 @@ Two **groups** are built from them:
 
 | Action | Employee | Procurement Officer | Warehouse Manager | Administrator |
 |--------|:--------:|:-------------------:|:-----------------:|:-------------:|
-| Log in & view employees, items, projects, suppliers, purchases, stock, plans, to-buy | ✅ | ✅ | ✅ | ✅ |
+| Log in & view employees, items, projects, suppliers, purchases, customers, sales, stock, plans, to-buy | ✅ | ✅ | ✅ | ✅ |
 | Upload a document / resubmit **their own** returned one | ✅ | ✅ | ✅ | ✅ |
 | Create / edit / delete **items** and **suppliers** | ❌ | ✅ | ✅ | ✅ |
 | Record / edit / delete **purchases** | ❌ | ✅ | ✅ | ✅ |
+| Create / edit / delete **customers**; record, edit, deliver, undo, cancel **sales** and take **payments** | ❌ | ✅ | ✅ | ✅ |
 | Send / return / undo **stock movements** (incl. split) | ❌ | ✅ | ✅ | ✅ |
 | Edit a project's **material plan** | ❌ | ✅ | ✅ | ✅ |
 | Create / edit / delete **employees** and **projects** | ❌ | ❌ | ✅ | ✅ |
 | See **buying prices**: item prices, purchase invoices, supplier price history, to-buy estimates | ❌ | ✅ | ✅ | ✅ |
+| See **selling prices**: sale totals, line prices, payments received | ❌ | ✅ | ✅ | ✅ |
 | See **cost figures**: the Costs page, dashboard money, site stock values, what a send or return was worth, plan budgets | ❌ | ❌ | ✅ | ✅ |
 | Approve / return / reject at the **Manager** stage | ❌ | ❌ | ✅ | ❌ |
 | Approve / return / reject at the **CEO** stage | ❌ | ❌ | ❌ | ✅ |

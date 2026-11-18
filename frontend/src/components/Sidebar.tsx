@@ -5,7 +5,7 @@ import { canManage, isAdmin } from '../auth/roles';
 import { useItems } from '../data/ItemsContext';
 import { useI18n } from '../i18n/LanguageContext';
 import {
-  BoxesIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, KeyIcon, LogoutIcon,
+  BoxesIcon, BriefcaseIcon, CartIcon, ClipboardIcon, CubeIcon, DashboardIcon, FileIcon, KeyIcon, LogoutIcon,
   ProjectsIcon, ShieldIcon, SwapIcon, TrendingIcon, TruckIcon, UsersIcon, WalletIcon,
 } from './icons';
 import { Avatar } from './Avatar';
@@ -14,10 +14,6 @@ import { PasswordModal } from './PasswordModal';
 const live = [
   { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, end: true },
   { to: '/employees', labelKey: 'nav.employees', icon: <UsersIcon /> },
-];
-
-const soon = [
-  { labelKey: 'nav.sales', icon: <TrendingIcon /> },
 ];
 
 export function Sidebar({ open }: { open: boolean }) {
@@ -78,6 +74,14 @@ export function Sidebar({ open }: { open: boolean }) {
         <CartIcon />
         <span>{t('nav.purchases')}</span>
       </NavLink>
+      <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <BriefcaseIcon />
+        <span>{t('nav.customers')}</span>
+      </NavLink>
+      <NavLink to="/sales" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <TrendingIcon />
+        <span>{t('nav.sales')}</span>
+      </NavLink>
       <NavLink to="/movements" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         <SwapIcon />
         <span>{t('nav.movements')}</span>
@@ -94,14 +98,6 @@ export function Sidebar({ open }: { open: boolean }) {
           <span>{t('nav.costs')}</span>
         </NavLink>
       )}
-      {soon.map((item) => (
-        <div key={item.labelKey} className="nav-item disabled">
-          {item.icon}
-          <span>{t(item.labelKey)}</span>
-          <span className="soon-tag">{t('nav.soon')}</span>
-        </div>
-      ))}
-
       <div className="sidebar-footer">
         <div className="user-chip">
           <Avatar name={user?.fullName || 'User'} size={34} />

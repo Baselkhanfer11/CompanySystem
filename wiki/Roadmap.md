@@ -36,11 +36,17 @@ Where CompanySystem is and where it's heading.
 - **Money for managers only** — cost figures for managers, buying prices also for the Procurement Officer, no money for Employees; enforced in the API (#22).
 - **Stock and money safety** — simultaneous changes take turns, editing an item never puts old stock back, prices keep 4 decimals, a site's cost can't go below zero, date and quantity typos refused (#23).
 
+**Review follow-ups** (PRs #25 – #27)
+- Admin records guarded, sign-in hardening, safer deletes, exact return costs, dates right west of UTC, keyboard-friendly dialogs, real-Excel upload checks, deleted purchases kept as history, text limits.
+
+**Sales**
+- **Customers & Sales** — orders, one-step deliveries through the stock lock, payments with a running balance, cancel and undo rules, a full history, Excel export, dashboard activity. See [[Sales]].
+
 **Throughout** — bilingual EN/AR with RTL, dark/light theme, correct UTC times, phone-friendly layouts.
 
 ## 🔜 Next up
 
-- **Sales** — the other half of "purchases & sales statistics".
+- **Sales reports** — revenue by customer and month next to the cost report, and a profit view per item.
 
 ## 💡 Later ideas
 

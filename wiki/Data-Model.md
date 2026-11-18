@@ -35,6 +35,23 @@ One invoice line: `PurchaseId`, `ItemId`, `Quantity`, `UnitPrice` (what was actu
 ### PurchaseEvent
 One entry in a purchase's **edit history**: `PurchaseId`, `Action` (`Edited`), `ActorId`, `Changes` (JSON list of what changed — fields from → to, lines added / removed / changed, with name snapshots), `CreatedAt`.
 
+## Selling
+
+### Customer
+Who the company sells to. The same fields as a supplier: `Name`, unique `Code`, optional `ContactPerson` / `Phone` / `Email` / `Address` / `Notes`, `Status` (`Active` / `Inactive`), `CreatedAt`.
+
+### Sale
+One order to a customer. Fields: `CustomerId`, optional `Reference`, `Date`, optional `Notes`, `Status` (`Ordered` / `Delivered` / `Cancelled`), `DeliveredAt` / `DeliveredById` (set while delivered), `CancelledAt` / `CancelledById`, `CreatedById`, `CreatedAt`, its `Items` and its `Payments`. The payment status (`Unpaid` / `PartlyPaid` / `Paid`) is **never stored** — it's worked out from the total and the payments. See [[Sales]].
+
+### SaleItem
+One order line: `SaleId`, `ItemId`, `Quantity`, `UnitPrice` (the selling price typed on the sale, 4 decimals).
+
+### SalePayment
+Money received against a sale: `SaleId`, `Date`, `Amount` (4 decimals), optional `Note`, `RecordedById`, `CreatedAt`.
+
+### SaleEvent
+One entry in a sale's history: `SaleId`, `Action` (`Edited` / `Delivered` / `DeliveryUndone` / `Cancelled` / `PaymentAdded` / `PaymentRemoved`), `ActorId`, `Changes` (JSON, like a purchase edit, plus the amount for payments), `CreatedAt`.
+
 ## Moving stock
 
 ### StockMovement
@@ -66,13 +83,17 @@ Project  1───* StockMovement   1───* StockMovementLine *───1 I
 Project  1───* Purchase        (optional: null = warehouse)
 Supplier 1───* Purchase        1───* PurchaseItem *───1 Item
 Purchase 1───* PurchaseEvent
+Customer 1───* Sale            1───* SaleItem *───1 Item
+Sale     1───* SalePayment
+Sale     1───* SaleEvent
 
 Project  1───* Document        1───* DocumentEvent
 User     1───* Notification    (as Recipient)
 Notification ···> Document     (loose id, NO foreign key)
 
 User is also linked as: Document.UploadedBy, DocumentEvent.Actor, Purchase.CreatedBy,
-PurchaseEvent.Actor, StockMovement.CreatedBy, ProjectMaterial.UpdatedBy
+PurchaseEvent.Actor, StockMovement.CreatedBy, ProjectMaterial.UpdatedBy, Sale.CreatedBy /
+DeliveredBy / CancelledBy, SalePayment.RecordedBy, SaleEvent.Actor
 ```
 
 ## Delete behavior (why it's set up this way)
@@ -82,20 +103,22 @@ Two goals: **history never disappears**, and SQL Server never sees **multiple ca
 | Relationship | On delete | Reason |
 |--------------|-----------|--------|
 | Purchase → PurchaseItem, PurchaseEvent | **Cascade** | Lines and history are part of the purchase |
+| Sale → SaleItem, SalePayment, SaleEvent | **Cascade** | Lines, payments and history are part of the sale (sales themselves are never deleted, only cancelled) |
+| Sale → Customer | **Restrict** | Can't delete a customer with sales |
 | StockMovement → StockMovementLine | **Cascade** | Lines are part of the movement |
 | Project → ProjectMaterial | **Cascade** | The plan goes with its project |
 | Project → Document → DocumentEvent | **Cascade** | Deleting a project removes its documents and their history |
 | Employee → User | **Cascade** | Deleting an employee removes their login |
 | Purchase → Supplier | **Restrict** | Can't delete a supplier with purchases — cost history stays intact |
 | Purchase / StockMovement → Project | **Restrict** | Can't delete a project with purchases or movements |
-| PurchaseItem / StockMovementLine / ProjectMaterial → Item | **Restrict** | Can't delete an item that's been bought, moved or planned |
+| PurchaseItem / SaleItem / StockMovementLine / ProjectMaterial → Item | **Restrict** | Can't delete an item that's been bought, sold, moved or planned |
 | Anything → User (CreatedBy, Actor, UploadedBy, Recipient…) | **Restrict** | Removing a user never erases history |
 | Notification → Document | *(no FK)* | Alerts outlive rejected/deleted documents |
 
 ## A note on statuses
 
-Statuses and types (`ProjectStatuses`, `SupplierStatuses`, `StockMovementTypes`, `DocumentStatuses`, `DocumentActions`, `PurchaseActions`, `NotificationTypes`, `Roles`) are stored as **plain strings** with a small validator class each. Adding a new value is a one-line code change with **no database migration** required.
+Statuses and types (`ProjectStatuses`, `SupplierStatuses`, `CustomerStatuses`, `SaleStatuses`, `SaleActions`, `StockMovementTypes`, `DocumentStatuses`, `DocumentActions`, `PurchaseActions`, `NotificationTypes`, `Roles`) are stored as **plain strings** with a small validator class each. Adding a new value is a one-line code change with **no database migration** required.
 
 ## Money
 
-Prices, paid unit prices and movement unit costs are all stored with **4 decimals** (a screw can cost 0.075; return costs are averages). Totals are shown with 2.
+Prices, paid unit prices, selling prices, payments and movement unit costs are all stored with **4 decimals** (a screw can cost 0.075; return costs are averages). Totals are shown with 2.

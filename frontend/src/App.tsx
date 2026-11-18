@@ -14,6 +14,8 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((m) => ({ de
 const DocumentsPage = lazy(() => import('./pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage').then((m) => ({ default: m.SuppliersPage })));
 const PurchasesPage = lazy(() => import('./pages/PurchasesPage').then((m) => ({ default: m.PurchasesPage })));
+const CustomersPage = lazy(() => import('./pages/CustomersPage').then((m) => ({ default: m.CustomersPage })));
+const SalesPage = lazy(() => import('./pages/SalesPage').then((m) => ({ default: m.SalesPage })));
 const StockMovementsPage = lazy(() => import('./pages/StockMovementsPage').then((m) => ({ default: m.StockMovementsPage })));
 const ToBuyPage = lazy(() => import('./pages/ToBuyPage').then((m) => ({ default: m.ToBuyPage })));
 const CostsPage = lazy(() => import('./pages/CostsPage').then((m) => ({ default: m.CostsPage })));
@@ -41,6 +43,8 @@ export default function App() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/sales" element={<SalesPage />} />
           <Route path="/movements" element={<StockMovementsPage />} />
           <Route path="/to-buy" element={<ToBuyPage />} />
           <Route path="/costs" element={<CostsPage />} />
