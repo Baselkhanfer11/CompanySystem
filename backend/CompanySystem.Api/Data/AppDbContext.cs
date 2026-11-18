@@ -311,6 +311,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SaleItem>()
             .Property(li => li.UnitPrice)
             .HasPrecision(18, 4);
+        modelBuilder.Entity<SaleItem>()
+            .Property(li => li.UnitCost)
+            .HasPrecision(18, 4);
 
         modelBuilder.Entity<SalePayment>()
             .HasOne(p => p.Sale)

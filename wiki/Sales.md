@@ -72,6 +72,21 @@ A customer **owes** on a sale once it's **delivered** and not fully paid. An ord
 
 All of this is worked out in the browser from the sales list (total − paid); nothing extra is stored.
 
+## The sales report
+
+**Sales report** (sidebar, managers only — profit needs what the material cost) shows, for a period (this month, last 3 months, this year, all time):
+
+| Figure | How it's worked out |
+|--------|---------------------|
+| **Revenue** | Σ quantity × selling price, on sales **delivered** in the period (by delivery day) |
+| **Cost of what was sold** | Σ quantity × the item's price **on the day of delivery** (`SaleItem.UnitCost`, a snapshot taken when the sale is delivered) |
+| **Profit** and **margin** | revenue − cost, and profit ÷ revenue |
+| **Collected** | payments received in the period, by payment date (deposits included) |
+
+Below the tiles: revenue **by customer** (with profit, and what each still owes on those sales), revenue **by month**, and revenue **by item** (quantity, profit and margin). Orders not yet delivered and cancelled sales never count. Everything exports to Excel (one sheet per month / customer / item, with cost and profit).
+
+Because the cost is a snapshot, changing an item's price later never rewrites past profit — the same rule as stock movements. Sales delivered before the snapshot existed were given the item's price at the time of the upgrade.
+
 ## Where it shows up
 
 - **Dashboard → Recent activity** lists new orders next to purchases and movements.

@@ -44,6 +44,37 @@ public record CostSourceDto(int? SupplierId, string Name, decimal Total, int Cou
 
 public record ItemSpendDto(int ItemId, string Name, string Code, string Unit, int Quantity, decimal Total);
 
+// ---- Sales report ----
+//
+// A sale counts when it's delivered (the day the material left the warehouse),
+// never as an order and never once cancelled.
+//   Revenue = Σ quantity × selling price
+//   Cost    = Σ quantity × the item's price on delivery (SaleItem.UnitCost)
+//   Profit  = Revenue − Cost
+// Collected is money received in the period (payment dates), deposits included.
+
+public record SalesMonthDto(int Year, int Month, decimal Revenue, decimal Cost, decimal Profit);
+
+public record CustomerSalesDto(
+    int CustomerId, string Name, string Code,
+    int SaleCount, decimal Revenue, decimal Profit,
+    decimal Owed); // still to pay on these sales, today
+
+public record ItemSalesDto(
+    int ItemId, string Name, string Code, string Unit,
+    int Quantity, decimal Revenue, decimal Cost, decimal Profit);
+
+public record SalesReportDto(
+    decimal Revenue,
+    decimal Cost,
+    decimal Profit,
+    decimal? MarginPercent, // profit ÷ revenue × 100, null with no revenue
+    int SaleCount,
+    decimal Collected,
+    IReadOnlyList<SalesMonthDto> Monthly,
+    IReadOnlyList<CustomerSalesDto> ByCustomer, // most revenue first
+    IReadOnlyList<ItemSalesDto> ByItem);        // most revenue first
+
 public record ProjectCostDetailDto(
     int? ProjectId,
     string Name,

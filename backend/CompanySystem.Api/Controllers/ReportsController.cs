@@ -166,7 +166,126 @@ public class ReportsController(AppDbContext db) : ControllerBase
             recentMovements));
     }
 
+    // GET /api/reports/sales?from=2026-01-01&to=2026-11-18
+    // What was sold in the period (by delivery day), what it cost, the profit, and
+    // the money collected. Both dates optional and inclusive; no dates = all time.
+    [HttpGet("sales")]
+    public async Task<ActionResult<SalesReportDto>> Sales([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        if (from > to) return BadRequest(new { message = "'from' must be on or before 'to'." });
+        if ((InputRules.ReportDateProblem(from) ?? InputRules.ReportDateProblem(to)) is string problem)
+            return BadRequest(new { message = problem });
+
+        // Delivered sales in the period, summed by the database per customer, item and month.
+        var delivered = DeliveredSales(from, to);
+        var lines = await db.SaleItems
+            .Where(li => delivered.Contains(li.Sale!))
+            .GroupBy(li => new { li.Sale!.CustomerId, li.ItemId, li.Sale.DeliveredAt!.Value.Year, li.Sale.DeliveredAt.Value.Month })
+            .Select(g => new
+            {
+                g.Key.CustomerId, g.Key.ItemId, g.Key.Year, g.Key.Month,
+                Qty = g.Sum(li => li.Quantity),
+                Revenue = g.Sum(li => li.Quantity * li.UnitPrice),
+                Cost = g.Sum(li => li.Quantity * li.UnitCost),
+            })
+            .ToListAsync();
+
+        // Per customer: how many of these sales, and what's still owed on them.
+        var perCustomer = await delivered
+            .GroupBy(s => s.CustomerId)
+            .Select(g => new
+            {
+                CustomerId = g.Key,
+                Count = g.Count(),
+                Owed = g.Sum(s => s.Items.Sum(li => li.Quantity * li.UnitPrice)) - g.Sum(s => s.Payments.Sum(p => (decimal?)p.Amount) ?? 0),
+            })
+            .ToDictionaryAsync(x => x.CustomerId);
+
+        var collected = await Payments(from, to).SumAsync(p => (decimal?)p.Amount) ?? 0;
+
+        var customerIds = lines.Select(l => l.CustomerId).Distinct().ToList();
+        var customers = await db.Customers.AsNoTracking().Where(c => customerIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id);
+        var itemIds = lines.Select(l => l.ItemId).Distinct().ToList();
+        var items = await db.Items.AsNoTracking().Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+
+        var byCustomer = lines
+            .GroupBy(l => l.CustomerId)
+            .Select(g => new CustomerSalesDto(
+                g.Key, customers[g.Key].Name, customers[g.Key].Code,
+                perCustomer[g.Key].Count,
+                g.Sum(l => l.Revenue),
+                g.Sum(l => l.Revenue - l.Cost),
+                Math.Max(0, perCustomer[g.Key].Owed)))
+            .OrderByDescending(c => c.Revenue).ThenBy(c => c.Name)
+            .ToList();
+
+        var byItem = lines
+            .GroupBy(l => l.ItemId)
+            .Select(g => new ItemSalesDto(
+                g.Key, items[g.Key].Name, items[g.Key].Code, items[g.Key].Unit,
+                g.Sum(l => l.Qty), g.Sum(l => l.Revenue), g.Sum(l => l.Cost), g.Sum(l => l.Revenue - l.Cost)))
+            .OrderByDescending(i => i.Revenue).ThenBy(i => i.Name)
+            .ToList();
+
+        // Month by month, with empty months filled in (like the cost trend).
+        var byMonth = lines.GroupBy(l => (l.Year, l.Month))
+            .ToDictionary(g => g.Key, g => (Revenue: g.Sum(l => l.Revenue), Cost: g.Sum(l => l.Cost)));
+        var monthly = MonthsBetween(byMonth.Keys, from, to)
+            .Select(m =>
+            {
+                var (revenue, cost) = byMonth.GetValueOrDefault(m);
+                return new SalesMonthDto(m.Year, m.Month, revenue, cost, revenue - cost);
+            })
+            .ToList();
+
+        var totalRevenue = lines.Sum(l => l.Revenue);
+        var totalCost = lines.Sum(l => l.Cost);
+        var profit = totalRevenue - totalCost;
+        return Ok(new SalesReportDto(
+            totalRevenue,
+            totalCost,
+            profit,
+            totalRevenue > 0 ? Math.Round(profit / totalRevenue * 100, 1) : null,
+            perCustomer.Values.Sum(c => c.Count),
+            collected,
+            monthly,
+            byCustomer,
+            byItem));
+    }
+
     // --- helpers ---
+
+    // Sales delivered inside [from, to] (by the day the material left the warehouse).
+    private IQueryable<Sale> DeliveredSales(DateTime? from, DateTime? to)
+    {
+        var q = db.Sales.Where(s => s.Status == SaleStatuses.Delivered && s.DeliveredAt != null);
+        if (from is DateTime f) { var start = f.Date; q = q.Where(s => s.DeliveredAt >= start); }
+        if (to is DateTime t) { var end = t.Date.AddDays(1); q = q.Where(s => s.DeliveredAt < end); }
+        return q;
+    }
+
+    // Payments received inside [from, to] (by the payment's own date).
+    private IQueryable<SalePayment> Payments(DateTime? from, DateTime? to)
+    {
+        var q = db.SalePayments.AsQueryable();
+        if (from is DateTime f) { var start = f.Date; q = q.Where(p => p.Date >= start); }
+        if (to is DateTime t) { var end = t.Date.AddDays(1); q = q.Where(p => p.Date < end); }
+        return q;
+    }
+
+    // Every calendar month from the start of the period (or the first month with
+    // data) to the end of it (or this month), so a chart never skips a month.
+    private static List<(int Year, int Month)> MonthsBetween(IEnumerable<(int Year, int Month)> withData, DateTime? from, DateTime? to)
+    {
+        var months = withData.Select(k => new DateTime(k.Year, k.Month, 1)).ToList();
+        if (months.Count == 0 && from is null) return [];
+        var start = MonthStart(from ?? months.Min());
+        var end = MonthStart(to ?? DateTime.UtcNow);
+        if (months.Count > 0 && months.Max() > end) end = months.Max();
+        var result = new List<(int, int)>();
+        for (var m = start; m <= end; m = m.AddMonths(1)) result.Add((m.Year, m.Month));
+        return result;
+    }
 
     // Every cost in the period, summed by the database per bucket, source, item
     // and month (so only a small number of rows come back).

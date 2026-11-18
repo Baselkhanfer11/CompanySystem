@@ -30,7 +30,7 @@ Two **groups** are built from them:
 | Create / edit / delete **employees** and **projects** | ❌ | ❌ | ✅ | ✅ |
 | See **buying prices**: item prices, purchase invoices, supplier price history, to-buy estimates | ❌ | ✅ | ✅ | ✅ |
 | See **selling prices**: sale totals, line prices, payments received | ❌ | ✅ | ✅ | ✅ |
-| See **cost figures**: the Costs page, dashboard money, site stock values, what a send or return was worth, plan budgets | ❌ | ❌ | ✅ | ✅ |
+| See **cost figures**: the Costs page, the Sales report (profit), dashboard money, site stock values, what a send or return was worth, plan budgets | ❌ | ❌ | ✅ | ✅ |
 | Approve / return / reject at the **Manager** stage | ❌ | ❌ | ✅ | ❌ |
 | Approve / return / reject at the **CEO** stage | ❌ | ❌ | ❌ | ✅ |
 | Manage user accounts & access | ❌ | ❌ | ❌ | ✅ |

@@ -41,12 +41,13 @@ Where CompanySystem is and where it's heading.
 
 **Sales**
 - **Customers & Sales** — orders, one-step deliveries through the stock lock, payments with a running balance, cancel and undo rules, a full history, Excel export, dashboard activity. See [[Sales]].
+- **Unpaid sales and the sales report** — a dashboard tile and an Owing filter for what customers owe; a managers-only report of revenue, profit and margin by customer, item and month.
 
 **Throughout** — bilingual EN/AR with RTL, dark/light theme, correct UTC times, phone-friendly layouts.
 
 ## 🔜 Next up
 
-- **Sales reports** — revenue by customer and month next to the cost report, and a profit view per item.
+- **Item photos** — upload and show a picture per item (`Item.ImageUrl` is already there).
 
 ## 💡 Later ideas
 
