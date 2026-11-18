@@ -11,7 +11,7 @@ namespace CompanySystem.Api.Tests;
 /// </summary>
 public class MoneyVisibilityTests(ApiFactory api) : IClassFixture<ApiFactory>, IAsyncLifetime
 {
-    private int _projectId, _movementId;
+    private int _projectId, _movementId, _saleId;
     private HttpClient _manager = null!, _buyer = null!, _employee = null!;
 
     // One small set of data: an item bought into the warehouse, part of it sent
@@ -26,6 +26,9 @@ public class MoneyVisibilityTests(ApiFactory api) : IClassFixture<ApiFactory>, I
         await Id(admin.PostAsJsonAsync("/api/purchases", new { supplierId = supplier, projectId = _projectId, date = "2026-10-02", items = new[] { new { itemId = item, quantity = 5, unitPrice = 6.2 } } }));
         _movementId = await Id(admin.PostAsJsonAsync("/api/stock/movements", new { type = "Issue", projectId = _projectId, date = "2026-10-03", items = new[] { new { itemId = item, quantity = 4 } } }));
         (await admin.PutAsJsonAsync($"/api/projects/{_projectId}/plan", new[] { new { itemId = item, planned = 40 } })).EnsureSuccessStatusCode();
+        var customer = await Id(admin.PostAsJsonAsync("/api/customers", new { name = "Customer", code = Code(), status = "Active" }));
+        _saleId = await Id(admin.PostAsJsonAsync("/api/sales", new { customerId = customer, reference = (string?)null, date = "2026-10-04", notes = (string?)null, items = new[] { new { itemId = item, quantity = 2, unitPrice = 9.0 } } }));
+        (await admin.PostAsJsonAsync($"/api/sales/{_saleId}/payments", new { date = "2026-10-05", amount = 5.0, note = (string?)null })).EnsureSuccessStatusCode();
 
         _manager = (await api.CreatePerson(Roles.WarehouseManager, "Money manager")).Client;
         _buyer = (await api.CreatePerson(Roles.ProcurementOfficer, "Money buyer")).Client;
@@ -88,11 +91,30 @@ public class MoneyVisibilityTests(ApiFactory api) : IClassFixture<ApiFactory>, I
     [InlineData("/api/purchases", "total")]
     [InlineData("/api/prices", "lastPrice")]
     [InlineData("/api/plans/shortages", "estimatedCost")]
+    [InlineData("/api/sales", "total")]
+    [InlineData("/api/sales", "paid")]
     public async Task Buying_prices_are_for_managers_and_procurement_not_employees(string path, string field)
     {
         Assert.True(Has(await Get(_manager, path), field));
         Assert.True(Has(await Get(_buyer, path), field));
         Assert.False(Has(await Get(_employee, path), field));
+    }
+
+    // ---- Selling prices: the same people as buying prices ----
+
+    [Theory]
+    [InlineData("unitPrice")]
+    [InlineData("total")]
+    [InlineData("remaining")]
+    public async Task Selling_prices_and_payments_are_for_managers_and_procurement_not_employees(string field)
+    {
+        var path = $"/api/sales/{_saleId}";
+        Assert.True(Has(await Get(_manager, path), field, "items"));
+        Assert.True(Has(await Get(_buyer, path), field, "items"));
+        var asEmployee = await Get(_employee, path);
+        Assert.False(Has(asEmployee, field, "items"));
+        Assert.False(Has(asEmployee.GetProperty("payments"), "amount"));
+        Assert.True(Has(asEmployee, "paymentStatus")); // paid or not is not a figure
     }
 
     [Fact]
@@ -127,4 +149,8 @@ public class MoneyVisibilityTests(ApiFactory api) : IClassFixture<ApiFactory>, I
         var row = json.ValueKind == JsonValueKind.Array ? json[0] : json;
         return row.TryGetProperty(field, out _);
     }
+
+    // The same, looking in the object itself or in the first row of one of its lists.
+    private static bool Has(JsonElement json, string field, string list) =>
+        Has(json, field) || Has(json.GetProperty(list), field);
 }

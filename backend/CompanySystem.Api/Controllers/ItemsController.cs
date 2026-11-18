@@ -92,8 +92,10 @@ public class ItemsController(AppDbContext db, StockService stock) : ControllerBa
         if (item is null) return NotFound();
 
         // Keep history intact: an item that appears on purchases, movements or plans stays.
-        if (await db.PurchaseItems.IgnoreQueryFilters().AnyAsync(li => li.ItemId == id) || await db.StockMovementLines.AnyAsync(l => l.ItemId == id))
-            return Conflict(new { message = "Can't delete — this item is used on purchases or stock movements." });
+        if (await db.PurchaseItems.IgnoreQueryFilters().AnyAsync(li => li.ItemId == id)
+            || await db.StockMovementLines.AnyAsync(l => l.ItemId == id)
+            || await db.SaleItems.AnyAsync(l => l.ItemId == id))
+            return Conflict(new { message = "Can't delete — this item is used on purchases, sales or stock movements." });
         if (await db.ProjectMaterials.AnyAsync(m => m.ItemId == id))
             return Conflict(new { message = "Can't delete — this item is in a project's material plan. Remove it from the plan first." });
 
