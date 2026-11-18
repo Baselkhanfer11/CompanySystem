@@ -62,6 +62,16 @@ Every step is a `SaleEvent` with who did it and when, shown as a timeline on the
 
 The same split as purchases: anyone signed in can **see** sales and customers; managers and the Procurement Officer can **record, edit, deliver, undo, cancel** and **take payments**. Selling prices, totals and payment amounts are money, and are left out of the API's answers for the Employee role (`[SellingPrice]` in `Json/MoneyVisibility.cs`) — an Employee sees the order, its quantities and whether it's paid, but no figures.
 
+## Who owes money
+
+A customer **owes** on a sale once it's **delivered** and not fully paid. An order that hasn't left the warehouse isn't a debt yet, and a cancelled one never is.
+
+- **Dashboard → Owed by customers**: the total still owed, and by how many customers on how many sales. Clicking the tile opens the Owing view. (Shown to the people who see selling prices.)
+- **Sales → Owing**: a summary of **who owes how much** (biggest debt first, with the date of their oldest unpaid sale), then those sales, **oldest first**. The address is `/sales?show=owing`, so it can be bookmarked.
+- In the normal list, every delivered sale that isn't fully paid shows what's **owed** under its total.
+
+All of this is worked out in the browser from the sales list (total − paid); nothing extra is stored.
+
 ## Where it shows up
 
 - **Dashboard → Recent activity** lists new orders next to purchases and movements.
