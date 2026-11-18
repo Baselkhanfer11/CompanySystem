@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { salesApi } from '../api/sales';
 import { useAuth } from '../auth/AuthContext';
 import { canProcure } from '../auth/roles';
@@ -15,7 +15,7 @@ import { useItems } from '../data/ItemsContext';
 import { NONE, salesChanged, useCustomers, useSales } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDay, formatMoney } from '../lib/format';
-import { PAYMENT_STATUS_BADGE, SALE_STATUS_BADGE } from '../lib/sales';
+import { debtors, isOwing, owedOn, PAYMENT_STATUS_BADGE, SALE_STATUS_BADGE } from '../lib/sales';
 import { sheet } from '../lib/xlsx';
 import type { LayoutContext } from '../layouts/AppLayout';
 import type { Customer, SaleDetail, SaleInput, SaleListItem } from '../types';
@@ -44,13 +44,29 @@ export function SalesPage() {
   const [step, setStep] = useState<Step | null>(null);
   const [stepBusy, setStepBusy] = useState(false);
 
+  // All sales, or only the ones customers still owe money on. Kept in the address
+  // (?show=owing) so the dashboard tile can link straight to it.
+  const [params, setParams] = useSearchParams();
+  const owingOnly = params.get('show') === 'owing';
+  const setOwingOnly = (on: boolean) => setParams(on ? { show: 'owing' } : {}, { replace: true });
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return sales;
-    return sales.filter((s) =>
-      [s.customerName, s.reference, s.createdByName, t(`sale.status.${s.status}`)].filter(Boolean).some((v) => v!.toLowerCase().includes(q)),
-    );
-  }, [sales, search, t]);
+    let list = owingOnly
+      ? sales.filter(isOwing).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id) // oldest debt first
+      : sales;
+    if (q) {
+      list = list.filter((s) =>
+        [s.customerName, s.reference, s.createdByName, t(`sale.status.${s.status}`)].filter(Boolean).some((v) => v!.toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  }, [sales, search, t, owingOnly]);
+
+  // Who owes how much (for the summary above the table, and the filter's count).
+  const owing = useMemo(() => debtors(sales), [sales]);
+  const owingSales = owing.reduce((n, d) => n + d.sales, 0);
+  const owedTotal = owing.reduce((sum, d) => sum + (d.owed ?? 0), 0);
 
   // The Excel file: the same sales as the table.
   const exportSheets = () => [sheet<SaleListItem>(t('sale.title'), [
@@ -63,6 +79,7 @@ export function SalesPage() {
     ...(prices ? [
       { header: t('sale.colTotal'), type: 'money' as const, value: (s: SaleListItem) => s.total },
       { header: t('sale.colPaid'), type: 'money' as const, value: (s: SaleListItem) => s.paid },
+      { header: t('sale.colOwed'), type: 'money' as const, value: (s: SaleListItem) => (isOwing(s) ? owedOn(s) : 0) },
     ] : []),
     { header: t('xl.recordedBy'), value: (s) => s.createdByName },
   ], filtered)];
@@ -126,10 +143,59 @@ export function SalesPage() {
         </div>
       </div>
 
+      <div className="filter-row">
+        <div className="seg" role="group" aria-label={t('sale.showLabel')}>
+          <button type="button" className={`seg-btn ${!owingOnly ? 'on' : ''}`} aria-pressed={!owingOnly} onClick={() => setOwingOnly(false)}>
+            {t('sale.showAll')}
+          </button>
+          <button type="button" className={`seg-btn ${owingOnly ? 'on' : ''}`} aria-pressed={owingOnly} onClick={() => setOwingOnly(true)}>
+            {t('sale.showOwing')}{owingSales > 0 && <span className="nav-count" style={{ marginInlineStart: 8 }}>{owingSales}</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* Who owes how much — biggest debt first */}
+      {owingOnly && !loading && owing.length > 0 && (
+        <div className="panel rise" style={{ marginBottom: 'var(--sp-6)' }}>
+          <div className="panel-head">
+            <div>
+              <h3>{t('sale.owedTitle')}</h3>
+              <div className="sub">
+                {prices
+                  ? t('sale.owedSub', { amount: formatMoney(owedTotal), customers: owing.length, sales: owingSales })
+                  : t('sale.owedSubNoMoney', { customers: owing.length, sales: owingSales })}
+              </div>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>{t('sale.colCustomer')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('sale.colUnpaidSales')}</th>
+                  <th>{t('sale.colOldest')}</th>
+                  {prices && <th className="num">{t('sale.colOwed')}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {owing.map((d) => (
+                  <tr key={d.customerId}>
+                    <td><div className="name">{d.customerName}</div></td>
+                    <td style={{ textAlign: 'center' }}>{d.sales}</td>
+                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDay(d.oldest)}</td>
+                    {prices && <td className="num" style={{ fontWeight: 700, color: 'var(--amber)' }}>{formatMoney(d.owed)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="panel rise">
         <div className="panel-head">
           <div>
-            <h3>{t('sale.all')}</h3>
+            <h3>{owingOnly ? t('sale.owingList') : t('sale.all')}</h3>
             <div className="sub">
               {loading
                 ? t('common.loading')
@@ -147,9 +213,9 @@ export function SalesPage() {
         {!loading && !loadError && filtered.length === 0 && (
           <div className="empty-state">
             <div className="empty-illus"><TrendingIcon /></div>
-            <h4>{search ? t('common.noMatches') : t('sale.noneTitle')}</h4>
-            <p>{search ? t('common.differentSearch') : t('sale.addFirst')}</p>
-            {!search && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('sale.add')}</button>}
+            <h4>{search ? t('common.noMatches') : owingOnly ? t('sale.noneOwing') : t('sale.noneTitle')}</h4>
+            <p>{search ? t('common.differentSearch') : owingOnly ? t('sale.noneOwingSub') : t('sale.addFirst')}</p>
+            {!search && !owingOnly && manage && <button className="btn btn-primary" onClick={openCreate}><PlusIcon /> {t('sale.add')}</button>}
           </div>
         )}
 
@@ -186,7 +252,9 @@ export function SalesPage() {
                     {prices && (
                       <td className="num" style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ fontWeight: 600 }}>{formatMoney(s.total)}</div>
-                        {(s.paid ?? 0) > 0 && <div className="email">{t('sale.paidAmount', { amount: formatMoney(s.paid) })}</div>}
+                        {isOwing(s)
+                          ? <div className="email" style={{ color: 'var(--amber)' }}>{t('sale.owedAmount', { amount: formatMoney(owedOn(s)) })}</div>
+                          : (s.paid ?? 0) > 0 && <div className="email">{t('sale.paidAmount', { amount: formatMoney(s.paid) })}</div>}
                       </td>
                     )}
                     <td>

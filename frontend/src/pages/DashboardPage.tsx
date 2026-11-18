@@ -7,10 +7,11 @@ import {
 } from '../components/icons';
 import { StatCard } from '../components/StatCard';
 import { useItems } from '../data/ItemsContext';
-import { useDashboard } from '../data/queries';
+import { NONE, useDashboard, useSales } from '../data/queries';
 import { useI18n } from '../i18n/LanguageContext';
 import { formatDateTime, formatTimeAgo, formatUsd, formatUsdShort } from '../lib/format';
 import { STATUS_BADGE_CLASS } from '../lib/projects';
+import { debtors } from '../lib/sales';
 import { isLowStock, isOutOfStock } from '../lib/stock';
 import type { Activity } from '../types';
 
@@ -27,6 +28,10 @@ export function DashboardPage() {
   // cache the bell already keeps up to date — no extra requests for those.
   const { items, shortages } = useItems();
   const { data, loading, error } = useDashboard();
+  // Who owes money on delivered sales (the same cached list as the Sales page).
+  const owing = debtors(useSales().data ?? NONE);
+  const owedTotal = owing.reduce((sum, d) => sum + (d.owed ?? 0), 0);
+  const owingSales = owing.reduce((n, d) => n + d.sales, 0);
   const seesCosts = data?.costThisMonth != null; // the server leaves money out for non-managers
   const { costs, prices } = useMoney();
 
@@ -96,11 +101,23 @@ export function DashboardPage() {
       )}
 
       {/* Tiles — money first for managers, the team for everyone else */}
-      <div className="stat-grid">
+      <div className={`stat-grid ${prices ? 'five' : ''}`}>
         {seesCosts ? (
           <StatCard icon={<WalletIcon />} value={money(data!.costThisMonth!)} label={t('dash.costMonth')} color="#7c6cff" trend={costTrend().text} trendUp={costTrend().up} delay={0} />
         ) : (
           <StatCard icon={<UsersIcon />} value={loading ? '—' : data?.activeEmployees ?? '—'} label={t('dash.team')} color="#7c6cff" trend={data ? t('dash.teamOf', { n: data.employees }) : undefined} delay={0} />
+        )}
+        {/* What customers still owe on delivered sales — opens the Sales page's Owing view */}
+        {prices && (
+          <StatCard
+            icon={<TrendingIcon />}
+            value={money(owedTotal)}
+            label={t('dash.owed')}
+            color="#38bdf8"
+            trend={owing.length ? t('dash.owedDetail', { customers: owing.length, sales: owingSales }) : t('dash.owedNone')}
+            delay={35}
+            to="/sales?show=owing"
+          />
         )}
         <StatCard icon={<ClipboardIcon />} value={prices ? money(toBuyTotal) : short.length} label={prices ? t('dash.toBuy') : t('toBuy.itemsShort')} color="#fb7185" trend={short.length ? t('dash.toBuyItems', { n: short.length }) : t('dash.toBuyNone')} delay={70} />
         <StatCard icon={<BoxesIcon />} value={out.length + low.length} label={t('dash.alerts')} color="#fbbf24" trend={out.length + low.length ? t('dash.alertsDetail', { out: out.length, low: low.length }) : t('dash.alertsNone')} delay={140} />
